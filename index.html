@@ -258,10 +258,10 @@
         <h2>✅ Registro listo</h2>
         <p class="ayuda" id="infoPDF"></p>
         <div class="acciones">
-          <button class="btn btn-secundario" onclick="copiarCorreo(this)">📋 1. Copiar correo de destino</button>
-          <button class="btn btn-principal" onclick="enviarCorreo()">✉️ 2. Enviar PDF por correo</button>
-          <p class="ayuda" style="margin:0">Elige Gmail u Outlook, pega el correo en "Para" y envía. El PDF va adjunto.</p>
-          <button class="btn btn-secundario" onclick="descargarPDF()">📄 Ver / descargar PDF</button>
+          <button class="btn btn-principal" onclick="enviarCorreo()">📤 Compartir PDF (correo, WhatsApp…)</button>
+          <p class="ayuda" style="margin:0">Se abre la lista de apps: elige Outlook, Gmail o WhatsApp. El PDF va adjunto.</p>
+          <button class="btn btn-secundario" onclick="descargarPDF()">💾 Guardar PDF en el teléfono</button>
+          <button class="btn btn-secundario" onclick="copiarCorreo(this)">📋 Copiar correo de destino</button>
           <p class="mensaje" id="mensajeEnvio"></p>
           <button class="btn btn-secundario" onclick="nuevoRegistro()">Empezar un registro nuevo</button>
         </div>
@@ -1280,20 +1280,21 @@
       if (!pdfListo) return;
       const archivo = new File([pdfListo.bytes], pdfListo.nombreArchivo, { type: "application/pdf" });
 
-      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      // Mandamos el PDF + un texto corto (así funcionaba bien con Outlook en las primeras versiones)
+      const datos = { files: [archivo], title: pdfListo.asunto, text: `${pdfListo.asunto}\nPara: ${CORREO_DESTINO}` };
+
+      if (navigator.canShare && navigator.canShare(datos)) {
         try {
-          await navigator.share({ files: [archivo], title: pdfListo.asunto });
-          msj.textContent = `Listo. Recuerda: Para = ${CORREO_DESTINO} · Asunto sugerido: ${pdfListo.asunto}`;
+          await navigator.share(datos);
+          msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`;
         } catch (e) {
           if (e.name === "AbortError") msj.textContent = "Envío cancelado.";
-          else msj.textContent = `No se pudo compartir (${e.name}). Usa "Ver / descargar PDF" y adjúntalo a mano.` + AVISO_VISTA_PREVIA;
+          else msj.textContent = `No se pudo compartir (${e.name}). Usa "Guardar PDF" y adjúntalo a mano.` + AVISO_VISTA_PREVIA;
         }
       } else {
-        // Computador: descargamos el PDF y abrimos un correo nuevo con asunto y destinatario
+        // Este navegador no puede compartir archivos: guardamos el PDF para adjuntarlo a mano
         descargarPDF();
-        const cuerpo = `Adjunto registro de Charla Diaria + ART.\n\n(Adjunta el archivo ${pdfListo.nombreArchivo} que se acaba de descargar)`;
-        location.href = `mailto:${CORREO_DESTINO}?subject=${encodeURIComponent(pdfListo.asunto)}&body=${encodeURIComponent(cuerpo)}`;
-        msj.textContent = `Se descargó el PDF y se abrió un correo para ${CORREO_DESTINO}. Adjunta el archivo descargado y envía.`;
+        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas: adjúntalo a un correo para ${CORREO_DESTINO}.`;
       }
     }
 
@@ -1305,6 +1306,7 @@
         a.href = url; a.download = pdfListo.nombreArchivo;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60000);
+        msj.textContent = `PDF guardado como ${pdfListo.nombreArchivo} (carpeta Descargas).`;
       } catch (e) {
         msj.textContent = "No se pudo descargar." + AVISO_VISTA_PREVIA;
       }
