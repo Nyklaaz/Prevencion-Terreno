@@ -123,6 +123,13 @@
     .firma.falta canvas.lienzo { border-color: var(--mal); background: #fff5f5; }
     .firma-ayuda { color: #98a2b3; font-size: 12px; }
 
+    /* Fotos de la charla */
+    .fotos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .fotos:empty { display: none; }
+    .foto { position: relative; }
+    .foto img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; display: block; }
+    .foto button { position: absolute; top: 4px; right: 4px; }
+
     .error { color: var(--mal); font-weight: 600; font-size: 14px; }
     /* El aviso principal flota abajo de la pantalla, para que se vea aunque la página se mueva */
     #error:not(:empty) {
@@ -195,6 +202,12 @@
           <h2>Charla diaria – Módulos 3 al 5</h2>
           <div id="modulos" class="modulo"></div>
           <label class="confirmar"><input type="checkbox" name="charlaImpartida" required> Charla impartida al equipo</label>
+
+          <!-- FOTOS DE LA CHARLA: capture="environment" abre la cámara trasera en el celular -->
+          <div id="fotos" class="fotos"></div>
+          <label class="btn btn-secundario" id="btnFoto" style="margin-top:10px">📷 Agregar foto de la charla
+            <input type="file" accept="image/*" capture="environment" onchange="agregarFoto(this)" hidden>
+          </label>
         </div>
 
         <div class="tarjeta">
@@ -263,6 +276,8 @@
           <button class="btn btn-secundario" onclick="descargarPDF()">💾 Guardar PDF en el teléfono</button>
           <button class="btn btn-secundario" onclick="copiarCorreo(this)">📋 Copiar correo de destino</button>
           <p class="mensaje" id="mensajeEnvio"></p>
+          <button class="btn btn-secundario" onclick="nuevoConMismosDatos()">➕ Otro departamento, mismos datos</button>
+          <p class="ayuda" style="margin:0">Repite fecha, hora, obra, ruta y tramo. Solo eliges el departamento, los trabajadores y firman.</p>
           <button class="btn btn-secundario" onclick="nuevoRegistro()">Empezar un registro nuevo</button>
         </div>
       </div>
@@ -489,7 +504,21 @@
 
     CHECKLIST.forEach(([titulo, texto], i) => {
       document.getElementById("checklist").innerHTML += `
-        <div class="pregunta"><p><b>${i + 1}. ${titulo}:</b> ${texto}</p>${botones("chk" + i, ["C", "NC", "N/A"])}</div>`;
+        <div class="pregunta"><p><b>${i + 1}. ${titulo}:</b> ${texto}</p>${botones("chk" + i, ["C", "NC", "N/A"])}
+          <div class="obs-nc" style="display:none">
+            <label>¿Qué no cumple y qué medida se tomó?</label>
+            <textarea name="obs${i}" placeholder="Ej: Falta extintor en camioneta; se solicita reposición y se usa el de la camioneta 2"></textarea>
+          </div>
+        </div>`;
+    });
+
+    // Si marcan NC, aparece el campo de observación y pasa a ser obligatorio
+    document.getElementById("checklist").addEventListener("change", e => {
+      if (e.target.type !== "radio") return;
+      const caja = e.target.closest(".pregunta").querySelector(".obs-nc");
+      const esNC = e.target.value === "NC";
+      caja.style.display = esNC ? "block" : "none";
+      caja.querySelector("textarea").required = esNC;
     });
 
     MODULOS.forEach(m => {
@@ -876,6 +905,16 @@
     document.querySelector("[name=supervisor]").value = responsables.supervisor || "";
     document.querySelector("[name=prevencionista]").value = responsables.prevencionista || "";
 
+    // ¿Venimos de "Otro departamento, mismos datos"? Ponemos los datos y vamos directo a la charla
+    const CAMPOS_COMUNES = ["fecha", "hora", "obra", "ruta", "kmDesde", "kmHasta"];
+    const copia = leerGuardado("pt_copiar", null);
+    if (copia) {
+      try { localStorage.removeItem("pt_copiar"); } catch {}   // se usa una sola vez
+      CAMPOS_COMUNES.forEach(c => { if (copia[c]) document.querySelector(`[name=${c}]`).value = copia[c]; });
+      mostrar("charla");
+      document.getElementById("error").textContent = "";
+    }
+
     function mostrar(id) {
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
@@ -1021,6 +1060,9 @@
         kmDesde: d.get("kmDesde").trim(),
         kmHasta: d.get("kmHasta").trim(),
         checklist: CHECKLIST.map((_, i) => d.get("chk" + i)),
+        // Observación solo de los que quedaron en NC
+        observaciones: CHECKLIST.map((_, i) => d.get("chk" + i) === "NC" ? (d.get("obs" + i) || "").trim() : ""),
+        fotos: [...fotos],
         // Una ART por cada departamento elegido, con sus etapas tal como quedaron en pantalla
         arts: [...document.querySelectorAll(".art-depto")].map(b => {
           const depto = buscarDepto(b.dataset.id);
@@ -1189,7 +1231,8 @@
         [{ titulo: "N°", ancho: 0.06, centro: true }, { titulo: "Preguntas críticas de chequeo previo", ancho: 0.70 },
          { titulo: "C", ancho: 0.08, centro: true }, { titulo: "NC", ancho: 0.08, centro: true }, { titulo: "N/A", ancho: 0.08, centro: true }],
         CHECKLIST.map(([t, x], i) => [
-          { negrita: String(i + 1) }, { negrita: t + ":", texto: x },
+          { negrita: String(i + 1) },
+          { negrita: t + ":", texto: x + (r.observaciones[i] ? `\n>> Observación NC: ${r.observaciones[i]}` : "") },
           X(r.checklist[i] === "C", VERDE), X(r.checklist[i] === "NC", ROJO), X(r.checklist[i] === "N/A", GRIS)
         ]));
       parrafo("C: Cumple  |  NC: No Cumple  |  N/A: No Aplica", { tam: 7.5, fuente: fI, color: GRIS });
@@ -1241,6 +1284,26 @@
       y -= 2;
       parrafo("NOTAS TÉCNICAS Y OBLIGACIONES DEL PERSONAL:", { tam: 8, fuente: fB });
       NOTAS_BLOQUEADOR.forEach((n, i) => parrafo(`${i + 1}. ${n}`, { tam: 7.5, sangria: 8 }));
+
+      // Registro fotográfico (solo si sacaron fotos): 2 fotos por fila
+      if (r.fotos.length) {
+        y -= 6;
+        seccion("Registro fotográfico de la charla");
+        const ANCHO_CAJA = (ANCHO - 10) / 2, ALTO_CAJA = 200;
+        for (let i = 0; i < r.fotos.length; i += 2) {
+          hayEspacio(ALTO_CAJA + 10);
+          const fila = r.fotos.slice(i, i + 2);
+          for (let j = 0; j < fila.length; j++) {
+            const img = await doc.embedJpg(fila[j]);
+            const s = Math.min(ANCHO_CAJA / img.width, ALTO_CAJA / img.height);
+            const w = img.width * s, h = img.height * s;
+            const x = M + j * (ANCHO_CAJA + 10) + (ANCHO_CAJA - w) / 2;
+            pag.drawImage(img, { x, y: y - h, width: w, height: h });
+            pag.drawRectangle({ x, y: y - h, width: w, height: h, borderColor: LINEA, borderWidth: 0.6 });
+          }
+          y -= ALTO_CAJA + 10;
+        }
+      }
 
       // Pie de página en todas las hojas
       const hojas = doc.getPages();
@@ -1314,6 +1377,49 @@
 
     function nuevoRegistro() {
       location.reload();   // recarga la página: queda en blanco, pero el listado y los nombres se recuerdan
+    }
+
+    /* =====================================================================
+       FOTOS DE LA CHARLA (opcionales, máximo 3)
+       La foto del celular pesa varios MB. La achicamos a 1280 px y la
+       guardamos como JPG para que el PDF siga siendo liviano.
+       ===================================================================== */
+    const MAX_FOTOS = 3;
+    let fotos = [];   // lista de fotos achicadas (texto "data:image/jpeg;base64,...")
+
+    async function agregarFoto(input) {
+      const archivo = input.files[0];
+      input.value = "";
+      if (!archivo) return;
+      try {
+        const img = await createImageBitmap(archivo);
+        const escala = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const lienzo = document.createElement("canvas");
+        lienzo.width = Math.round(img.width * escala);
+        lienzo.height = Math.round(img.height * escala);
+        lienzo.getContext("2d").drawImage(img, 0, 0, lienzo.width, lienzo.height);
+        fotos.push(lienzo.toDataURL("image/jpeg", 0.72));
+        pintarFotos();
+      } catch (e) {
+        document.getElementById("error").textContent = "No se pudo leer la foto: " + e.message;
+      }
+    }
+
+    function quitarFoto(i) { fotos.splice(i, 1); pintarFotos(); }
+
+    function pintarFotos() {
+      document.getElementById("fotos").innerHTML = fotos.map((f, i) =>
+        `<div class="foto"><img src="${f}" alt="Foto ${i + 1}">
+           <button type="button" class="btn btn-quitar" onclick="quitarFoto(${i})">✕</button></div>`).join("");
+      document.getElementById("btnFoto").style.display = fotos.length >= MAX_FOTOS ? "none" : "block";
+    }
+
+    // Guarda los datos comunes de la jornada, recarga, y al abrir se vuelven a poner (ver "AL ABRIR LA APP")
+    function nuevoConMismosDatos() {
+      const copia = {};
+      CAMPOS_COMUNES.forEach(c => copia[c] = document.querySelector(`[name=${c}]`).value);
+      guardar("pt_copiar", copia);
+      location.reload();
     }
   </script>
 </body>
