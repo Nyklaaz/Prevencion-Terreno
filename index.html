@@ -233,7 +233,7 @@
         <div class="tarjeta">
           <h2>5. Validación y responsables</h2>
           <label>Nombre Supervisor</label>
-          <input type="text" name="supervisor" required>
+          <input type="text" name="supervisor">
           <div id="firmaSupervisor"></div>
           <label style="margin-top:18px">Nombre Prevención de Riesgos</label>
           <input type="text" name="prevencionista" required>
@@ -249,7 +249,9 @@
         <h2>✅ Registro listo</h2>
         <p class="ayuda" id="infoPDF"></p>
         <div class="acciones">
-          <button class="btn btn-principal" onclick="enviarCorreo()">✉️ Enviar por correo</button>
+          <button class="btn btn-secundario" onclick="copiarCorreo(this)">📋 1. Copiar correo de destino</button>
+          <button class="btn btn-principal" onclick="enviarCorreo()">✉️ 2. Enviar PDF por correo</button>
+          <p class="ayuda" style="margin:0">Elige Gmail u Outlook, pega el correo en "Para" y envía. El PDF va adjunto.</p>
           <button class="btn btn-secundario" onclick="descargarPDF()">📄 Ver / descargar PDF</button>
           <p class="mensaje" id="mensajeEnvio"></p>
           <button class="btn btn-secundario" onclick="nuevoRegistro()">Empezar un registro nuevo</button>
@@ -871,8 +873,25 @@
         document.getElementById("tituloAsistentes").scrollIntoView({ behavior: "smooth" });
         return;
       }
-      // 3) Firmas
-      const sinFirma = [...form.querySelectorAll("canvas.lienzo:not([data-firmado])")];
+      // 3) Supervisor: puede no estar. Pero si se llena, que sea completo (nombre + firma)
+      const nombreSup = form.querySelector("[name=supervisor]");
+      const firmaSup = document.querySelector("#firmaSupervisor canvas");
+      const supFirmo = !!firmaSup.dataset.firmado;
+      if (nombreSup.value.trim() && !supFirmo) {
+        firmaSup.closest(".firma").classList.add("falta");
+        error.textContent = "Falta la firma del supervisor. Si hoy no está, borra su nombre.";
+        firmaSup.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!nombreSup.value.trim() && supFirmo) {
+        error.textContent = "Hay una firma de supervisor sin nombre. Escribe su nombre.";
+        nombreSup.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => nombreSup.focus(), 400);
+        return;
+      }
+
+      // 4) Firmas de trabajadores y prevención (la del supervisor ya se revisó arriba)
+      const sinFirma = [...form.querySelectorAll("canvas.lienzo:not([data-firmado])")].filter(c => c !== firmaSup);
       if (sinFirma.length > 0) {
         sinFirma.forEach(c => c.closest(".firma").classList.add("falta"));
         error.textContent = `Faltan ${sinFirma.length} firma(s). Están marcadas en rojo.`;
@@ -945,7 +964,11 @@
           nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t),
           bloqueador: t.querySelector(".t-bloqueador").checked,
           firma: t.querySelector("canvas").toDataURL("image/png") })),
-        supervisor: { nombre: d.get("supervisor").trim(), firma: document.querySelector("#firmaSupervisor canvas").toDataURL("image/png") },
+        // Si el supervisor no firmó, guardamos "null" (vacío) y en el PDF la casilla queda en blanco
+        supervisor: {
+          nombre: d.get("supervisor").trim(),
+          firma: document.querySelector("#firmaSupervisor canvas[data-firmado]")?.toDataURL("image/png") || null
+        },
         prevencion: { nombre: d.get("prevencionista").trim(), firma: document.querySelector("#firmaPrevencion canvas").toDataURL("image/png") }
       };
     }
@@ -1132,10 +1155,12 @@
         r.trabajadores.map((t, i) => [String(i + 1), t.nombre, t.rut, t.cargo,
           t.bloqueador ? { negrita: "Sí", color: VERDE } : { negrita: "No", color: ROJO }, { imagen: t.firma }]));
 
+      hayEspacio(140);   // nombres y firmas siempre en la misma hoja
       seccion("5. Validación y responsables de la actividad");
       await tabla(
         [{ titulo: "Supervisor", ancho: 0.5, centro: true }, { titulo: "Prevención de Riesgos", ancho: 0.5, centro: true }],
-        [[r.supervisor.nombre, r.prevencion.nombre], [{ imagen: r.supervisor.firma }, { imagen: r.prevencion.firma }]],
+        [[r.supervisor.nombre, r.prevencion.nombre],
+         [r.supervisor.firma ? { imagen: r.supervisor.firma } : "", { imagen: r.prevencion.firma }]],
         { altoFirma: 50 });
 
       seccion(`Control de re-aplicación de protector solar en ruta – ${r.dia} ${r.fechaCL}`);
@@ -1164,19 +1189,31 @@
        ===================================================================== */
     const AVISO_VISTA_PREVIA = " Si estás en la vista previa de Claude esto está bloqueado: funciona en la app publicada.";
 
+    async function copiarCorreo(boton) {
+      const msj = document.getElementById("mensajeEnvio");
+      try {
+        await navigator.clipboard.writeText(CORREO_DESTINO);
+        boton.textContent = `✅ Copiado: ${CORREO_DESTINO}`;
+      } catch {
+        msj.textContent = `No se pudo copiar. Escribe a mano: ${CORREO_DESTINO}`;
+      }
+    }
+
+    // IMPORTANTE: navigator.share() tiene que llamarse APENAS se toca el botón,
+    // sin esperar otra cosa antes ("await"), o el celular lo bloquea.
+    // Y compartimos SOLO el archivo: si va con texto, algunas apps botan el adjunto.
     async function enviarCorreo() {
       const msj = document.getElementById("mensajeEnvio");
       if (!pdfListo) return;
       const archivo = new File([pdfListo.bytes], pdfListo.nombreArchivo, { type: "application/pdf" });
-      let copiado = false;
-      try { await navigator.clipboard.writeText(CORREO_DESTINO); copiado = true; } catch {}
 
       if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
         try {
-          await navigator.share({ files: [archivo], title: pdfListo.asunto, text: `${pdfListo.asunto}\nPara: ${CORREO_DESTINO}` });
-          msj.textContent = `Elige tu app de correo. Destinatario: ${CORREO_DESTINO}` + (copiado ? " (ya está copiado, solo pégalo)." : ".");
+          await navigator.share({ files: [archivo], title: pdfListo.asunto });
+          msj.textContent = `Listo. Recuerda: Para = ${CORREO_DESTINO} · Asunto sugerido: ${pdfListo.asunto}`;
         } catch (e) {
-          msj.textContent = e.name === "AbortError" ? "Envío cancelado." : "No se pudo compartir." + AVISO_VISTA_PREVIA;
+          if (e.name === "AbortError") msj.textContent = "Envío cancelado.";
+          else msj.textContent = `No se pudo compartir (${e.name}). Usa "Ver / descargar PDF" y adjúntalo a mano.` + AVISO_VISTA_PREVIA;
         }
       } else {
         // Computador: descargamos el PDF y abrimos un correo nuevo con asunto y destinatario
