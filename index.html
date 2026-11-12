@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  APP DE PREVENCIÓN – PASO 3: listado de personal + PDF + correo
+  APP DE PREVENCIÓN – PASO 4: ART por departamento
   ===============================================================
   Recuerda las 3 partes:
     1. HTML  -> QUÉ hay en pantalla
@@ -20,6 +20,10 @@
   <!-- Librería para crear el PDF, descargada desde unpkg (versión fija 1.17.1) -->
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
+  <!-- LOGO DE LA EMPRESA
+       La imagen está "escrita como texto" (formato base64) para que la app sea
+       un solo archivo. Para cambiar el logo, reemplaza este texto largo. -->
+  <script>const LOGO_EMPRESA = "data:image/png;base64,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";</script>
   <style>
     :root {
       --principal: #e85d04;
@@ -33,6 +37,7 @@
     body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--fondo); color: var(--oscuro); }
     header { background: var(--oscuro); color: white; padding: 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 5; }
     header h1 { font-size: 17px; margin: 0; }
+    header .logo { width: 36px; height: 36px; background: white; border-radius: 8px; padding: 3px; }
     main { max-width: 680px; margin: 0 auto; padding: 16px 16px 60px; }
 
     .menu-btn { display: block; width: 100%; padding: 20px; margin-bottom: 12px; font-size: 18px; font-weight: 600; text-align: left; background: white; border: 2px solid var(--borde); border-radius: 12px; cursor: pointer; color: inherit; }
@@ -86,6 +91,15 @@
     .pantalla { display: none; }
     .pantalla.activa { display: block; }
 
+    /* ===== Departamentos (ART por departamento) ===== */
+    .deptos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+    .depto { padding: 12px 10px; border: 2px solid var(--borde); border-radius: 10px; background: white; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; font-family: inherit; color: inherit; }
+    .depto.activo { border-color: var(--principal); background: #fff4ec; }
+    .depto.activo::after { content: " ✓"; color: var(--principal); }
+    .art-depto { border-left: 4px solid var(--principal); padding-left: 12px; margin: 18px 0; }
+    .art-depto h3 { margin: 0 0 4px; color: var(--principal); }
+    .etiqueta { display: inline-block; font-size: 11px; font-weight: 600; background: #fff4ec; color: var(--principal); border-radius: 6px; padding: 2px 6px; margin-left: 6px; }
+
     /* ===== Listado de personal (Paso 3) ===== */
     .cargar-listado { background: #fff4ec; border-radius: 10px; padding: 14px; }
     .cargar-listado p { margin: 0 0 10px; font-size: 14px; }
@@ -118,6 +132,7 @@
 <body>
   <header>
     <button class="volver" id="btnVolver" onclick="mostrar('menu')" style="visibility:hidden">←</button>
+    <img id="logoCabecera" class="logo" alt="Logo empresa">
     <h1 id="titulo">Prevención en Terreno</h1>
   </header>
 
@@ -137,6 +152,13 @@
     <!-- ========== CHARLA + ART ========== -->
     <section id="charla" class="pantalla">
       <form id="formCharla" onsubmit="revisar(event)" novalidate>
+
+        <!-- DEPARTAMENTO: lo primero. Cada departamento hace su propio registro -->
+        <div class="tarjeta">
+          <h2>Departamento</h2>
+          <p class="ayuda">Elige el departamento de esta charla. Cada departamento tiene su propio registro, PDF y correo.</p>
+          <div id="deptos" class="deptos"></div>
+        </div>
 
         <div class="tarjeta">
           <h2>1. Antecedentes generales de la jornada</h2>
@@ -168,11 +190,8 @@
 
         <div class="tarjeta">
           <h2>Módulo 6: ART</h2>
-          <label>Cargo / Tarea</label>
-          <input type="text" name="cargoART" value="Laboratorista" required>
-          <p class="ayuda" style="margin-top:12px">Agrega una etapa por cada paso de la tarea.</p>
-          <div id="etapasART"></div>
-          <button type="button" class="btn btn-secundario" onclick="agregarEtapa()">+ Agregar etapa</button>
+          <p class="ayuda" id="ayudaART">Primero elige el departamento (arriba). Su ART se carga sola: revísala y ajusta solo si hoy hay algo distinto.</p>
+          <div id="artsDeptos"></div>
 
           <div id="preguntasART" style="margin-top:16px"></div>
           <div id="accionObligatoria" style="display:none">
@@ -281,6 +300,146 @@
       ]}
     ];
 
+    /* ART POR DEPARTAMENTO (Módulo 6)
+       Cada departamento tiene: id (nombre corto, sin espacios), nombre, ícono,
+       cargo que se propone a sus trabajadores y sus etapas.
+       En cada texto, "\n" es un salto de línea.
+       Para cambiar una medida preventiva, edítala aquí y listo. */
+    const DEPARTAMENTOS = [
+      { id: "lab", nombre: "Laboratorio", icono: "🧪", titulo: "Laboratorista", cargo: "Laboratorista", etapas: [
+        { etapa: "1. Muestreo de Asfalto y Suelos en Calzada / Ruta",
+          peligros: "• Tránsito vehicular en paralelo.\n• Extracción de mezcla asfáltica caliente (>140°C).",
+          riesgos: "• Atropello por vehículos de terceros.\n• Quemaduras térmicas graves por contacto o proyección.",
+          medidas: "1. Posicionar la camioneta escudo con baliza LED y conos previos.\n2. Vestir geólogo reflectante Clase 3.\n3. Usar guantes térmicos de cuero/nitrilo puño largo y gafas herméticas.\n4. Muestrear estrictamente dentro del radio resguardado.",
+          epp: "• Geólogo Clase 3.\n• Guantes térmicos puño largo.\n• Gafas herméticas de seguridad.\n• Calzado de seguridad." },
+        { etapa: "2. Ensayos en Campo, Densidades y Manejo de Solventes",
+          peligros: "• Operación de densímetro nuclear (fuente radiactiva).\n• Extracción de betún con solventes tóxicos/inflamables.",
+          riesgos: "• Exposición a radiación ionizante.\n• Inhalación de vapores tóxicos y dermatitis de contacto.",
+          medidas: "1. Operador con licencia CCHEN vigente, dosímetro personal y caja blindada.\n2. Manipular solventes en áreas ventiladas.\n3. Usar respirador para Vapores Orgánicos y guantes de nitrilo/neopreno.",
+          epp: "• Dosímetro personal (CCHEN).\n• Respirador Vapores Orgánicos.\n• Guantes de nitrilo/neopreno.\n• Lentes de seguridad." },
+        { etapa: "3. Manejo Manual de Cargas (Probetas y Moldes)",
+          peligros: "• Levantamiento de probetas de hormigón, moldes Marshall y sacos (>25 kg).",
+          riesgos: "• Sobreesfuerzo lumbar (TMERT / MMC).\n• Atrapamiento o aplastamiento por caída de muestras.",
+          medidas: "1. Respetar límite legal: máximo 25 kg hombres / 20 kg mujeres.\n2. Levantar probetas o moldes en duplas o usar carro de arrastre.\n3. Flectar rodillas y mantener la carga pegada al cuerpo.",
+          epp: "• Calzado de seguridad reforzado.\n• Guantes de cabritilla antideslizantes.\n• Faja lumbar (optativa)." },
+        { etapa: "4. Exposición Ambiental y Alta Cordillera",
+          peligros: "• Radiación UV solar extrema (IUV 11+).\n• Muestreo sobre los 3.000 msnm en Ruta 31-CH.",
+          riesgos: "• Quemaduras solares e insolación.\n• Mal Agudo de Montaña (puna, cefalea, mareo).",
+          medidas: "1. Bloqueador FPS 50+ cada 2 horas y gorro legionario.\n2. Hidratación de 1 litro de agua/hora.\n3. Oximetría diaria y pausas de aclimatación en cordillera.",
+          epp: "• Bloqueador solar FPS 50+.\n• Gorro legionario.\n• Lentes con filtro UV400." }
+      ]},
+      { id: "amb", nombre: "Ambiental", icono: "🌱", titulo: "Medio Ambiente", cargo: "Medio Ambiente", etapas: [
+        { etapa: "1. Retiro de Suelos Contaminados e Hidrocarburos",
+          peligros: "• Suelos con derrame de diésel, aceite o emulsión.",
+          riesgos: "• Irritación dermatológica y absorción cutánea.",
+          medidas: "1. Usar guantes de nitrilo y traje Tyvek en derrames mayores.\n2. Retirar suelo afectado con herramientas manuales que no generen chispa.\n3. Depositar en maxisacos etiquetados como RESPEL.",
+          epp: "• Guantes de nitrilo de alta resistencia.\n• Traje Tyvek (si aplica).\n• Calzado de seguridad.\n• Respirador con filtro Vapores." },
+        { etapa: "2. Operación y Acopio en Bodega / Patio RESPEL",
+          peligros: "• Acopio de baterías, lubricantes usados, filtros y trapos.",
+          riesgos: "• Derrames, intoxicación e incendio por incompatibilidad.",
+          medidas: "1. Mantener la bodega con pretil de contención e incompatibilidades separadas.\n2. Rotular y etiquetar todos los tambores según NCh 2190.\n3. Mantener kit de control de derrames y extintor a mano.",
+          epp: "• Guantes de nitrilo/neopreno.\n• Antiparras de protección química.\n• Calzado de seguridad." },
+        { etapa: "3. Manejo de Residuos Asimilables y Sanitarios",
+          peligros: "• Manipulación de contenedores de basura y baños químicos.",
+          riesgos: "• Exposición a agentes biológicos e infecciones.",
+          medidas: "1. Uso obligatorio de guantes de hule/nitrilo gruesos.\n2. Lavado y desinfección de manos con jabón antiséptico o alcohol gel.\n3. Mantener vacunación al día (Tétanos / Hepatitis).",
+          epp: "• Guantes de hule/nitrilo industrial.\n• Mascarilla de protección.\n• Lentes de seguridad." },
+        { etapa: "4. Habilitación de Botaderos y Empréstitos",
+          peligros: "• Tránsito de camiones tolva en vertido de material.",
+          riesgos: "• Atropello, aplastamiento y atrapamiento.",
+          medidas: "1. Mantenerse a más de 10 metros de la zona de volteo del camión.\n2. Usar geólogo reflectante Clase 3 y radio VHF con la maquinaria.\n3. Guiar maniobras con paletero/banderero instruido.",
+          epp: "• Geólogo Clase 3.\n• Casco de seguridad.\n• Calzado High-Cut.\n• Radio VHF." }
+      ]},
+      { id: "mae", nombre: "Terreno – Maestros y Jornales", icono: "👷", titulo: "Maestros y Jornales", cargo: "Maestro / Jornal", etapas: [
+        { etapa: "1. Posicionamiento, Segregación y Descarga de Herramientas",
+          peligros: "• Tránsito vehicular en paralelo a alta velocidad.\n• Bajada manual de equipos pesados (placa, combos, chuzos).",
+          riesgos: "• Atropello por vehículos de terceros o maquinaria.\n• Golpes, atrapamientos y caídas al mismo nivel.",
+          medidas: "1. Posicionar la camioneta escudo con baliza LED y conos a 45° antes de descargar.\n2. Vestir geólogo/chaleco reflectante Clase 3.\n3. Descargar equipos pesados en duplas, flectando rodillas.\n4. Mantener enlace radial VHF activo con el capataz.",
+          epp: "• Geólogo Clase 3.\n• Calzado de seguridad High-Cut.\n• Guantes de cabritilla/descarne.\n• Casco de seguridad." },
+        { etapa: "2. Excavación Manual, Roce, Limpieza de Faja y Saneamiento",
+          peligros: "• Manejo manual de bultos (sacos, rocas, ramas).\n• Uso de herramientas cortantes y percutoras.\n• Terrenos irregulares y zanjas.",
+          riesgos: "• Sobreesfuerzo lumbar y fatiga (TMERT / MMC).\n• Proyección de esquirlas a los ojos, cortes y punzaduras.",
+          medidas: "1. Respetar límite de carga: máximo 25 kg hombres / 20 kg mujeres.\n2. Levantar sacos o rocas pesadas en duplas o apoyo mecánico.\n3. Usar antiparras herméticas de alto impacto en picado/roce.\n4. Distancia mínima de 3 metros entre jornales en trabajo activo.",
+          epp: "• Antiparras de alto impacto.\n• Guantes de cuero reforzado.\n• Calzado de seguridad antideslizante." },
+        { etapa: "3. Bacheo, Mezcla Asfáltica y Compactación Manual",
+          peligros: "• Mezcla asfáltica o emulsión a alta temperatura.\n• Ruido de placa compactadora / rodillo manual.\n• Vapores orgánicos y polvo resuspendido.",
+          riesgos: "• Quemaduras térmicas en piel y brazos.\n• Hipoacusia por ruido (PREXOR).\n• Silicosis e irritación respiratoria (PLANESI).",
+          medidas: "1. Guantes de cuero/nitrilo de puño largo y mangas protectoras.\n2. Uso de protector auditivo tipo copa en compactación.\n3. Respirador de silicona doble vía con filtros P100 / Vapores Orgánicos.\n4. Rotación obligatoria de personal cada 30 minutos.",
+          epp: "• Protector auditivo tipo copa.\n• Respirador con filtro P100 / Vapores Orgánicos.\n• Guantes de nitrilo/cuero puño largo." },
+        { etapa: "4. Exposición Ambiental y Salud Ocupacional",
+          peligros: "• Radiación UV solar extrema (IUV 11+).\n• Trabajos sobre los 3.000 msnm en Ruta 31-CH.",
+          riesgos: "• Quemaduras solares, deshidratación e insolación.\n• Mal Agudo de Montaña (puna, cefalea, mareos).",
+          medidas: "1. Aplicar bloqueador FPS 50+ cada 2 horas.\n2. Hidratación constante de 1 litro de agua/hora.\n3. Oximetría diaria y pausas de aclimatación en cordillera.\n4. Aplicar Ley Karin (Protocolo de Buen Trato).",
+          epp: "• Bloqueador solar FPS 50+.\n• Gorro legionario.\n• Lentes con filtro UV400." }
+      ]},
+      { id: "ope", nombre: "Terreno – Operadores Maquinaria Pesada", icono: "🚜", titulo: "Operador Maquinaria Pesada", cargo: "Operador Maquinaria Pesada", etapas: [
+        { etapa: "1. Inspección Preoperacional y Ascenso/Descenso",
+          peligros: "• Fallas mecánicas o hidráulicas sin detectar.\n• Peldaños o pasamanos con barro o grasa.",
+          riesgos: "• Pérdida de control o colisión en maniobra.\n• Caídas a distinto nivel al subir o bajar de cabina.",
+          medidas: "1. Completar Check-List diario (frenos, luces, dirección, cinturón, alarma de retroceso).\n2. Comprobar baliza LED giratoria y pértiga encendida.\n3. Mantener 3 puntos de apoyo (dos manos y un pie) al subir/bajar.",
+          epp: "• Casco de seguridad.\n• Calzado de seguridad High-Cut.\n• Chaleco reflectante Clase 3.\n• Guantes de cabritilla." },
+        { etapa: "2. Traslado, Ingreso a Faena y Posicionamiento",
+          peligros: "• Tránsito en vía pública o caminos de tierra inestables.\n• Puntos ciegos y personal pie a tierra.",
+          riesgos: "• Colisión con vehículos de terceros, despiste o volcamiento.\n• Atropello a trabajadores al ingresar a la zona de trabajo.",
+          medidas: "1. Traslado por carretera obligatorio con camioneta escolta / baliza.\n2. Respetar velocidad máxima de 50 km/h y prohibición de teléfono celular.\n3. Evaluar estabilidad del terreno antes de posicionar el equipo.\n4. Guiar maniobras de ingreso/retroceso con banderero y radio VHF.",
+          epp: "• Chaleco reflectante Clase 3.\n• Protector auditivo.\n• Radio de comunicación VHF." },
+        { etapa: "3. Operación de Excavación, Perfilado y Compactación",
+          peligros: "• Interacción hombre-máquina en zona de maniobra.\n• Generación de ruido continuo y polvo resuspendido.\n• Operación cerca de bordes o taludes.",
+          riesgos: "• Atropello o aplastamiento de jornales o laboratoristas.\n• Exposición a ruido (PREXOR - Hipoacusia) y sílice (PLANESI - Silicosis).\n• Volcamiento en bordes de cuneta.",
+          medidas: "1. Respetar radio de exclusión física: 5 m (máquina menor) y 10 m (máquina mayor).\n2. Operar con cinturón abrochado dentro de cabina presurizada con filtro HEPA.\n3. Exigir humectación previa del terreno con camión aljibe.\n4. Usar protector auditivo tipo copa y respirador doble vía con filtro P100.",
+          epp: "• Protector auditivo tipo copa.\n• Respirador de silicona con filtro P100.\n• Lentes de seguridad con filtro UV." },
+        { etapa: "4. Exposición Ambiental y Salud Ocupacional",
+          peligros: "• Exposición a radiación solar directa.\n• Trabajo en altura geográfica (>3.000 msnm).\n• Exigencias de la jornada.",
+          riesgos: "• Quemaduras cutáneas e insolación.\n• Hipobaria intermitente crónica (puna, fatiga, mareo).\n• Estrés o desacuerdos laborales.",
+          medidas: "1. Aplicar bloqueador solar FPS 50+ cada 2 horas.\n2. Mantener hidratación constante (mínimo 1 litro de agua/hora).\n3. Control de oximetría y pausas de aclimatación en cordillera.\n4. Aplicar Ley Karin (Protocolo de Buen Trato y \"Corregir en Privado\").",
+          epp: "• Bloqueador solar FPS 50+.\n• Gorro legionario.\n• Lentes con filtro UV400.\n• Ropa/EPP térmico en cordillera." }
+      ]},
+      { id: "top", nombre: "Topografía", icono: "📐", titulo: "Topografía y Alarife", cargo: "Topógrafo / Alarife", etapas: [
+        { etapa: "1. Traslado y Segregación Móvil",
+          peligros: "• Tránsito vehicular a alta velocidad.\n• Estacionamiento en berma angosta o curva ciega.",
+          riesgos: "• Atropello por vehículos de terceros.\n• Colisión por alcance al detenerse en berma.",
+          medidas: "1. Posicionar camioneta escudo con baliza LED a 30m detrás de la cuadrilla.\n2. Instalar conos y señal PT-1a previa en calzada/berma.\n3. Vestir geólogo Clase 3 y mantener enlace radial VHF.",
+          epp: "• Geólogo/Chaleco Clase 3.\n• Calzado High-Cut antideslizante.\n• Radio VHF.\n• Casco con barboquejo." },
+        { etapa: "2. Medición y Estacado en Berma",
+          peligros: "• Tránsito vehicular activo en paralelo.\n• Suelo irregular, taludes y zanjas de drenaje.",
+          riesgos: "• Atropello por vehículos en movimiento.\n• Caídas al mismo nivel, torceduras o esguinces.",
+          medidas: "1. Medir de frente al tránsito dentro de la zona resguardada.\n2. Usar calzado High-Cut con soporte de tobillo y suela antideslizante.\n3. Verificar la firmeza del terreno antes de instalar el trípode.\n4. No ingresar a calzada activa sin apoyo de banderero.",
+          epp: "• Calzado High-Cut antideslizante.\n• Geólogo Clase 3.\n• Lentes de seguridad UV400." },
+        { etapa: "3. Herramientas Manuales y Ergonomía",
+          peligros: "• Clavado de estacas con combo/maza.\n• Inclinación de cuello/tronco en el ocular del equipo.",
+          riesgos: "• Golpes en manos/pies o esquirlas en ojos.\n• Sobrecarga lumbar y fatiga cervical (TMERT).",
+          medidas: "1. Usar guantes de cabritilla y lentes de seguridad de alto impacto.\n2. Flectar rodillas al medir o anotar datos topográficos.\n3. Rotar tareas entre topógrafo y alarife cada 45 minutos.",
+          epp: "• Guantes de cabritilla/descarne.\n• Lentes de impacto.\n• Calzado reforzado." },
+        { etapa: "4. Factores Ambientales y Cordillera",
+          peligros: "• Radiación UV extrema (IUV 11+) y albedo.\n• Hipobaria (>3.000 msnm en Ruta 31-CH).\n• Camanchaca y vientos.",
+          riesgos: "• Quemaduras, cáncer de piel y síncope.\n• Mal Agudo de Montaña (puna, fatiga).\n• Visibilidad nula en ruta.",
+          medidas: "1. Bloqueador FPS 50+ cada 2h, gorro legionario e hidratación de 1L/h.\n2. Oximetría, pausas y oxigenoterapia en tramos >3.000 msnm.\n3. Suspender faenas ante camanchaca (<50m) o viento >40 km/h.",
+          epp: "• Bloqueador solar FPS 50+.\n• Gorro legionario.\n• Lentes UV400.\n• Ropa técnica manga larga." }
+      ]},
+      { id: "tal", nombre: "Taller Mecánico", icono: "🔧", titulo: "Taller Mecánico", cargo: "Mecánico", etapas: [
+        { etapa: "1. Intervención y Reparación de Maquinaria / Vehículos",
+          peligros: "• Equipos o motores en marcha, partes móviles y transmisión.\n• Acumulación de energía hidráulica o eléctrica.",
+          riesgos: "• Atrapamiento de extremidades en fajas o engranajes.\n• Contacto eléctrico o aprisionamiento imprevisto.",
+          medidas: "1. Aplicar procedimiento de Aislamiento y Bloqueo de Energías (LOTO) antes de intervenir.\n2. Instalar tarjetas de advertencia y candados de bloqueo.\n3. Prohibido el uso de ropa holgada, cadenas o elementos colgantes.",
+          epp: "• Calzado de seguridad dieléctrico.\n• Guantes de nitrilo/cuero reforzado.\n• Lentes de impacto." },
+        { etapa: "2. Trabajos de Corte, Esmerilado y Soldadura",
+          peligros: "• Generación de chispas, esquirlas proyectadas y radiación UV por arco.",
+          riesgos: "• Lesiones oculares, incrustación de partículas y quemaduras.",
+          medidas: "1. Uso obligatorio de careta facial o máscara de soldar.\n2. Instalar pantallas o biombos de protección ignífugos en la zona de trabajo.\n3. Verificar extintor de PQS cargado y vigente a mano.",
+          epp: "• Máscara de soldar / Careta facial.\n• Coleto y polainas de cuero.\n• Guantes de mosquetero de soldador." },
+        { etapa: "3. Manipulación de Aceites, Grasas y Sustancias Químicas",
+          peligros: "• Contacto directo con aceites usados, refrigerantes y solventes.",
+          riesgos: "• Dermatitis de contacto e irritación cutánea o respiratoria.",
+          medidas: "1. Utilizar guantes de nitrilo de puño largo.\n2. Disponer de hoja de datos de seguridad (HDS) de cada producto en taller.\n3. Lavado de manos periódico e higiene antes de comer.",
+          epp: "• Guantes de nitrilo de puño largo.\n• Delantal/overol de trabajo.\n• Lentes de seguridad." },
+        { etapa: "4. Uso de Pozos de Lubricación y Trabajo en Altura/Piso",
+          peligros: "• Pozos o fosa de mantenimiento sin protección.\n• Superficies con manchas de aceite o grasa.",
+          riesgos: "• Caídas a distinto nivel a la fosa.\n• Resbalones y caídas al mismo nivel.",
+          medidas: "1. Mantener barrera física o cadeneta de delimitación en la fosa cuando no esté en uso.\n2. Aplicar absorbente sintético o aserrín de inmediato ante derrames de lubricante.",
+          epp: "• Calzado con suela antideslizante.\n• Casco de seguridad.\n• Lentes de protección." }
+      ]}
+    ];
+
     const PREGUNTAS_ART = [
       ["Entorno / Clima", "¿Existen condiciones climáticas o de la vía fuera de lo normal? (Camanchaca, viento >40 km/h, lluvia, desvíos, etc.)"],
       ["EPP / Controles especiales", "¿Se requiere un EPP o medida de control especial no contemplada en la ART estándar del cargo?"]
@@ -342,19 +501,69 @@
       document.querySelectorAll(`#${idContenedor} .num`).forEach((n, i) => n.textContent = `${prefijo} ${i + 1}`);
     }
 
-    function agregarEtapa() {
+    /* ===== ART POR DEPARTAMENTO ===== */
+    const buscarDepto = id => DEPARTAMENTOS.find(d => d.id === id);
+
+    // Botones de departamentos
+    document.getElementById("deptos").innerHTML = DEPARTAMENTOS.map(d =>
+      `<button type="button" class="depto" data-id="${d.id}" onclick="tocarDepto('${d.id}')">${d.icono} ${d.nombre}</button>`).join("");
+
+    // Lista de los departamentos elegidos, en el orden en que aparecen en pantalla
+    const deptosElegidos = () => [...document.querySelectorAll(".art-depto")].map(b => b.dataset.id);
+
+    // Tocar un departamento: carga su ART. Solo puede haber UNO por registro,
+    // así que si había otro elegido, se reemplaza.
+    function tocarDepto(id) {
+      const boton = document.querySelector(`.depto[data-id="${id}"]`);
+      if (document.querySelector(`.art-depto[data-id="${id}"]`)) return;   // ya estaba elegido
+      document.querySelectorAll(".art-depto").forEach(b => b.remove());
+      document.querySelectorAll(".depto").forEach(b => b.classList.remove("activo"));
+      document.getElementById("ayudaART").textContent = "Revisa la ART y ajusta solo si hoy hay algo distinto.";
+      {
+        const d = buscarDepto(id);
+        const div = document.createElement("div");
+        div.className = "art-depto";
+        div.dataset.id = id;
+        div.innerHTML = `
+          <h3>${d.icono} ART – ${d.titulo}</h3>
+          <div class="etapas"></div>
+          <button type="button" class="btn btn-secundario" onclick="agregarEtapa(this.previousElementSibling)">+ Agregar etapa</button>`;
+        document.getElementById("artsDeptos").appendChild(div);
+        const contenedor = div.querySelector(".etapas");
+        d.etapas.forEach(e => agregarEtapa(contenedor, e));   // cargamos sus etapas
+        boton.classList.add("activo");
+      }
+      pintarListado();   // los trabajadores de ese departamento suben al principio de la lista
+    }
+
+    // El cuadro de texto crece según lo que tenga escrito
+    function autoAltura(t) { t.style.height = "auto"; t.style.height = (t.scrollHeight + 2) + "px"; }
+
+    // Agrega una etapa dentro de "contenedor". "datos" trae el texto precargado (o nada si es nueva)
+    function agregarEtapa(contenedor, datos = {}) {
       const div = document.createElement("div");
       div.className = "bloque etapa";
       div.innerHTML = `
         <span class="num"></span>
-        <button type="button" class="btn btn-quitar quitar" onclick="this.parentElement.remove(); renumerar('etapasART','Etapa')">✕</button>
-        <label>Etapa / secuencia de la tarea</label><input type="text" class="e-etapa" required>
+        <button type="button" class="btn btn-quitar quitar">✕</button>
+        <label>Etapa / secuencia de la tarea</label><textarea class="e-etapa" required></textarea>
         <label>Peligros identificados</label><textarea class="e-peligros" required></textarea>
         <label>Riesgos asociados</label><textarea class="e-riesgos" required></textarea>
         <label>Medidas de control preventivas</label><textarea class="e-medidas" required></textarea>
-        <label>EPP / elementos obligatorios</label><input type="text" class="e-epp" required>`;
-      document.getElementById("etapasART").appendChild(div);
-      renumerar("etapasART", "Etapa");
+        <label>EPP / elementos obligatorios</label><textarea class="e-epp" required></textarea>`;
+      // Ponemos el texto con .value (así se respetan los saltos de línea)
+      for (const campo of ["etapa", "peligros", "riesgos", "medidas", "epp"]) {
+        div.querySelector(".e-" + campo).value = datos[campo] || "";
+      }
+      div.querySelector(".quitar").onclick = () => { div.remove(); renumerarEtapas(contenedor); };
+      div.querySelectorAll("textarea").forEach(t => t.addEventListener("input", () => autoAltura(t)));
+      contenedor.appendChild(div);
+      renumerarEtapas(contenedor);
+      requestAnimationFrame(() => div.querySelectorAll("textarea").forEach(autoAltura));
+    }
+
+    function renumerarEtapas(contenedor) {
+      contenedor.querySelectorAll(".num").forEach((n, i) => n.textContent = `Etapa ${i + 1}`);
     }
 
     /* =====================================================================
@@ -363,6 +572,7 @@
     const URL_SHEETJS = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
     let listado = leerGuardado("pt_listado", null);   // { obra, lista: [{nombre, rut}], cargado }
     let cargos = leerGuardado("pt_cargos", {});        // el cargo que recordamos para cada RUT
+    let deptosPorRut = leerGuardado("pt_deptos", {});  // el departamento que recordamos para cada RUT
 
     // Descarga una librería de internet solo cuando la necesitamos
     function cargarScript(url) {
@@ -471,13 +681,19 @@
       if (!listado) return;
       const busca = normalizar(document.getElementById("buscador").value);
       const buscaRut = claveRut(busca);
-      const visibles = listado.lista.filter(p =>
-        !busca || normalizar(p.nombre).includes(busca) || (buscaRut.length > 2 && claveRut(p.rut).includes(buscaRut)));
+      const elegidos = deptosElegidos();
+      const esDeHoy = p => elegidos.includes(deptosPorRut[claveRut(p.rut)]);
+      const visibles = listado.lista
+        .filter(p => !busca || normalizar(p.nombre).includes(busca) || (buscaRut.length > 2 && claveRut(p.rut).includes(buscaRut)))
+        // "sort" ordena: los del departamento elegido hoy van primero (el resto mantiene su orden)
+        .sort((a, b) => esDeHoy(b) - esDeHoy(a));
 
       document.getElementById("listaPersonal").innerHTML = visibles.map(p => {
         const elegido = document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`) ? "elegido" : "";
+        const depto = buscarDepto(deptosPorRut[claveRut(p.rut)]);
+        const etiqueta = depto ? `<span class="etiqueta">${depto.icono} ${depto.titulo}</span>` : "";
         return `<button type="button" class="persona ${elegido}" onclick="tocarPersona('${claveRut(p.rut)}')">
-                  <span>${p.nombre}</span><small>${p.rut}</small></button>`;
+                  <span>${p.nombre}${etiqueta}</span><small>${p.rut}</small></button>`;
       }).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
     }
 
@@ -510,7 +726,12 @@
       div.className = "bloque trabajador";
       const soloLectura = persona ? "readonly" : "";
       if (persona) div.dataset.rut = claveRut(persona.rut);
-      const cargo = persona ? (cargos[claveRut(persona.rut)] || "") : "";
+      // Cargo: el recordado; si no hay, el de su departamento; si hoy hay un solo departamento, el de ese
+      const elegidos = deptosElegidos();
+      const deptoHoy = elegidos.length === 1 ? buscarDepto(elegidos[0]) : null;
+      const cargo = (persona && cargos[claveRut(persona.rut)])
+        || (persona && buscarDepto(deptosPorRut[claveRut(persona.rut)])?.cargo)
+        || deptoHoy?.cargo || "";
       div.innerHTML = `
         <span class="num"></span>
         <button type="button" class="btn btn-quitar quitar" onclick="this.parentElement.remove(); actualizarAsistentes(); pintarListado()">✕</button>
@@ -594,7 +815,7 @@
     /* =====================================================================
        AL ABRIR LA APP
        ===================================================================== */
-    agregarEtapa();
+    document.getElementById("logoCabecera").src = LOGO_EMPRESA;
     activarFirmas();
     mostrarListado();
     actualizarAsistentes();
@@ -610,6 +831,7 @@
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
       const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", odi: "ODI / Derecho a Saber" };
       document.getElementById("titulo").textContent = titulos[id];
+      document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
       window.scrollTo(0, 0);
     }
 
@@ -624,6 +846,17 @@
       const error = document.getElementById("error");
       error.textContent = "";
 
+      // 0) Al menos un departamento con su ART
+      if (deptosElegidos().length === 0) {
+        error.textContent = "Elige el departamento de la charla (arriba de todo).";
+        document.getElementById("deptos").scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (document.querySelectorAll(".art-depto .etapa").length === 0) {
+        error.textContent = "La ART no tiene etapas. Agrega al menos una.";
+        document.getElementById("artsDeptos").scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
       // 1) Campos obligatorios vacíos
       const invalido = [...form.querySelectorAll("[required]")].find(c => !c.checkValidity());
       if (invalido) {
@@ -652,6 +885,9 @@
       // Recordamos cargos y responsables para la próxima vez
       r.trabajadores.forEach(t => { if (t.rut) cargos[claveRut(t.rut)] = t.cargo; });
       guardar("pt_cargos", cargos);
+      // Recordamos que estos trabajadores son de este departamento
+      r.trabajadores.forEach(t => { if (t.rut) deptosPorRut[claveRut(t.rut)] = r.arts[0].id; });
+      guardar("pt_deptos", deptosPorRut);
       guardar("pt_responsables", { supervisor: r.supervisor.nombre, prevencionista: r.prevencion.nombre });
 
       if (!window.PDFLib) {
@@ -664,8 +900,8 @@
         const rutaArchivo = r.ruta.replace(/[^\wÁÉÍÓÚÑáéíóúñ-]+/g, "_");
         pdfListo = {
           bytes,
-          nombreArchivo: `Charla-ART_${r.fecha}_${rutaArchivo}.pdf`,
-          asunto: `Charla Diaria + ART – ${r.ruta} – ${r.fechaCL}`
+          nombreArchivo: `Charla-ART_${r.fecha}_${r.arts.map(a => a.id).join("-")}_${rutaArchivo}.pdf`,
+          asunto: `Charla Diaria + ART – ${r.arts.map(a => a.nombre).join(" / ")} – Ruta ${r.ruta} – ${r.fechaCL}`
         };
         error.textContent = "";
         document.getElementById("infoPDF").textContent =
@@ -693,10 +929,16 @@
         kmDesde: d.get("kmDesde").trim(),
         kmHasta: d.get("kmHasta").trim(),
         checklist: CHECKLIST.map((_, i) => d.get("chk" + i)),
-        cargoART: d.get("cargoART").trim(),
-        etapas: [...document.querySelectorAll(".etapa")].map(e => ({
-          etapa: v(".e-etapa", e), peligros: v(".e-peligros", e), riesgos: v(".e-riesgos", e),
-          medidas: v(".e-medidas", e), epp: v(".e-epp", e) })),
+        // Una ART por cada departamento elegido, con sus etapas tal como quedaron en pantalla
+        arts: [...document.querySelectorAll(".art-depto")].map(b => {
+          const depto = buscarDepto(b.dataset.id);
+          return {
+            id: depto.id, nombre: depto.nombre, titulo: depto.titulo,
+            etapas: [...b.querySelectorAll(".etapa")].map(e => ({
+              etapa: v(".e-etapa", e), peligros: v(".e-peligros", e), riesgos: v(".e-riesgos", e),
+              medidas: v(".e-medidas", e), epp: v(".e-epp", e) }))
+          };
+        }),
         preguntas: PREGUNTAS_ART.map((_, i) => d.get("art" + i)),
         accion: (d.get("accion") || "").trim(),
         trabajadores: [...document.querySelectorAll(".trabajador")].map(t => ({
@@ -720,6 +962,7 @@
       const fN = await doc.embedFont(StandardFonts.Helvetica);
       const fB = await doc.embedFont(StandardFonts.HelveticaBold);
       const fI = await doc.embedFont(StandardFonts.HelveticaOblique);
+      const logo = await doc.embedPng(LOGO_EMPRESA);   // el logo se carga una vez y se usa en todas las hojas
 
       const ANCHO_HOJA = 595.28, ALTO_HOJA = 841.89, M = 36, ANCHO = ANCHO_HOJA - 2 * M;   // A4, margen ~1,3 cm
       const NARANJO = rgb(0.91, 0.36, 0.02), NEGRO = rgb(0.12, 0.16, 0.2), GRIS = rgb(0.4, 0.44, 0.52);
@@ -754,10 +997,11 @@
       function nuevaPagina() {
         pag = doc.addPage([ANCHO_HOJA, ALTO_HOJA]);
         y = ALTO_HOJA - M;
-        pag.drawText("XPANDO", { x: ANCHO_HOJA - M - fB.widthOfTextAtSize("XPANDO", 14), y: y - 12, size: 14, font: fB, color: NARANJO });
+        const TAM_LOGO = 42;
+        pag.drawImage(logo, { x: ANCHO_HOJA - M - TAM_LOGO, y: y - TAM_LOGO + 4, width: TAM_LOGO, height: TAM_LOGO });
         for (const l of partir(TITULO_DOC, fB, 9.5, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 10, size: 9.5, font: fB, color: NEGRO }); y -= 12; }
         for (const l of partir(TEMA_DOC, fN, 7.5, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
-        if (r.obra) for (const l of partir("Obra: " + r.obra, fN, 7.5, ANCHO)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
+        if (r.obra) for (const l of partir("Obra: " + r.obra, fN, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
         y -= 5;
         pag.drawLine({ start: { x: M, y }, end: { x: ANCHO_HOJA - M, y }, thickness: 1.2, color: NARANJO });
         y -= 10;
@@ -838,6 +1082,7 @@
 
       seccion("1. Antecedentes generales de la jornada");
       await tabla([{ titulo: "", ancho: 0.25 }, { titulo: "", ancho: 0.75 }], [
+        [{ negrita: "Departamento" }, { negrita: r.arts[0].nombre }],
         [{ negrita: "Fecha" }, `${r.fechaCL} (${r.dia})`],
         [{ negrita: "Lugar / Ruta / Km" }, `Ruta ${r.ruta}, Tramo Móvil del Km ${r.kmDesde} al Km ${r.kmHasta}`],
         [{ negrita: "Hora" }, r.hora]
@@ -863,12 +1108,15 @@
       parrafo("Charla impartida al equipo: Sí", { fuente: fB, color: VERDE });
       y -= 4;
 
-      seccion(`Módulo 6: ART – ${r.cargoART}`);
-      await tabla(
-        [{ titulo: "Etapa / Secuencia de la tarea", ancho: 0.2 }, { titulo: "Peligros identificados", ancho: 0.2 },
-         { titulo: "Riesgos asociados", ancho: 0.2 }, { titulo: "Medidas de control preventivas", ancho: 0.24 },
-         { titulo: "EPP / Elementos obligatorios", ancho: 0.16 }],
-        r.etapas.map(e => [e.etapa, e.peligros, e.riesgos, e.medidas, e.epp]));
+      // Una tabla de ART por cada departamento
+      for (const art of r.arts) {
+        seccion(`Módulo 6: ART – ${art.titulo}`);
+        await tabla(
+          [{ titulo: "Etapa / Secuencia de la tarea", ancho: 0.17 }, { titulo: "Peligros identificados", ancho: 0.19 },
+           { titulo: "Riesgos asociados", ancho: 0.19 }, { titulo: "Medidas de control preventivas", ancho: 0.27 },
+           { titulo: "EPP / Elementos obligatorios", ancho: 0.18 }],
+          art.etapas.map(e => [{ negrita: e.etapa }, e.peligros, e.riesgos, e.medidas, e.epp]), { tam: 7.5 });
+      }
       await tabla(
         [{ titulo: "Pregunta", ancho: 0.2 }, { titulo: "", ancho: 0.64 }, { titulo: "SÍ", ancho: 0.08, centro: true }, { titulo: "NO", ancho: 0.08, centro: true }],
         PREGUNTAS_ART.map(([t, x], i) => [{ negrita: `Pregunta ${i + 1} (${t}):` }, x, X(r.preguntas[i] === "SÍ", ROJO), X(r.preguntas[i] === "NO", VERDE)])
