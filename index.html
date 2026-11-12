@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<!--
+  APP DE PREVENCIÓN – PASO 3: listado de personal + PDF + correo
+  ===============================================================
+  Recuerda las 3 partes:
+    1. HTML  -> QUÉ hay en pantalla
+    2. CSS   -> CÓMO se ve (dentro de <style>)
+    3. JavaScript -> QUÉ HACE (dentro del último <script>)
+  Usamos 2 "librerías" (código hecho por otros que reutilizamos):
+    - pdf-lib  -> arma el PDF. Se descarga de unpkg.com al abrir la app
+                  (en el modo sin internet la dejaremos guardada en el celular).
+    - SheetJS  -> lee el Excel del listado. Se descarga de internet solo
+                  cuando cargas el listado (necesita señal esa vez).
+-->
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prevención en Terreno</title>
+  <!-- Librería para crear el PDF, descargada desde unpkg (versión fija 1.17.1) -->
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+  <style>
+    :root {
+      --principal: #e85d04;
+      --oscuro: #1f2933;
+      --fondo: #f4f5f7;
+      --borde: #d0d5dd;
+      --ok: #12805c;
+      --mal: #b42318;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--fondo); color: var(--oscuro); }
+    header { background: var(--oscuro); color: white; padding: 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 5; }
+    header h1 { font-size: 17px; margin: 0; }
+    main { max-width: 680px; margin: 0 auto; padding: 16px 16px 60px; }
+
+    .menu-btn { display: block; width: 100%; padding: 20px; margin-bottom: 12px; font-size: 18px; font-weight: 600; text-align: left; background: white; border: 2px solid var(--borde); border-radius: 12px; cursor: pointer; color: inherit; }
+    .menu-btn small { display: block; font-weight: 400; color: #667085; margin-top: 4px; font-size: 14px; }
+    .menu-btn:active { border-color: var(--principal); }
+
+    .tarjeta { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--borde); }
+    .tarjeta h2 { font-size: 15px; margin: 0 0 12px; color: var(--principal); text-transform: uppercase; letter-spacing: .3px; }
+    .tarjeta h3 { font-size: 15px; margin: 18px 0 8px; }
+    .ayuda { font-size: 13px; color: #667085; margin: 0 0 10px; }
+
+    label { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
+    input[type=text], input[type=date], input[type=time], input[type=search], textarea { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; font-family: inherit; background: white; }
+    input[readonly] { background: #f2f4f7; color: #475467; }
+    textarea { min-height: 70px; }
+    .dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    /* Botones C / NC / N/A y SÍ / NO */
+    .pregunta { border-top: 1px solid #eaecf0; padding: 12px 0; }
+    .pregunta:first-of-type { border-top: none; }
+    .pregunta p { margin: 0 0 8px; font-size: 14px; line-height: 1.4; }
+    .opciones { display: flex; gap: 8px; }
+    .opciones label { flex: 1; margin: 0; }
+    .opciones input { position: absolute; opacity: 0; pointer-events: none; }
+    .opciones span { display: block; text-align: center; padding: 10px 0; border: 2px solid var(--borde); border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .opciones input:checked + span { color: white; }
+    .opciones input[value="C"]:checked + span,  .opciones input[value="NO"]:checked + span { background: var(--ok); border-color: var(--ok); }
+    .opciones input[value="NC"]:checked + span, .opciones input[value="SÍ"]:checked + span { background: var(--mal); border-color: var(--mal); }
+    .opciones input[value="N/A"]:checked + span { background: #667085; border-color: #667085; }
+
+    .modulo h3 { font-size: 14px; margin: 14px 0 6px; }
+    .modulo ul { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.45; }
+    .confirmar { display: flex; gap: 10px; align-items: center; margin-top: 14px; padding: 12px; background: #fff4ec; border-radius: 8px; font-weight: 600; }
+    .confirmar input { width: 22px; height: 22px; }
+
+    .bloque { border: 1px solid #eaecf0; border-radius: 10px; padding: 12px; margin-bottom: 10px; position: relative; }
+    .bloque .num { font-weight: 700; color: var(--principal); font-size: 13px; }
+    .bloque .quitar { position: absolute; top: 8px; right: 8px; }
+    .bloque label { font-size: 13px; }
+    .check-linea { display: flex; gap: 8px; align-items: center; font-weight: 400; margin-top: 10px; }
+    .check-linea input { width: 20px; height: 20px; }
+
+    .btn { display: block; padding: 14px 18px; font-size: 16px; font-weight: 600; border-radius: 10px; border: none; cursor: pointer; text-align: center; font-family: inherit; }
+    .btn-principal { background: var(--principal); color: white; width: 100%; }
+    .btn-secundario { background: white; border: 2px solid var(--borde); width: 100%; color: inherit; }
+    .btn-verde { background: var(--ok); color: white; width: 100%; }
+    .btn-quitar { background: #fee4e2; color: var(--mal); padding: 6px 10px; font-size: 14px; }
+    .volver { background: none; border: none; color: white; font-size: 22px; cursor: pointer; }
+    .acciones { display: grid; gap: 10px; }
+
+    .pantalla { display: none; }
+    .pantalla.activa { display: block; }
+
+    /* ===== Listado de personal (Paso 3) ===== */
+    .cargar-listado { background: #fff4ec; border-radius: 10px; padding: 14px; }
+    .cargar-listado p { margin: 0 0 10px; font-size: 14px; }
+    .lista-personal { max-height: 300px; overflow-y: auto; border: 1px solid #eaecf0; border-radius: 10px; margin-top: 8px; }
+    .persona { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px; background: white; border: none; border-bottom: 1px solid #eaecf0; text-align: left; font-size: 15px; cursor: pointer; font-family: inherit; color: inherit; }
+    .persona small { color: #667085; font-size: 13px; white-space: nowrap; margin-left: 8px; }
+    .persona.elegido { background: #ecfdf3; font-weight: 600; }
+    .persona.elegido::before { content: "✓"; color: var(--ok); font-weight: 700; margin-right: 8px; }
+    .persona span { flex: 1; }
+    .enlace { background: none; border: none; color: var(--principal); text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; font-family: inherit; }
+    .resaltar { animation: brillo 1.2s; }
+    @keyframes brillo { 0%, 60% { box-shadow: 0 0 0 4px #fec84b; } 100% { box-shadow: none; } }
+
+    /* ===== Firmas ===== */
+    .firma { margin-top: 12px; }
+    .firma-top { display: flex; justify-content: space-between; align-items: center; }
+    .firma-top label { margin: 0; }
+    .btn-limpiar { background: none; border: none; color: #667085; text-decoration: underline; font-size: 14px; cursor: pointer; }
+    canvas.lienzo { display: block; width: 100%; height: 140px; margin-top: 6px; background: #fafbfc; border: 2px dashed var(--borde); border-radius: 8px; touch-action: none; }
+    canvas.lienzo[data-firmado] { border-style: solid; border-color: var(--ok); background: white; }
+    .firma.falta canvas.lienzo { border-color: var(--mal); background: #fff5f5; }
+    .firma-ayuda { color: #98a2b3; font-size: 12px; }
+
+    .error { color: var(--mal); font-weight: 600; font-size: 14px; }
+    .mensaje { font-size: 14px; background: #f2f4f7; border-radius: 8px; padding: 10px; }
+    .mensaje:empty { display: none; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <button class="volver" id="btnVolver" onclick="mostrar('menu')" style="visibility:hidden">←</button>
+    <h1 id="titulo">Prevención en Terreno</h1>
+  </header>
+
+  <main>
+    <!-- ========== MENÚ ========== -->
+    <section id="menu" class="pantalla activa">
+      <button class="menu-btn" onclick="mostrar('charla')">
+        📋 Charla diaria + ART + Bloqueador
+        <small>Formato oficial de la jornada, todo en uno</small>
+      </button>
+      <button class="menu-btn" onclick="mostrar('odi')">
+        ⚠️ ODI / Derecho a Saber
+        <small>Obligación de informar los riesgos (opcional)</small>
+      </button>
+    </section>
+
+    <!-- ========== CHARLA + ART ========== -->
+    <section id="charla" class="pantalla">
+      <form id="formCharla" onsubmit="revisar(event)" novalidate>
+
+        <div class="tarjeta">
+          <h2>1. Antecedentes generales de la jornada</h2>
+          <div class="dos-col">
+            <div><label>Fecha</label><input type="date" name="fecha" required></div>
+            <div><label>Hora</label><input type="time" name="hora" value="08:00" required></div>
+          </div>
+          <label>Obra</label>
+          <textarea name="obra" style="min-height:56px" placeholder="Se llena sola al cargar el listado"></textarea>
+          <label>Ruta</label>
+          <input type="text" name="ruta" required placeholder="Ej: C-35">
+          <div class="dos-col">
+            <div><label>Tramo móvil del Km</label><input type="text" name="kmDesde" inputmode="decimal" required></div>
+            <div><label>al Km</label><input type="text" name="kmHasta" inputmode="decimal" required></div>
+          </div>
+        </div>
+
+        <div class="tarjeta">
+          <h2>2. Verificación previa y checklist operativo</h2>
+          <p class="ayuda">C: Cumple · NC: No Cumple · N/A: No Aplica</p>
+          <div id="checklist"></div>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Charla diaria – Módulos 3 al 5</h2>
+          <div id="modulos" class="modulo"></div>
+          <label class="confirmar"><input type="checkbox" name="charlaImpartida" required> Charla impartida al equipo</label>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Módulo 6: ART</h2>
+          <label>Cargo / Tarea</label>
+          <input type="text" name="cargoART" value="Laboratorista" required>
+          <p class="ayuda" style="margin-top:12px">Agrega una etapa por cada paso de la tarea.</p>
+          <div id="etapasART"></div>
+          <button type="button" class="btn btn-secundario" onclick="agregarEtapa()">+ Agregar etapa</button>
+
+          <div id="preguntasART" style="margin-top:16px"></div>
+          <div id="accionObligatoria" style="display:none">
+            <label>Acción obligatoria: indique la condición observada y el control preventivo aplicado</label>
+            <textarea name="accion"></textarea>
+          </div>
+        </div>
+
+        <!-- 4. ASISTENCIA: elegir del listado -->
+        <div class="tarjeta">
+          <h2>4. Registro de asistencia y firmas</h2>
+          <p class="ayuda">Al firmar, la persona trabajadora declara haber asistido y comprendido la Charla Diaria, haber participado en la revisión de riesgos y comprometerse a cumplir las normas de autocuidado.</p>
+
+          <!-- Se ve cuando todavía NO hay listado guardado en el celular -->
+          <div id="sinListado" class="cargar-listado">
+            <p><b>Carga el listado de personal</b> (el Excel de la obra). Queda guardado solo en este celular.</p>
+            <label class="btn btn-secundario" style="margin:0">📂 Elegir archivo Excel
+              <input type="file" accept=".xls,.xlsx,.csv" onchange="cargarListado(this)" hidden>
+            </label>
+          </div>
+
+          <!-- Se ve cuando YA hay listado -->
+          <div id="conListado" style="display:none">
+            <input type="search" id="buscador" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarListado()">
+            <div id="listaPersonal" class="lista-personal"></div>
+            <p class="ayuda" style="margin-top:6px">
+              <span id="infoListado"></span> ·
+              <label class="enlace" style="display:inline; font-weight:400">Cambiar listado<input type="file" accept=".xls,.xlsx,.csv" onchange="cargarListado(this)" hidden></label>
+            </p>
+          </div>
+          <p class="error" id="errorListado"></p>
+
+          <h3 id="tituloAsistentes">Asistentes (0)</h3>
+          <p class="ayuda" id="ayudaAsistentes">Toca los nombres en el listado para agregarlos aquí. Luego cada uno firma.</p>
+          <div id="trabajadores"></div>
+          <button type="button" class="btn btn-secundario" onclick="agregarTrabajador()">+ Agregar persona que no está en el listado</button>
+        </div>
+
+        <div class="tarjeta">
+          <h2>5. Validación y responsables</h2>
+          <label>Nombre Supervisor</label>
+          <input type="text" name="supervisor" required>
+          <div id="firmaSupervisor"></div>
+          <label style="margin-top:18px">Nombre Prevención de Riesgos</label>
+          <input type="text" name="prevencionista" required>
+          <div id="firmaPrevencion"></div>
+        </div>
+
+        <p class="error" id="error"></p>
+        <button type="submit" class="btn btn-principal">Revisar y generar PDF</button>
+      </form>
+
+      <!-- Aparece cuando el PDF está listo -->
+      <div class="tarjeta" id="cajaEnvio" style="display:none; margin-top:16px">
+        <h2>✅ Registro listo</h2>
+        <p class="ayuda" id="infoPDF"></p>
+        <div class="acciones">
+          <button class="btn btn-principal" onclick="enviarCorreo()">✉️ Enviar por correo</button>
+          <button class="btn btn-secundario" onclick="descargarPDF()">📄 Ver / descargar PDF</button>
+          <p class="mensaje" id="mensajeEnvio"></p>
+          <button class="btn btn-secundario" onclick="nuevoRegistro()">Empezar un registro nuevo</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="odi" class="pantalla"><div class="tarjeta">🚧 ODI / Derecho a Saber: lo construimos en el Paso 4.</div></section>
+  </main>
+
+  <script>
+    /* =====================================================================
+       CONFIGURACIÓN: cambia aquí el correo de destino
+       ===================================================================== */
+    const CORREO_DESTINO = "jlobos@xpando.cl";
+
+    /* =====================================================================
+       CONTENIDO DEL FORMATO OFICIAL
+       Si cambia una pregunta o un módulo, SOLO editas estas listas.
+       ===================================================================== */
+    const TITULO_DOC = "REGISTRO Y CONTENIDO DE CHARLA DIARIA DE 5 MINUTOS – ART – REGISTRO BLOQUEADOR SOLAR";
+    const TEMA_DOC = "TEMA GENERADOR: NORMAS GENERALES DE SEGURIDAD, AUTOCUIDADO, SALUD Y CONVIVENCIA LABORAL";
+
+    const CHECKLIST = [
+      ["Uso de EPP", "¿Todos los trabajadores llevan su EPP completo y certificado (casco con barbiquejo, lentes UV, calzado y chaleco alta visibilidad Clase 3)?"],
+      ["Estado de EPP y Herramientas", "¿Todos los EPP, arneses y herramientas menores se encuentran en buenas condiciones de uso, limpios y sin daños?"],
+      ["Condición Física del Personal", "¿Todo el personal se encuentra en buenas condiciones de salud, descansado y apto para iniciar la jornada laboral (sin fatiga ni malestares)?"],
+      ["Inspección de Camioneta/Vehículo", "¿La camioneta o vehículo de transporte fue verificado con su lista de chequeo diario (frenos, luces, neumáticos, niveles y alarma de retroceso)?"],
+      ["Equipamiento de Emergencia del Vehículo", "¿La camioneta cuenta con extintor cargado y vigente, botiquín de primeros auxilios completo, gata, llave de rueda y triángulo/chaleco?"],
+      ["Elementos de Segregación Vial", "¿Llevan en la carrocería todos los conos de 75 cm, faros LED ámbar, letreros transitorios (PT-1a, PT-3, PR-1) y sacos de lastre necesarios?"],
+      ["Comunicaciones", "¿Cuentan con las radios VHF con baterías cargadas y operativas para mantener contacto entre Bandereros, Capataz y Camioneta?"]
+    ];
+
+    // Cada punto es [título en negrita, texto]
+    const MODULOS = [
+      { titulo: "Módulo 3: Salud ocupacional (MINSAL) y ambiente", puntos: [
+        ["Radiación UV e Hipobaria", "Bloqueador FPS 50+ cada 2 horas, gorro legionario y lentes UV. Reportar de inmediato mareo o puna en alta cordillera."],
+        ["Manejo de Cargas (MMC/TMERT)", "Límite máximo de 25 kg (hombres) y 20 kg (mujeres). Flectar rodillas al levantar y hacer pausas de estiramiento."],
+        ["Ruido (PREXOR) y Sílice (PLANESI)", "Fono/protector auditivo obligatorio cerca de maquinaria y respirador P100 en presencia de polvo."]
+      ]},
+      { titulo: "Módulo 4: Buen trato y Ley Karin (Ley N° 21.643)", puntos: [
+        ["Tolerancia Cero", "Prohibido todo acto de acoso, discriminación o violencia hacia compañeros, subcontratistas, MOP o usuarios de la vía."],
+        ["Respeto Laboral", "La supervisión aplicará estrictamente el principio de Corregir en Privado."]
+      ]},
+      { titulo: "Módulo 5: Gestión de residuos (CEX-RE-SG-05)", puntos: [
+        ["Faja Fiscal Limpia", "Prohibido botar despuntes, sacos, restos de mezcla o basura en la ruta o quebradas."],
+        ["Acopio", "Clasificar y cargar todo residuo en la camioneta o camión de apoyo."]
+      ]}
+    ];
+
+    const PREGUNTAS_ART = [
+      ["Entorno / Clima", "¿Existen condiciones climáticas o de la vía fuera de lo normal? (Camanchaca, viento >40 km/h, lluvia, desvíos, etc.)"],
+      ["EPP / Controles especiales", "¿Se requiere un EPP o medida de control especial no contemplada en la ART estándar del cargo?"]
+    ];
+
+    const DECLARACION = "Al firmar este documento, la persona trabajadora declara haber asistido y comprendido a cabalidad la Charla Diaria de Seguridad, haber participado en la revisión de riesgos y comprometerse a cumplir las instrucciones y normas de autocuidado impartidas.";
+
+    const NOTAS_BLOQUEADOR = [
+      "El bloqueador solar provisto por la empresa cuenta con Factor de Protección Solar FPS 50+ certificado.",
+      "Es obligación de cada persona trabajadora aplicarse el producto 20 minutos antes de exponerse al sol y re-aplicar cada 2 horas.",
+      "Al firmar este registro, el/la trabajador/a confirma haber dispuesto del producto y haber recibido la instrucción de uso en la Charla Diaria."
+    ];
+
+    const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+    /* =====================================================================
+       GUARDAR EN EL CELULAR (localStorage)
+       localStorage es una "cajonera" del navegador: guarda texto con un nombre.
+       Solo queda en ESTE teléfono. Usamos try/catch por si el navegador no lo permite.
+       ===================================================================== */
+    function leerGuardado(clave, siNoHay) {
+      try { return JSON.parse(localStorage.getItem(clave)) ?? siNoHay; } catch { return siNoHay; }
+    }
+    function guardar(clave, valor) {
+      try { localStorage.setItem(clave, JSON.stringify(valor)); } catch { /* sin espacio o bloqueado: seguimos igual */ }
+    }
+
+    /* =====================================================================
+       ARMAR LA PANTALLA
+       ===================================================================== */
+    function botones(nombre, opciones) {
+      return `<div class="opciones">` +
+        opciones.map(op => `<label><input type="radio" name="${nombre}" value="${op}" required><span>${op}</span></label>`).join("") +
+        `</div>`;
+    }
+
+    CHECKLIST.forEach(([titulo, texto], i) => {
+      document.getElementById("checklist").innerHTML += `
+        <div class="pregunta"><p><b>${i + 1}. ${titulo}:</b> ${texto}</p>${botones("chk" + i, ["C", "NC", "N/A"])}</div>`;
+    });
+
+    MODULOS.forEach(m => {
+      document.getElementById("modulos").innerHTML += `
+        <h3>${m.titulo}</h3><ul>${m.puntos.map(([t, x]) => `<li><b>${t}:</b> ${x}</li>`).join("")}</ul>`;
+    });
+
+    PREGUNTAS_ART.forEach(([titulo, texto], i) => {
+      document.getElementById("preguntasART").innerHTML += `
+        <div class="pregunta"><p><b>Pregunta ${i + 1} (${titulo}):</b> ${texto}</p>${botones("art" + i, ["SÍ", "NO"])}</div>`;
+    });
+
+    document.getElementById("preguntasART").addEventListener("change", () => {
+      const hayUnSi = document.querySelector('#preguntasART input[value="SÍ"]:checked') !== null;
+      document.getElementById("accionObligatoria").style.display = hayUnSi ? "block" : "none";
+      document.querySelector("[name=accion]").required = hayUnSi;
+    });
+
+    function renumerar(idContenedor, prefijo) {
+      document.querySelectorAll(`#${idContenedor} .num`).forEach((n, i) => n.textContent = `${prefijo} ${i + 1}`);
+    }
+
+    function agregarEtapa() {
+      const div = document.createElement("div");
+      div.className = "bloque etapa";
+      div.innerHTML = `
+        <span class="num"></span>
+        <button type="button" class="btn btn-quitar quitar" onclick="this.parentElement.remove(); renumerar('etapasART','Etapa')">✕</button>
+        <label>Etapa / secuencia de la tarea</label><input type="text" class="e-etapa" required>
+        <label>Peligros identificados</label><textarea class="e-peligros" required></textarea>
+        <label>Riesgos asociados</label><textarea class="e-riesgos" required></textarea>
+        <label>Medidas de control preventivas</label><textarea class="e-medidas" required></textarea>
+        <label>EPP / elementos obligatorios</label><input type="text" class="e-epp" required>`;
+      document.getElementById("etapasART").appendChild(div);
+      renumerar("etapasART", "Etapa");
+    }
+
+    /* =====================================================================
+       LISTADO DE PERSONAL (Paso 3)
+       ===================================================================== */
+    const URL_SHEETJS = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    let listado = leerGuardado("pt_listado", null);   // { obra, lista: [{nombre, rut}], cargado }
+    let cargos = leerGuardado("pt_cargos", {});        // el cargo que recordamos para cada RUT
+
+    // Descarga una librería de internet solo cuando la necesitamos
+    function cargarScript(url) {
+      return new Promise((ok, falla) => {
+        const s = document.createElement("script");
+        s.src = url; s.onload = ok;
+        s.onerror = () => falla(new Error("no hay conexión a internet para leer el Excel"));
+        document.head.appendChild(s);
+      });
+    }
+
+    // Quita tildes y pasa a minúsculas: así "José" se encuentra buscando "jose"
+    const normalizar = t => String(t ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+
+    // "IGNACIO JOSE" -> "Ignacio Jose"
+    const tipoTitulo = t => String(t).toLocaleLowerCase("es").replace(/(^|\s)\S/g, c => c.toLocaleUpperCase("es"));
+
+    // "12345678-5" -> "12.345.678-5"
+    function formatearRut(rut) {
+      const limpio = String(rut).replace(/[^0-9kK]/g, "").toUpperCase();
+      if (limpio.length < 2) return String(rut).trim();
+      const cuerpo = limpio.slice(0, -1), dv = limpio.slice(-1);
+      return cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + dv;
+    }
+    const claveRut = rut => String(rut).replace(/[^0-9kK]/g, "").toUpperCase();
+
+    // Recibe las filas del Excel (una lista de listas) y saca nombre + RUT de cada trabajador.
+    // Busca solo la fila de títulos, así funciona aunque el Excel tenga filas extra arriba.
+    function parsearListado(filas) {
+      const esRut = c => ["ci", "c.i.", "c.i", "rut", "run"].includes(normalizar(c)) || normalizar(c).startsWith("rut");
+      const filaTitulos = filas.findIndex(f => f.some(esRut));
+      if (filaTitulos < 0) throw new Error("no encontré la columna RUT o CI");
+
+      const titulos = filas[filaTitulos].map(normalizar);
+      const colRut = titulos.findIndex((t, i) => esRut(filas[filaTitulos][i]));
+      const colNombre = titulos.findIndex(t => t.startsWith("nombre"));
+      const colsApellido = titulos.map((t, i) => t.includes("apellido") ? i : -1).filter(i => i >= 0);
+      if (colNombre < 0) throw new Error("no encontré la columna NOMBRE");
+
+      // Nombres: desde la columna NOMBRE hasta antes de la siguiente columna con título
+      // (en tu Excel el segundo nombre está en una columna sin título)
+      const colsNombre = [colNombre];
+      for (let i = colNombre + 1; i < titulos.length && !titulos[i] && !colsApellido.includes(i) && i !== colRut; i++) colsNombre.push(i);
+
+      const lista = [];
+      for (const f of filas.slice(filaTitulos + 1)) {
+        const rut = String(f[colRut] ?? "").trim();
+        if (!/\d/.test(rut)) continue;   // filas vacías o sin RUT se saltan
+        const nombres = colsNombre.map(i => f[i]).filter(Boolean).join(" ");
+        const apellidos = colsApellido.map(i => f[i]).filter(Boolean).join(" ");
+        lista.push({ nombre: tipoTitulo(`${nombres} ${apellidos}`.replace(/\s+/g, " ").trim()), rut: formatearRut(rut) });
+      }
+      if (lista.length === 0) throw new Error("el archivo no tiene trabajadores con RUT");
+
+      // Buscamos el nombre de la obra en las filas de arriba ("OBRA : ...")
+      let obra = "";
+      for (const f of filas.slice(0, filaTitulos)) {
+        const i = f.findIndex(c => normalizar(c).startsWith("obra"));
+        if (i >= 0) {
+          const enLaMisma = String(f[i]).split(":").slice(1).join(":").trim();
+          obra = enLaMisma || f.slice(i + 1).find(c => String(c).trim()) || "";
+          break;
+        }
+      }
+      return { obra: String(obra).trim(), lista };
+    }
+
+    async function cargarListado(input) {
+      const archivo = input.files[0];
+      if (!archivo) return;
+      const aviso = document.getElementById("errorListado");
+      aviso.textContent = "Leyendo el archivo…";
+      try {
+        if (!window.XLSX) await cargarScript(URL_SHEETJS);
+        const libro = XLSX.read(await archivo.arrayBuffer(), { type: "array" });
+        const hoja = libro.Sheets[libro.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: "" });
+        aplicarListado(parsearListado(filas));
+        aviso.textContent = "";
+      } catch (e) {
+        aviso.textContent = "No pude leer el archivo: " + e.message;
+      }
+      input.value = "";   // permite volver a elegir el mismo archivo
+    }
+
+    function aplicarListado(datos) {
+      datos.cargado = new Date().toLocaleDateString("es-CL");
+      listado = datos;
+      guardar("pt_listado", datos);
+      mostrarListado();
+    }
+
+    function mostrarListado() {
+      const hay = listado && listado.lista.length > 0;
+      document.getElementById("sinListado").style.display = hay ? "none" : "block";
+      document.getElementById("conListado").style.display = hay ? "block" : "none";
+      if (!hay) return;
+      document.getElementById("infoListado").textContent = `${listado.lista.length} trabajadores · cargado el ${listado.cargado}`;
+      const campoObra = document.querySelector("[name=obra]");
+      if (!campoObra.value && listado.obra) campoObra.value = listado.obra;
+      pintarListado();
+    }
+
+    // Dibuja la lista filtrada por el buscador
+    function pintarListado() {
+      if (!listado) return;
+      const busca = normalizar(document.getElementById("buscador").value);
+      const buscaRut = claveRut(busca);
+      const visibles = listado.lista.filter(p =>
+        !busca || normalizar(p.nombre).includes(busca) || (buscaRut.length > 2 && claveRut(p.rut).includes(buscaRut)));
+
+      document.getElementById("listaPersonal").innerHTML = visibles.map(p => {
+        const elegido = document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`) ? "elegido" : "";
+        return `<button type="button" class="persona ${elegido}" onclick="tocarPersona('${claveRut(p.rut)}')">
+                  <span>${p.nombre}</span><small>${p.rut}</small></button>`;
+      }).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
+    }
+
+    // Tocar un nombre: si no está, se agrega. Si ya está y no ha firmado, se quita.
+    // Si ya firmó, te lleva a su firma (para no borrarla por error).
+    function tocarPersona(rut) {
+      const bloque = document.querySelector(`.trabajador[data-rut="${rut}"]`);
+      if (!bloque) {
+        agregarTrabajador(listado.lista.find(p => claveRut(p.rut) === rut));
+      } else if (!bloque.querySelector("canvas[data-firmado]")) {
+        bloque.remove();
+        actualizarAsistentes();
+      } else {
+        bloque.scrollIntoView({ behavior: "smooth", block: "center" });
+        bloque.classList.remove("resaltar"); void bloque.offsetWidth; bloque.classList.add("resaltar");
+      }
+      pintarListado();
+    }
+
+    function actualizarAsistentes() {
+      renumerar("trabajadores", "Trabajador");
+      const n = document.querySelectorAll(".trabajador").length;
+      document.getElementById("tituloAsistentes").textContent = `Asistentes (${n})`;
+      document.getElementById("ayudaAsistentes").style.display = n ? "none" : "block";
+    }
+
+    // persona = {nombre, rut} si viene del listado; vacío si es "a mano"
+    function agregarTrabajador(persona) {
+      const div = document.createElement("div");
+      div.className = "bloque trabajador";
+      const soloLectura = persona ? "readonly" : "";
+      if (persona) div.dataset.rut = claveRut(persona.rut);
+      const cargo = persona ? (cargos[claveRut(persona.rut)] || "") : "";
+      div.innerHTML = `
+        <span class="num"></span>
+        <button type="button" class="btn btn-quitar quitar" onclick="this.parentElement.remove(); actualizarAsistentes(); pintarListado()">✕</button>
+        <label>Nombre completo</label><input type="text" class="t-nombre" required ${soloLectura} value="${persona ? persona.nombre : ""}">
+        <div class="dos-col">
+          <div><label>RUT</label><input type="text" class="t-rut" required ${soloLectura} value="${persona ? persona.rut : ""}" placeholder="12.345.678-9"></div>
+          <div><label>Cargo / función</label><input type="text" class="t-cargo" required value="${cargo}" placeholder="Ej: Laboratorista"></div>
+        </div>
+        <label class="check-linea"><input type="checkbox" class="t-bloqueador"> Aplicó bloqueador solar FPS 50+ hoy</label>
+        ${htmlFirma("Firma del trabajador")}`;
+      document.getElementById("trabajadores").appendChild(div);
+      actualizarAsistentes();
+      activarFirmas();
+    }
+
+    /* =====================================================================
+       FIRMAS (Paso 2)
+       pointerdown -> el dedo toca · pointermove -> se mueve · pointerup -> se levanta
+       ===================================================================== */
+    function htmlFirma(etiqueta) {
+      return `
+        <div class="firma">
+          <div class="firma-top"><label>${etiqueta}</label>
+            <button type="button" class="btn-limpiar" onclick="limpiarFirma(this)">Borrar</button></div>
+          <canvas class="lienzo"></canvas>
+          <small class="firma-ayuda">Firme con el dedo dentro del recuadro</small>
+        </div>`;
+    }
+
+    function activarFirmas() {
+      document.querySelectorAll("canvas.lienzo:not([data-listo])").forEach(prepararLienzo);
+    }
+
+    function ajustarTamano(c) {
+      const ctx = c.getContext("2d");
+      const escala = window.devicePixelRatio || 1;
+      const r = c.getBoundingClientRect();
+      const ancho = Math.round(r.width * escala), alto = Math.round(r.height * escala);
+      if (!c.dataset.firmado && (c.width !== ancho || c.height !== alto)) { c.width = ancho; c.height = alto; }
+      ctx.lineWidth = 2.5 * escala;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#0b1f44";
+    }
+
+    function prepararLienzo(c) {
+      c.dataset.listo = "1";
+      const ctx = c.getContext("2d");
+      let dibujando = false;
+      const punto = e => {
+        const r = c.getBoundingClientRect();
+        return [(e.clientX - r.left) * c.width / r.width, (e.clientY - r.top) * c.height / r.height];
+      };
+      c.addEventListener("pointerdown", e => {
+        ajustarTamano(c);
+        dibujando = true;
+        c.setPointerCapture(e.pointerId);
+        const [x, y] = punto(e);
+        ctx.beginPath(); ctx.moveTo(x, y);
+      });
+      c.addEventListener("pointermove", e => {
+        if (!dibujando) return;
+        const [x, y] = punto(e);
+        ctx.lineTo(x, y); ctx.stroke();
+        c.dataset.firmado = "1";
+        c.closest(".firma").classList.remove("falta");
+      });
+      c.addEventListener("pointerup", () => dibujando = false);
+      c.addEventListener("pointercancel", () => dibujando = false);
+    }
+
+    function limpiarFirma(boton) {
+      const c = boton.closest(".firma").querySelector("canvas");
+      c.getContext("2d").clearRect(0, 0, c.width, c.height);
+      delete c.dataset.firmado;
+    }
+
+    document.getElementById("firmaSupervisor").innerHTML = htmlFirma("Firma Supervisor");
+    document.getElementById("firmaPrevencion").innerHTML = htmlFirma("Firma Prevención de Riesgos");
+
+    /* =====================================================================
+       AL ABRIR LA APP
+       ===================================================================== */
+    agregarEtapa();
+    activarFirmas();
+    mostrarListado();
+    actualizarAsistentes();
+    document.querySelector("[name=fecha]").value = new Date().toLocaleDateString("sv-SE");  // formato AAAA-MM-DD
+    // Recordamos los nombres del supervisor y prevencionista de la última vez
+    const responsables = leerGuardado("pt_responsables", {});
+    document.querySelector("[name=supervisor]").value = responsables.supervisor || "";
+    document.querySelector("[name=prevencionista]").value = responsables.prevencionista || "";
+
+    function mostrar(id) {
+      document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
+      document.getElementById(id).classList.add("activa");
+      document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", odi: "ODI / Derecho a Saber" };
+      document.getElementById("titulo").textContent = titulos[id];
+      window.scrollTo(0, 0);
+    }
+
+    /* =====================================================================
+       REVISAR: valida todo y junta los datos en un "objeto" (registro)
+       ===================================================================== */
+    let pdfListo = null;   // { bytes, nombreArchivo, asunto }
+
+    async function revisar(evento) {
+      evento.preventDefault();
+      const form = document.getElementById("formCharla");
+      const error = document.getElementById("error");
+      error.textContent = "";
+
+      // 1) Campos obligatorios vacíos
+      const invalido = [...form.querySelectorAll("[required]")].find(c => !c.checkValidity());
+      if (invalido) {
+        error.textContent = "Falta completar un campo. Te llevo a él.";
+        invalido.closest(".pregunta, label, div")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (invalido.type !== "radio") setTimeout(() => invalido.focus(), 400);
+        return;
+      }
+      // 2) Al menos un asistente
+      if (document.querySelectorAll(".trabajador").length === 0) {
+        error.textContent = "Agrega al menos un asistente.";
+        document.getElementById("tituloAsistentes").scrollIntoView({ behavior: "smooth" });
+        return;
+      }
+      // 3) Firmas
+      const sinFirma = [...form.querySelectorAll("canvas.lienzo:not([data-firmado])")];
+      if (sinFirma.length > 0) {
+        sinFirma.forEach(c => c.closest(".firma").classList.add("falta"));
+        error.textContent = `Faltan ${sinFirma.length} firma(s). Están marcadas en rojo.`;
+        sinFirma[0].scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+
+      const r = recopilar();
+
+      // Recordamos cargos y responsables para la próxima vez
+      r.trabajadores.forEach(t => { if (t.rut) cargos[claveRut(t.rut)] = t.cargo; });
+      guardar("pt_cargos", cargos);
+      guardar("pt_responsables", { supervisor: r.supervisor.nombre, prevencionista: r.prevencion.nombre });
+
+      if (!window.PDFLib) {
+        error.textContent = "No se cargó la herramienta de PDF (¿sin internet al abrir la app?). Abre la app con señal e inténtalo de nuevo.";
+        return;
+      }
+      error.textContent = "Generando PDF…";
+      try {
+        const bytes = await crearPDF(r);
+        const rutaArchivo = r.ruta.replace(/[^\wÁÉÍÓÚÑáéíóúñ-]+/g, "_");
+        pdfListo = {
+          bytes,
+          nombreArchivo: `Charla-ART_${r.fecha}_${rutaArchivo}.pdf`,
+          asunto: `Charla Diaria + ART – ${r.ruta} – ${r.fechaCL}`
+        };
+        error.textContent = "";
+        document.getElementById("infoPDF").textContent =
+          `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes · se enviará a ${CORREO_DESTINO}`;
+        document.getElementById("mensajeEnvio").textContent = "";
+        document.getElementById("cajaEnvio").style.display = "block";
+        document.getElementById("cajaEnvio").scrollIntoView({ behavior: "smooth" });
+      } catch (e) {
+        error.textContent = "No se pudo generar el PDF: " + e.message;
+      }
+    }
+
+    function recopilar() {
+      const d = new FormData(document.getElementById("formCharla"));
+      const v = (sel, el) => el.querySelector(sel).value.trim();
+      const fecha = d.get("fecha");
+      const [a, m, dia] = fecha.split("-");
+      return {
+        fecha,
+        fechaCL: `${dia}/${m}/${a}`,
+        dia: DIAS[new Date(fecha + "T12:00").getDay()],
+        hora: d.get("hora"),
+        obra: d.get("obra").trim(),
+        ruta: d.get("ruta").trim(),
+        kmDesde: d.get("kmDesde").trim(),
+        kmHasta: d.get("kmHasta").trim(),
+        checklist: CHECKLIST.map((_, i) => d.get("chk" + i)),
+        cargoART: d.get("cargoART").trim(),
+        etapas: [...document.querySelectorAll(".etapa")].map(e => ({
+          etapa: v(".e-etapa", e), peligros: v(".e-peligros", e), riesgos: v(".e-riesgos", e),
+          medidas: v(".e-medidas", e), epp: v(".e-epp", e) })),
+        preguntas: PREGUNTAS_ART.map((_, i) => d.get("art" + i)),
+        accion: (d.get("accion") || "").trim(),
+        trabajadores: [...document.querySelectorAll(".trabajador")].map(t => ({
+          nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t),
+          bloqueador: t.querySelector(".t-bloqueador").checked,
+          firma: t.querySelector("canvas").toDataURL("image/png") })),
+        supervisor: { nombre: d.get("supervisor").trim(), firma: document.querySelector("#firmaSupervisor canvas").toDataURL("image/png") },
+        prevencion: { nombre: d.get("prevencionista").trim(), firma: document.querySelector("#firmaPrevencion canvas").toDataURL("image/png") }
+      };
+    }
+
+    /* =====================================================================
+       CREAR EL PDF (con pdf-lib)
+       Las coordenadas del PDF parten ABAJO a la izquierda. Usamos "y" como
+       un cursor que baja a medida que escribimos; si no cabe, hoja nueva.
+       ===================================================================== */
+    async function crearPDF(r) {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      doc.setTitle(`Charla Diaria + ART ${r.fechaCL}`);
+      const fN = await doc.embedFont(StandardFonts.Helvetica);
+      const fB = await doc.embedFont(StandardFonts.HelveticaBold);
+      const fI = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+      const ANCHO_HOJA = 595.28, ALTO_HOJA = 841.89, M = 36, ANCHO = ANCHO_HOJA - 2 * M;   // A4, margen ~1,3 cm
+      const NARANJO = rgb(0.91, 0.36, 0.02), NEGRO = rgb(0.12, 0.16, 0.2), GRIS = rgb(0.4, 0.44, 0.52);
+      const ROJO = rgb(0.71, 0.14, 0.09), VERDE = rgb(0.07, 0.5, 0.36), LINEA = rgb(0.72, 0.75, 0.8), FONDO = rgb(0.95, 0.96, 0.97);
+      let pag, y;
+
+      // Las fuentes del PDF no tienen emojis ni algunos símbolos: los quitamos
+      const limpiar = t => String(t ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\t/g, " ")
+        .replace(/[^\n\x20-\x7E\xA0-\xFF–—•…]/g, "");
+
+      // Corta un texto en líneas que quepan en "ancho"
+      function partir(texto, fuente, tam, ancho) {
+        const lineas = [];
+        for (const parrafo of limpiar(texto).split("\n")) {
+          let linea = "";
+          for (let palabra of parrafo.split(/\s+/).filter(Boolean)) {
+            const prueba = linea ? linea + " " + palabra : palabra;
+            if (fuente.widthOfTextAtSize(prueba, tam) <= ancho) { linea = prueba; continue; }
+            if (linea) lineas.push(linea);
+            while (fuente.widthOfTextAtSize(palabra, tam) > ancho) {   // palabra más larga que la celda
+              let k = palabra.length;
+              while (k > 1 && fuente.widthOfTextAtSize(palabra.slice(0, k), tam) > ancho) k--;
+              lineas.push(palabra.slice(0, k)); palabra = palabra.slice(k);
+            }
+            linea = palabra;
+          }
+          lineas.push(linea);
+        }
+        return lineas;
+      }
+
+      function nuevaPagina() {
+        pag = doc.addPage([ANCHO_HOJA, ALTO_HOJA]);
+        y = ALTO_HOJA - M;
+        pag.drawText("XPANDO", { x: ANCHO_HOJA - M - fB.widthOfTextAtSize("XPANDO", 14), y: y - 12, size: 14, font: fB, color: NARANJO });
+        for (const l of partir(TITULO_DOC, fB, 9.5, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 10, size: 9.5, font: fB, color: NEGRO }); y -= 12; }
+        for (const l of partir(TEMA_DOC, fN, 7.5, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
+        if (r.obra) for (const l of partir("Obra: " + r.obra, fN, 7.5, ANCHO)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
+        y -= 5;
+        pag.drawLine({ start: { x: M, y }, end: { x: ANCHO_HOJA - M, y }, thickness: 1.2, color: NARANJO });
+        y -= 10;
+      }
+
+      function hayEspacio(alto) { if (y - alto < M + 24) nuevaPagina(); }
+
+      function seccion(titulo) {
+        hayEspacio(60);
+        y -= 4;
+        pag.drawRectangle({ x: M, y: y - 16, width: ANCHO, height: 16, color: NARANJO });
+        pag.drawText(limpiar(titulo).toUpperCase(), { x: M + 6, y: y - 11.5, size: 9, font: fB, color: rgb(1, 1, 1) });
+        y -= 22;
+      }
+
+      function parrafo(texto, { tam = 8.5, fuente = fN, color = NEGRO, sangria = 0 } = {}) {
+        for (const l of partir(texto, fuente, tam, ANCHO - sangria)) {
+          hayEspacio(tam * 1.35);
+          pag.drawText(l, { x: M + sangria, y: y - tam, size: tam, font: fuente, color });
+          y -= tam * 1.35;
+        }
+      }
+
+      // Tabla: columnas = [{titulo, ancho (fracción del total), centro}]
+      // Cada celda puede ser: un texto, {negrita, texto, color} o {imagen: dataURL}
+      async function tabla(columnas, filas, { tam = 8, altoFirma = 38, conTitulos = true } = {}) {
+        const pad = 4, alturaLinea = tam * 1.25;
+        const anchos = columnas.map(c => c.ancho * ANCHO);
+
+        const medir = (celda, w) => {
+          if (celda && celda.imagen) return { ...celda, alto: altoFirma + 2 * pad };
+          const c = (celda !== null && typeof celda === "object") ? celda : { texto: celda };
+          const lb = c.negrita ? partir(c.negrita, fB, tam, w - 2 * pad) : [];
+          const ln = (c.texto ?? "") !== "" ? partir(String(c.texto), c.fuente || fN, tam, w - 2 * pad) : [];
+          return { ...c, lb, ln, alto: (lb.length + ln.length) * alturaLinea + 2 * pad };
+        };
+
+        const fila = async (celdas, esTitulo) => {
+          const med = celdas.map((c, i) => medir(c, anchos[i]));
+          const alto = Math.max(16, ...med.map(m => m.alto));
+          if (y - alto < M + 24) {
+            nuevaPagina();
+            if (!esTitulo && conTitulos) await fila(columnas.map(c => ({ negrita: c.titulo })), true);
+          }
+          let x = M;
+          for (let i = 0; i < med.length; i++) {
+            const m = med[i], w = anchos[i];
+            const relleno = esTitulo ? FONDO : m.fondo;
+            pag.drawRectangle({ x, y: y - alto, width: w, height: alto, borderColor: LINEA, borderWidth: 0.6, ...(relleno ? { color: relleno } : {}) });
+            if (m.imagen) {
+              const img = await doc.embedPng(m.imagen);
+              const s = Math.min((w - 2 * pad) / img.width, (alto - 2 * pad) / img.height);
+              pag.drawImage(img, { x: x + (w - img.width * s) / 2, y: y - alto + (alto - img.height * s) / 2, width: img.width * s, height: img.height * s });
+            } else {
+              let ty = y - pad - tam;
+              const escribir = (l, fuente, color) => {
+                const tx = columnas[i].centro ? x + (w - fuente.widthOfTextAtSize(l, tam)) / 2 : x + pad;
+                pag.drawText(l, { x: tx, y: ty, size: tam, font: fuente, color });
+                ty -= alturaLinea;
+              };
+              m.lb.forEach(l => escribir(l, fB, m.color || NEGRO));
+              m.ln.forEach(l => escribir(l, m.fuente || fN, m.color || NEGRO));
+            }
+            x += w;
+          }
+          y -= alto;
+        };
+
+        if (conTitulos) await fila(columnas.map(c => ({ negrita: c.titulo })), true);
+        for (const f of filas) await fila(f, false);
+        y -= 8;
+      }
+
+      const X = (marcado, color) => marcado ? { negrita: "X", color } : "";
+
+      /* ---------- Contenido, en el mismo orden del Word ---------- */
+      nuevaPagina();
+
+      seccion("1. Antecedentes generales de la jornada");
+      await tabla([{ titulo: "", ancho: 0.25 }, { titulo: "", ancho: 0.75 }], [
+        [{ negrita: "Fecha" }, `${r.fechaCL} (${r.dia})`],
+        [{ negrita: "Lugar / Ruta / Km" }, `Ruta ${r.ruta}, Tramo Móvil del Km ${r.kmDesde} al Km ${r.kmHasta}`],
+        [{ negrita: "Hora" }, r.hora]
+      ], { conTitulos: false });
+
+      seccion("2. Verificación previa y checklist operativo en terreno");
+      await tabla(
+        [{ titulo: "N°", ancho: 0.06, centro: true }, { titulo: "Preguntas críticas de chequeo previo", ancho: 0.70 },
+         { titulo: "C", ancho: 0.08, centro: true }, { titulo: "NC", ancho: 0.08, centro: true }, { titulo: "N/A", ancho: 0.08, centro: true }],
+        CHECKLIST.map(([t, x], i) => [
+          { negrita: String(i + 1) }, { negrita: t + ":", texto: x },
+          X(r.checklist[i] === "C", VERDE), X(r.checklist[i] === "NC", ROJO), X(r.checklist[i] === "N/A", GRIS)
+        ]));
+      parrafo("C: Cumple  |  NC: No Cumple  |  N/A: No Aplica", { tam: 7.5, fuente: fI, color: GRIS });
+
+      seccion("Charla diaria – Módulo 3 al Módulo 5");
+      for (const m of MODULOS) {
+        y -= 2;
+        parrafo(m.titulo.toUpperCase(), { tam: 8.5, fuente: fB });
+        for (const [t, x] of m.puntos) parrafo(`•  ${t}: ${x}`, { sangria: 8 });
+        y -= 3;
+      }
+      parrafo("Charla impartida al equipo: Sí", { fuente: fB, color: VERDE });
+      y -= 4;
+
+      seccion(`Módulo 6: ART – ${r.cargoART}`);
+      await tabla(
+        [{ titulo: "Etapa / Secuencia de la tarea", ancho: 0.2 }, { titulo: "Peligros identificados", ancho: 0.2 },
+         { titulo: "Riesgos asociados", ancho: 0.2 }, { titulo: "Medidas de control preventivas", ancho: 0.24 },
+         { titulo: "EPP / Elementos obligatorios", ancho: 0.16 }],
+        r.etapas.map(e => [e.etapa, e.peligros, e.riesgos, e.medidas, e.epp]));
+      await tabla(
+        [{ titulo: "Pregunta", ancho: 0.2 }, { titulo: "", ancho: 0.64 }, { titulo: "SÍ", ancho: 0.08, centro: true }, { titulo: "NO", ancho: 0.08, centro: true }],
+        PREGUNTAS_ART.map(([t, x], i) => [{ negrita: `Pregunta ${i + 1} (${t}):` }, x, X(r.preguntas[i] === "SÍ", ROJO), X(r.preguntas[i] === "NO", VERDE)])
+        .concat(r.accion ? [[{ negrita: "Acción obligatoria:" }, { texto: r.accion }, "", ""]] : []));
+
+      seccion("4. Hoja de registro y firmas de asistencia en terreno");
+      parrafo(DECLARACION, { tam: 7.5, fuente: fI, color: GRIS });
+      y -= 4;
+      await tabla(
+        [{ titulo: "N°", ancho: 0.05, centro: true }, { titulo: "Nombre completo del trabajador", ancho: 0.3 },
+         { titulo: "RUT", ancho: 0.14 }, { titulo: "Cargo / Función", ancho: 0.15 },
+         { titulo: `Bloqueador (${r.dia})`, ancho: 0.12, centro: true }, { titulo: "Firma", ancho: 0.24, centro: true }],
+        r.trabajadores.map((t, i) => [String(i + 1), t.nombre, t.rut, t.cargo,
+          t.bloqueador ? { negrita: "Sí", color: VERDE } : { negrita: "No", color: ROJO }, { imagen: t.firma }]));
+
+      seccion("5. Validación y responsables de la actividad");
+      await tabla(
+        [{ titulo: "Supervisor", ancho: 0.5, centro: true }, { titulo: "Prevención de Riesgos", ancho: 0.5, centro: true }],
+        [[r.supervisor.nombre, r.prevencion.nombre], [{ imagen: r.supervisor.firma }, { imagen: r.prevencion.firma }]],
+        { altoFirma: 50 });
+
+      seccion(`Control de re-aplicación de protector solar en ruta – ${r.dia} ${r.fechaCL}`);
+      parrafo(`Se registra en la columna "Bloqueador" de la hoja de asistencia: ${r.trabajadores.filter(t => t.bloqueador).length} de ${r.trabajadores.length} trabajadores aplicaron protector solar.`);
+      y -= 2;
+      parrafo("NOTAS TÉCNICAS Y OBLIGACIONES DEL PERSONAL:", { tam: 8, fuente: fB });
+      NOTAS_BLOQUEADOR.forEach((n, i) => parrafo(`${i + 1}. ${n}`, { tam: 7.5, sangria: 8 }));
+
+      // Pie de página en todas las hojas
+      const hojas = doc.getPages();
+      const generado = `Generado el ${new Date().toLocaleString("es-CL")} – App Prevención en Terreno`;
+      hojas.forEach((h, i) => {
+        h.drawText(limpiar(generado), { x: M, y: 20, size: 7, font: fN, color: GRIS });
+        const txt = `Página ${i + 1} de ${hojas.length}`;
+        h.drawText(txt, { x: ANCHO_HOJA - M - fN.widthOfTextAtSize(txt, 7), y: 20, size: 7, font: fN, color: GRIS });
+      });
+
+      return await doc.save();
+    }
+
+    /* =====================================================================
+       ENVIAR / DESCARGAR
+       En el celular usamos "Compartir": abre la lista de apps (Gmail, Outlook…)
+       con el PDF ya adjunto. Compartir NO permite poner el destinatario, así
+       que copiamos el correo para que solo tengas que pegarlo.
+       ===================================================================== */
+    const AVISO_VISTA_PREVIA = " Si estás en la vista previa de Claude esto está bloqueado: funciona en la app publicada.";
+
+    async function enviarCorreo() {
+      const msj = document.getElementById("mensajeEnvio");
+      if (!pdfListo) return;
+      const archivo = new File([pdfListo.bytes], pdfListo.nombreArchivo, { type: "application/pdf" });
+      let copiado = false;
+      try { await navigator.clipboard.writeText(CORREO_DESTINO); copiado = true; } catch {}
+
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        try {
+          await navigator.share({ files: [archivo], title: pdfListo.asunto, text: `${pdfListo.asunto}\nPara: ${CORREO_DESTINO}` });
+          msj.textContent = `Elige tu app de correo. Destinatario: ${CORREO_DESTINO}` + (copiado ? " (ya está copiado, solo pégalo)." : ".");
+        } catch (e) {
+          msj.textContent = e.name === "AbortError" ? "Envío cancelado." : "No se pudo compartir." + AVISO_VISTA_PREVIA;
+        }
+      } else {
+        // Computador: descargamos el PDF y abrimos un correo nuevo con asunto y destinatario
+        descargarPDF();
+        const cuerpo = `Adjunto registro de Charla Diaria + ART.\n\n(Adjunta el archivo ${pdfListo.nombreArchivo} que se acaba de descargar)`;
+        location.href = `mailto:${CORREO_DESTINO}?subject=${encodeURIComponent(pdfListo.asunto)}&body=${encodeURIComponent(cuerpo)}`;
+        msj.textContent = `Se descargó el PDF y se abrió un correo para ${CORREO_DESTINO}. Adjunta el archivo descargado y envía.`;
+      }
+    }
+
+    function descargarPDF() {
+      const msj = document.getElementById("mensajeEnvio");
+      try {
+        const url = URL.createObjectURL(new Blob([pdfListo.bytes], { type: "application/pdf" }));
+        const a = document.createElement("a");
+        a.href = url; a.download = pdfListo.nombreArchivo;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+      } catch (e) {
+        msj.textContent = "No se pudo descargar." + AVISO_VISTA_PREVIA;
+      }
+    }
+
+    function nuevoRegistro() {
+      location.reload();   // recarga la página: queda en blanco, pero el listado y los nombres se recuerdan
+    }
+  </script>
+</body>
+</html>
