@@ -50,7 +50,7 @@
     .ayuda { font-size: 13px; color: #667085; margin: 0 0 10px; }
 
     label { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
-    input[type=text], input[type=date], input[type=time], input[type=search], textarea { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; font-family: inherit; background: white; }
+    input[type=text], input[type=date], input[type=time], input[type=search], textarea, select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; font-family: inherit; background: white; }
     input[readonly] { background: #f2f4f7; color: #475467; }
     textarea { min-height: 70px; }
     .dos-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -124,6 +124,15 @@
     .firma-ayuda { color: #98a2b3; font-size: 12px; }
 
     .error { color: var(--mal); font-weight: 600; font-size: 14px; }
+    /* El aviso principal flota abajo de la pantalla, para que se vea aunque la página se mueva */
+    #error:not(:empty) {
+      position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; margin: 0;
+      background: #fff5f5; border: 2px solid var(--mal); border-radius: 10px; padding: 12px 14px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.18);
+    }
+    /* Campo que falta: borde rojo */
+    .campo-falta { border: 2px solid var(--mal) !important; background: #fff5f5 !important; }
+    .pregunta.campo-falta { border-radius: 8px; padding-left: 8px; padding-right: 8px; }
     .mensaje { font-size: 14px; background: #f2f4f7; border-radius: 8px; padding: 10px; }
     .mensaje:empty { display: none; }
   </style>
@@ -534,6 +543,11 @@
         const contenedor = div.querySelector(".etapas");
         d.etapas.forEach(e => agregarEtapa(contenedor, e));   // cargamos sus etapas
         boton.classList.add("activo");
+        // Trabajadores que ya estaban agregados pero sin cargo: les proponemos el de este departamento
+        document.querySelectorAll(".trabajador").forEach(t => {
+          const lista = t.querySelector(".t-cargo-lista");
+          if (!lista.value) { lista.value = d.cargo; t.querySelector(".t-cargo").value = d.cargo; }
+        });
       }
       pintarListado();   // los trabajadores de ese departamento suben al principio de la lista
     }
@@ -738,15 +752,50 @@
         <span class="num"></span>
         <button type="button" class="btn btn-quitar quitar" onclick="this.parentElement.remove(); actualizarAsistentes(); pintarListado()">✕</button>
         <label>Nombre completo</label><input type="text" class="t-nombre" required ${soloLectura} value="${persona ? persona.nombre : ""}">
-        <div class="dos-col">
-          <div><label>RUT</label><input type="text" class="t-rut" required ${soloLectura} value="${persona ? persona.rut : ""}" placeholder="12.345.678-9"></div>
-          <div><label>Cargo / función</label><input type="text" class="t-cargo" required value="${cargo}" placeholder="Ej: Laboratorista"></div>
-        </div>
+        <label>RUT</label><input type="text" class="t-rut" required ${soloLectura} value="${persona ? persona.rut : ""}" placeholder="12.345.678-9">
+        <label>Cargo / función</label>
+        <select class="t-cargo-lista" required>
+          <option value="">Elige el cargo…</option>
+          ${DEPARTAMENTOS.map(d => `<option value="${d.cargo}">${d.icono} ${d.cargo}</option>`).join("")}
+          <option value="otro">✏️ Otro…</option>
+        </select>
+        <input type="text" class="t-cargo" placeholder="Escribe el cargo" style="display:none; margin-top:6px">
         <label class="check-linea"><input type="checkbox" class="t-bloqueador"> Aplicó bloqueador solar FPS 50+ hoy</label>
         ${htmlFirma("Firma del trabajador")}`;
+
+      // Cargo: la lista es lo que se ve; el cuadro de texto "t-cargo" guarda el valor final
+      const lista = div.querySelector(".t-cargo-lista");
+      const texto = div.querySelector(".t-cargo");
+      // Buscamos el cargo en la lista sin importar mayúsculas ni tildes ("laboratorista" = "Laboratorista")
+      const deLaLista = DEPARTAMENTOS.find(d => normalizar(d.cargo) === normalizar(cargo));
+      if (deLaLista) { lista.value = deLaLista.cargo; texto.value = deLaLista.cargo; }
+      else if (cargo) { lista.value = "otro"; texto.value = cargo; texto.style.display = "block"; texto.required = true; }
+
+      lista.addEventListener("change", () => {
+        const otro = lista.value === "otro";
+        texto.style.display = otro ? "block" : "none";
+        texto.required = otro;
+        texto.value = otro ? "" : lista.value;
+        if (otro) texto.focus(); else recordarCargo(div);
+      });
+      texto.addEventListener("change", () => recordarCargo(div));
+
       document.getElementById("trabajadores").appendChild(div);
       actualizarAsistentes();
       activarFirmas();
+    }
+
+    // Guarda en el celular el cargo (y el departamento, si el cargo es de uno) de ese trabajador
+    function recordarCargo(bloque) {
+      const rut = claveRut(bloque.querySelector(".t-rut").value);
+      const cargo = bloque.querySelector(".t-cargo").value.trim();
+      if (!rut || !cargo) return;
+      cargos[rut] = cargo;
+      const depto = DEPARTAMENTOS.find(d => d.cargo === cargo);
+      if (depto) deptosPorRut[rut] = depto.id;
+      guardar("pt_cargos", cargos);
+      guardar("pt_deptos", deptosPorRut);
+      pintarListado();   // actualiza la etiqueta del departamento en el listado
     }
 
     /* =====================================================================
@@ -862,9 +911,14 @@
       // 1) Campos obligatorios vacíos
       const invalido = [...form.querySelectorAll("[required]")].find(c => !c.checkValidity());
       if (invalido) {
-        error.textContent = "Falta completar un campo. Te llevo a él.";
-        invalido.closest(".pregunta, label, div")?.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (invalido.type !== "radio") setTimeout(() => invalido.focus(), 400);
+        // Marcamos en rojo lo que falta (para los botones C/NC/N/A marcamos la pregunta completa)
+        (invalido.type === "radio" ? invalido.closest(".pregunta") : invalido).classList.add("campo-falta");
+        const titulo = invalido.closest(".bloque, .tarjeta")?.querySelector(".num, h2")?.textContent || "";
+        error.textContent = `Falta completar un campo${titulo ? " en " + titulo : ""}. Está marcado en rojo.`;
+        // Llevamos el campo al CENTRO de la pantalla (así el aviso de abajo no lo tapa)
+        (invalido.type === "radio" ? invalido.closest(".pregunta") : invalido).scrollIntoView({ behavior: "smooth", block: "center" });
+        // preventScroll: que el cursor entre al campo sin volver a mover la pantalla
+        if (invalido.type !== "radio" && invalido.tagName !== "SELECT") setTimeout(() => invalido.focus({ preventScroll: true }), 500);
         return;
       }
       // 2) Al menos un asistente
@@ -904,8 +958,11 @@
       // Recordamos cargos y responsables para la próxima vez
       r.trabajadores.forEach(t => { if (t.rut) cargos[claveRut(t.rut)] = t.cargo; });
       guardar("pt_cargos", cargos);
-      // Recordamos que estos trabajadores son de este departamento
-      r.trabajadores.forEach(t => { if (t.rut) deptosPorRut[claveRut(t.rut)] = r.arts[0].id; });
+      // El departamento de cada trabajador sale de su cargo (si es uno de la lista)
+      r.trabajadores.forEach(t => {
+        const depto = DEPARTAMENTOS.find(d => d.cargo === t.cargo);
+        if (t.rut && depto) deptosPorRut[claveRut(t.rut)] = depto.id;
+      });
       guardar("pt_deptos", deptosPorRut);
       guardar("pt_responsables", { supervisor: r.supervisor.nombre, prevencionista: r.prevencion.nombre });
 
@@ -932,6 +989,22 @@
         error.textContent = "No se pudo generar el PDF: " + e.message;
       }
     }
+
+    // Al corregir algo: quitamos el rojo de ese campo y escondemos el aviso
+    ["input", "change"].forEach(tipo => document.getElementById("formCharla").addEventListener(tipo, e => {
+      e.target.classList.remove("campo-falta");
+      e.target.closest(".pregunta")?.classList.remove("campo-falta");
+      const error = document.getElementById("error");
+      if (!error.textContent.startsWith("Generando")) error.textContent = "";
+    }));
+
+    // Si algo falla dentro de la app, lo mostramos en pantalla (en vez de quedarse "pegada" en silencio)
+    window.addEventListener("error", e => {
+      document.getElementById("error").textContent = "Error en la app: " + e.message + ". Mándale una captura a Claude.";
+    });
+    window.addEventListener("unhandledrejection", e => {
+      document.getElementById("error").textContent = "Error en la app: " + (e.reason?.message || e.reason) + ". Mándale una captura a Claude.";
+    });
 
     function recopilar() {
       const d = new FormData(document.getElementById("formCharla"));
