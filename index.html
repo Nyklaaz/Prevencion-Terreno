@@ -171,7 +171,9 @@
       position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; margin: 0;
       background: #fff5f5; border: 2px solid var(--mal); border-radius: 10px; padding: 12px 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,.18);
+      pointer-events: none;   /* el aviso no bloquea los toques: se puede presionar el botón que queda debajo */
     }
+    main { padding-bottom: 120px; }   /* espacio para que el último botón pueda quedar sobre el aviso */
     /* Campo que falta: borde rojo */
     .campo-falta { border: 2px solid var(--mal) !important; background: #fff5f5 !important; }
     .pregunta.campo-falta { border-radius: 8px; padding-left: 8px; padding-right: 8px; }
@@ -1798,9 +1800,16 @@
         sinFirma[0].scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
-      if (!rutValido(campoIRL("irlRut").value)) {
+      // RUT: si el dígito verificador no calza, avisamos cuál debería ser.
+      // Si se presiona de nuevo con el mismo RUT, se acepta igual (para no trabar a nadie en terreno).
+      const rutEscrito = campoIRL("irlRut").value;
+      if (!rutValido(rutEscrito) && claveRut(rutEscrito) !== rutYaAvisado) {
+        rutYaAvisado = claveRut(rutEscrito);
+        const cuerpo = claveRut(rutEscrito).slice(0, -1);
         campoIRL("irlRut").classList.add("campo-falta");
-        error.textContent = "El RUT no es válido (revisa el dígito verificador).";
+        error.textContent = cuerpo.length >= 6
+          ? `Revisa el RUT: según los números ${formatearRut(cuerpo + "0").slice(0, -2)}, debería terminar en -${dvDe(cuerpo)}. Si está bien escrito (como en el carnet), presiona otra vez el botón y se guarda igual.`
+          : "Revisa el RUT: parece incompleto. Escríbelo con su dígito verificador, por ejemplo 12.345.678-5.";
         campoIRL("irlRut").scrollIntoView({ behavior: "smooth", block: "center" });
         return;
       }
@@ -1836,15 +1845,18 @@
       }
     }
 
-    // RUT chileno: revisa el dígito verificador (módulo 11)
-    function rutValido(rut) {
-      const k = claveRut(rut);
-      if (k.length < 2) return false;
-      const cuerpo = k.slice(0, -1), dv = k.slice(-1);
+    // RUT chileno: el dígito verificador se calcula con "módulo 11"
+    let rutYaAvisado = "";
+    function dvDe(cuerpo) {
       let suma = 0, m = 2;
       for (let i = cuerpo.length - 1; i >= 0; i--) { suma += +cuerpo[i] * m; m = m === 7 ? 2 : m + 1; }
       const res = 11 - (suma % 11);
-      return dv === (res === 11 ? "0" : res === 10 ? "K" : String(res));
+      return res === 11 ? "0" : res === 10 ? "K" : String(res);
+    }
+    function rutValido(rut) {
+      const k = claveRut(rut);
+      if (k.length < 2 || !/^\d+$/.test(k.slice(0, -1))) return false;
+      return k.slice(-1) === dvDe(k.slice(0, -1));
     }
 
     // Si el trabajador no está en el listado (es nuevo), lo agregamos para la charla y futuras IRL
@@ -2125,6 +2137,124 @@
     async function copiarCorreoIRL(boton) {
       try { await navigator.clipboard.writeText(CORREO_DESTINO); boton.textContent = `✅ Copiado: ${CORREO_DESTINO}`; }
       catch { document.getElementById("mensajeIRL").textContent = `No se pudo copiar. Escribe a mano: ${CORREO_DESTINO}`; }
+    }
+
+    /* =====================================================================
+       HISTORIAL: cada PDF generado queda guardado en el teléfono (IndexedDB,
+       una "bodega" del navegador que sí aguanta archivos grandes).
+       Si algo falla aquí, el PDF igual se genera y se comparte normal.
+       ===================================================================== */
+    let idHistCharla = null, idHistIRL = null;   // si se vuelve a generar, se reemplaza el mismo registro
+    let filtroHist = "todos";
+    let regsMemoria = {};                         // registros en memoria, para compartir al instante
+
+    function abrirBD() {
+      return new Promise((ok, falla) => {
+        const pedido = indexedDB.open("prevencion-terreno", 1);
+        pedido.onupgradeneeded = () => pedido.result.createObjectStore("registros", { keyPath: "id", autoIncrement: true });
+        pedido.onsuccess = () => ok(pedido.result);
+        pedido.onerror = () => falla(pedido.error);
+      });
+    }
+
+    async function operacionBD(modo, accion) {
+      const bd = await abrirBD();
+      return new Promise((ok, falla) => {
+        const tx = bd.transaction("registros", modo);
+        const pedido = accion(tx.objectStore("registros"));
+        tx.oncomplete = () => { ok(pedido.result); bd.close(); };
+        tx.onerror = () => { falla(tx.error); bd.close(); };
+      });
+    }
+
+    async function guardarEnHistorial(idAnterior, tipo, pdf, fecha, detalle) {
+      try {
+        const registro = { tipo, fecha, detalle, asunto: pdf.asunto, nombreArchivo: pdf.nombreArchivo,
+                           creado: Date.now(), pdf: pdf.bytes };
+        if (idAnterior) registro.id = idAnterior;
+        return await operacionBD("readwrite", s => s.put(registro));
+      } catch (e) {
+        console.warn("No se pudo guardar en el historial", e);
+        return idAnterior;
+      }
+    }
+
+    const html = t => String(t ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+    function filtrarHist(boton) {
+      document.querySelectorAll("#filtrosHist button").forEach(b => b.classList.remove("activo"));
+      boton.classList.add("activo");
+      filtroHist = boton.dataset.f;
+      pintarHistorial();
+    }
+
+    async function pintarHistorial() {
+      const lista = document.getElementById("listaHist");
+      let regs = [];
+      try { regs = await operacionBD("readonly", s => s.getAll()); }
+      catch { lista.innerHTML = `<div class="tarjeta">No se pudo abrir el historial en este navegador.</div>`; return; }
+      regsMemoria = Object.fromEntries(regs.map(r => [r.id, r]));
+
+      const b = normalizar(document.getElementById("buscaHist").value);
+      const fechaCL = f => String(f || "").split("-").reverse().join("/");
+      const visibles = regs
+        .filter(r => (filtroHist === "todos" || r.tipo === filtroHist) &&
+                     (!b || normalizar(`${r.asunto} ${r.detalle} ${fechaCL(r.fecha)}`).includes(b)))
+        .sort((x, y) => y.creado - x.creado);   // lo más nuevo primero
+
+      const mb = regs.reduce((s, r) => s + (r.pdf?.byteLength || 0), 0) / 1048576;
+      document.getElementById("resumenHist").textContent =
+        `${regs.length} PDF guardados en este teléfono (${mb.toFixed(1)} MB)` + (visibles.length !== regs.length ? ` · mostrando ${visibles.length}` : "");
+
+      lista.innerHTML = visibles.map(r => `
+        <div class="registro">
+          <div class="tit">${r.tipo === "irl" ? "📘" : "📋"} ${html(r.asunto)}</div>
+          <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}</div>
+          <div class="botones">
+            <button class="btn btn-principal" onclick="compartirHist(${r.id})">📤 Compartir</button>
+            <button class="btn btn-secundario" onclick="guardarHist(${r.id})">💾 Guardar</button>
+            <button class="btn btn-quitar" onclick="borrarHist(${r.id}, this)">🗑️</button>
+          </div>
+        </div>`).join("") ||
+        `<div class="tarjeta"><p class="ayuda" style="margin:0">${regs.length ? "Nada coincide con la búsqueda." : "Todavía no hay PDF guardados. Aparecerán aquí al generar una charla o una IRL."}</p></div>`;
+    }
+
+    async function compartirHist(id) {
+      const r = regsMemoria[id], msj = document.getElementById("mensajeHist");
+      if (!r) return;
+      const archivo = new File([r.pdf], r.nombreArchivo, { type: "application/pdf" });
+      const datos = { files: [archivo], title: r.asunto, text: `${r.asunto}\nPara: ${CORREO_DESTINO}` };
+      if (navigator.canShare && navigator.canShare(datos)) {
+        try { await navigator.share(datos); msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`; }
+        catch (e) { msj.textContent = e.name === "AbortError" ? "Envío cancelado." : `No se pudo compartir (${e.name}). Usa "Guardar".`; }
+      } else {
+        guardarHist(id);
+        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas.`;
+      }
+      msj.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    function guardarHist(id) {
+      const r = regsMemoria[id], msj = document.getElementById("mensajeHist");
+      if (!r) return;
+      try {
+        const url = URL.createObjectURL(new Blob([r.pdf], { type: "application/pdf" }));
+        const a = document.createElement("a"); a.href = url; a.download = r.nombreArchivo;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        msj.textContent = `PDF guardado como ${r.nombreArchivo} (carpeta Descargas).`;
+      } catch { msj.textContent = "No se pudo guardar el PDF."; }
+    }
+
+    // Borrar pide confirmación: primer toque cambia a "¿Borrar?", segundo toque borra
+    async function borrarHist(id, boton) {
+      if (boton.dataset.confirmar !== "1") {
+        boton.dataset.confirmar = "1"; boton.textContent = "¿Borrar?";
+        setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "🗑️"; }, 4000);
+        return;
+      }
+      try { await operacionBD("readwrite", s => s.delete(id)); } catch {}
+      pintarHistorial();
     }
   </script>
 </body>
