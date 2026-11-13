@@ -168,7 +168,7 @@
     .irl-contenido img { width: 56px; height: 56px; object-fit: contain; margin: 4px; }
     .elegido-irl { background: #ecfdf3; border-radius: 8px; padding: 10px; font-size: 14px; margin-top: 8px; }
 
-    #error:not(:empty), #errorIRL:not(:empty) {
+    #error:not(:empty), #errorIRL:not(:empty), #errorCheck:not(:empty) {
       position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; margin: 0;
       background: #fff5f5; border: 2px solid var(--mal); border-radius: 10px; padding: 12px 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,.18);
@@ -198,6 +198,31 @@
     .irl-contenido h4 { background: var(--oscuro); border-left: 4px solid var(--principal); border-radius: 4px; }
     .estado-offline { background: white; border: 1px solid var(--borde); border-radius: 8px; padding: 10px; margin-top: 4px; }
     .estado-offline:empty { display: none; }
+    /* ===== Check list ===== */
+    .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
+    .ck-listas:empty { display: none; }
+    .ck-lista { padding: 12px; border: 1px solid var(--borde); border-radius: 8px; background: white; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; font-family: inherit; color: inherit; display: flex; justify-content: space-between; gap: 8px; }
+    .ck-lista small { color: #56606b; font-weight: 400; white-space: nowrap; }
+    .ck-lista.activo { border: 2px solid var(--principal); background: var(--suave); }
+    .ck-sec { font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--oscuro); background: #eceff2; border-left: 4px solid var(--principal); padding: 6px 10px; border-radius: 4px; margin: 12px 0 4px; }
+    #chequeo .opciones input[value="SI"]:checked + span, #chequeo .opciones input[value="B"]:checked + span { background: var(--ok); border-color: var(--ok); }
+    #chequeo .opciones input[value="NO"]:checked + span, #chequeo .opciones input[value="M"]:checked + span { background: var(--mal); border-color: var(--mal); }
+    #chequeo .opciones input[value="R"]:checked + span { background: #b54708; border-color: #b54708; }
+    #chequeo .opciones input[value="NA"]:checked + span { background: #667085; border-color: #667085; }
+    #chequeo .pregunta p { margin-bottom: 6px; }
+    .ck-obs { margin-top: 8px; }
+    .ck-obs input { font-size: 15px; }
+    .ck-ext { border: 1px solid var(--borde); border-radius: 8px; padding: 12px; margin-bottom: 12px; position: relative; background: white; }
+    .ck-ext .quitar { position: absolute; top: 8px; right: 8px; }
+    .ck-ext h3 { margin: 0 0 6px; font-size: 14px; color: var(--principal); }
+    .ck-resumen { font-size: 14px; font-weight: 600; padding: 10px 12px; border-radius: 8px; background: #ecfdf3; color: var(--ok); margin-top: 10px; }
+    .ck-fotos { display: grid; gap: 10px; }
+    .ck-fotos:empty { display: none; }
+    .ck-foto { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: start; border: 1px solid var(--borde); border-radius: 8px; padding: 8px; background: white; }
+    .ck-foto img { width: 96px; height: 96px; object-fit: cover; border-radius: 6px; display: block; }
+    .ck-foto textarea { min-height: 60px; font-size: 14px; }
+    .ck-foto .btn-quitar { margin-top: 6px; }
+    .ck-resumen.hay { background: var(--suave); color: var(--mal); }
   </style>
 </head>
 
@@ -217,6 +242,9 @@
       </button>
       <button class="menu-btn" onclick="mostrar('irl')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg></span><span class="menu-txt">IRL – Información de Riesgos Laborales<small>Inducción por cargo según el art. 15 del DS 44</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('chequeo')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('historial')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v4H4z"/><path d="M6 10v9h12v-9"/><path d="M10 14h4"/></svg></span><span class="menu-txt">Historial<small>Todos los PDF generados en este teléfono</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -351,6 +379,7 @@
           <button type="button" class="activo" data-f="todos" onclick="filtrarHist(this)">Todos</button>
           <button type="button" data-f="charla" onclick="filtrarHist(this)">Charlas</button>
           <button type="button" data-f="irl" onclick="filtrarHist(this)">IRL</button>
+          <button type="button" data-f="check" onclick="filtrarHist(this)">Check list</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <p class="mensaje" id="mensajeHist"></p>
@@ -437,6 +466,68 @@
           <button class="btn btn-secundario" onclick="copiarCorreoIRL(this)">📋 Copiar correo de destino</button>
           <p class="mensaje" id="mensajeIRL"></p>
           <button class="btn btn-secundario" onclick="location.reload()">Hacer otra IRL</button>
+        </div>
+      </div>
+    </section>
+    <!-- ========== CHECK LIST (maquinaria, herramientas, instalaciones, señalización) ========== -->
+    <section id="chequeo" class="pantalla">
+      <form id="formCheck" onsubmit="revisarCheck(event)" novalidate>
+        <div class="tarjeta">
+          <h2>Tipo de check list</h2>
+          <div class="deptos" id="ckGrupos"></div>
+          <div id="ckListas" class="ck-listas"></div>
+        </div>
+        <div id="ckCuerpo" style="display:none">
+          <div class="tarjeta">
+            <h2 id="ckTituloDatos">1. Antecedentes</h2>
+            <div id="ckCampos"></div>
+          </div>
+          <div class="tarjeta">
+            <h2>2. Componentes a revisar</h2>
+            <p class="ayuda" id="ckAyuda"></p>
+            <div id="ckItems"></div>
+          </div>
+          <div class="tarjeta" id="ckCajaExt" style="display:none">
+            <h2>3. Extintores revisados</h2>
+            <p class="ayuda">Un solo registro diario con todos los extintores de la instalación. La app recuerda las ubicaciones para mañana.</p>
+            <div id="ckExtintores"></div>
+            <button type="button" class="btn btn-secundario" onclick="agregarExtintor()">+ Agregar extintor</button>
+          </div>
+          <div class="tarjeta" id="ckCajaAcc" style="display:none">
+            <h2>Acciones correctivas recomendadas</h2>
+            <div id="ckAcciones"></div>
+            <button type="button" class="btn btn-secundario" onclick="agregarAccion()">+ Agregar acción correctiva</button>
+            <label>Seguimiento de acciones correctivas de inspecciones anteriores</label>
+            <textarea name="ckSeguimiento" oninput="autoAltura(this)"></textarea>
+          </div>
+          <div class="tarjeta">
+            <h2>Observaciones</h2>
+            <textarea name="ckObs" oninput="autoAltura(this)" placeholder="Observaciones generales de la inspección (opcional)"></textarea>
+            <h3>Registro fotográfico</h3>
+            <p class="ayuda">Hasta 6 fotos (daños, fallas, condición encontrada). Van dentro del mismo PDF.</p>
+            <div id="ckFotos" class="ck-fotos"></div>
+            <label class="btn btn-secundario" id="ckBtnFoto" style="margin-top:10px">📷 Agregar foto
+              <input type="file" accept="image/*" capture="environment" onchange="agregarFotoCheck(this)" hidden>
+            </label>
+          </div>
+          <div class="tarjeta">
+            <h2>Firmas</h2>
+            <div id="ckFirmas"></div>
+          </div>
+          <p class="error" id="errorCheck"></p>
+          <button type="submit" class="btn btn-principal">Revisar y generar PDF del check list</button>
+        </div>
+      </form>
+
+      <div class="tarjeta" id="cajaEnvioCheck" style="display:none; margin-top:16px">
+        <h2>✅ Check list listo</h2>
+        <p class="ayuda" id="infoPDFCheck"></p>
+        <div class="acciones">
+          <button class="btn btn-principal" onclick="compartirCheck()">📤 Compartir PDF (correo, WhatsApp…)</button>
+          <button class="btn btn-secundario" onclick="guardarPDFCheck()">💾 Guardar PDF en el teléfono</button>
+          <p class="mensaje" id="mensajeCheck"></p>
+          <button class="btn btn-secundario" onclick="otroCheck(true)">Otro check list igual (mismos datos)</button>
+          <button class="btn btn-secundario" onclick="otroCheck(false)">Elegir otro tipo de check list</button>
         </div>
       </div>
     </section>
@@ -1113,9 +1204,10 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list" };
       if (id === "irl") iniciarIRL();
       if (id === "historial") pintarHistorial();
+      if (id === "chequeo") iniciarCheck();
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
       window.scrollTo(0, 0);
@@ -2226,7 +2318,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro">
-          <div class="tit">${r.tipo === "irl" ? "📘" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : "📋"} ${html(r.asunto)}</div>
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${r.id})">📤 Compartir</button>
@@ -2234,7 +2326,7 @@
             <button class="btn btn-quitar" onclick="borrarHist(${r.id}, this)">🗑️</button>
           </div>
         </div>`).join("") ||
-        `<div class="tarjeta"><p class="ayuda" style="margin:0">${regs.length ? "Nada coincide con la búsqueda." : "Todavía no hay PDF guardados. Aparecerán aquí al generar una charla o una IRL."}</p></div>`;
+        `<div class="tarjeta"><p class="ayuda" style="margin:0">${regs.length ? "Nada coincide con la búsqueda." : "Todavía no hay PDF guardados. Aparecerán aquí al generar una charla, una IRL o un check list."}</p></div>`;
     }
 
     async function compartirHist(id) {
@@ -2273,6 +2365,535 @@
       }
       try { await operacionBD("readwrite", s => s.delete(id)); } catch {}
       pintarHistorial();
+    }
+
+    // Catálogo de check list (formatos CEX-RE-SG-07 corregidos)
+    const CHECKLISTS = {"grupos":{"maquinaria":{"nombre":"Maquinaria y vehículos","escala":["B","R","M","N/A"],"codigo":"CEX-RE-SG-07","campos":[["sigla","Sigla / Patente",1],["modelo","Modelo",0],["operador","Operador / Chofer",1],["horometro","Horómetro / Km",0],["obra","Obra",0],["fecha","Fecha",1]],"firmas":[["Operador",1],["Mecánico",0],["Supervisor",0]],"ayuda":"Inspección diaria antes de iniciar la operación. B = Buen estado · R = Reparar · M = Malo · N/A = No aplica."},"herramientas":{"nombre":"Herramientas","escala":["SÍ","NO","N/A"],"codigo":"CEX-RE-SG-07","campos":[["acargo","Herramienta a cargo de",1],["area","Área",1],["obra","Obra",0],["fecha","Fecha",1],["inspector","Nombre inspector",1]],"firmas":[["Inspector",1],["Encargado de la herramienta",1]],"ayuda":"SÍ = cumple · NO = no cumple · N/A = no aplica."},"instalaciones":{"nombre":"Instalaciones","escala":["SÍ","NO","N/A"],"codigo":"CEX-RE-SG-07","campos":[["obra","Obra",1],["instalacion","Instalación",1],["area","Área",0],["fecha","Fecha",1],["inspector","Nombre inspector",1]],"firmas":[["Inspector",1]],"ayuda":"SÍ = cumple · NO = no cumple · N/A = no aplica."},"senalizacion":{"nombre":"Señalización","escala":["SÍ","NO","N/A"],"codigo":"CEX-RE-SG-07","campos":[["obra","Obra",1],["lugar","Lugar exacto",1],["supervisor","Supervisor del área",1],["fecha","Fecha inspección",1],["inspector","Inspeccionado por",1],["cargoInsp","Cargo de quien inspecciona",0],["revisor","Revisado por",0],["cargoRev","Cargo de quien revisa",0]],"firmas":[["Inspeccionado por",1],["Revisado por",0]],"ayuda":"SÍ = cumple · NO = no cumple · N/A = no aplica.","acciones":true}},"listas":{"herr_manuales":{"grupo":"herramientas","nombre":"Herramientas Manuales","items":["¿Los mangos de martillo y combos se encuentran firmes?","¿Los mangos están libres de trizaduras y astillas?","¿Las cabezas de martillos y combos están firmes, sin saltaduras ni roturas?","¿Las mandíbulas de alicates, tenazas y caimanes están firmes y sin desgaste?","¿El filo cortante de alicates, tenazas y caimanes está sin melladuras?","¿Los alicates tienen sus gomas aislantes en buenas condiciones?","¿Las bocas de llaves y dados se encuentran libres de deformaciones y grietas?","¿Las paletas de destornilladores están libres de melladuras y torceduras?","¿Los mangos de destornilladores están en condiciones operativas?","¿Los vástagos de destornilladores están bien templados y sin torceduras?","¿Los puntos y cinceles son lo suficientemente largos para un uso seguro?"]},"herr_electricas":{"grupo":"herramientas","nombre":"Herramientas Eléctricas","items":["¿El enchufe de la herramienta es del tipo industrial?","¿El enchufe se encuentra en buenas condiciones de uso?","¿El interruptor es el original o el adecuado para la herramienta?","¿El interruptor de la herramienta se encuentra en buenas condiciones?","¿Los cables de las herramientas se encuentran en buenas condiciones de uso?","¿Las extensiones son las adecuadas a las herramientas (sección de cable 1,5 mínimo)?","¿Las extensiones tienen sus enchufes (macho y hembra) en buenas condiciones?","¿Los enchufes de las extensiones son del tipo industrial (macho y hembra)?","¿Las extensiones se encuentran en condiciones de uso (sin cortes o uniones)?","¿Las extensiones poseen cable de tierra de protección?","¿La carcasa de la herramienta se encuentra en buenas condiciones?","¿La herramienta cuenta con mango de sujeción?","¿Se ha realizado mantención a la herramienta?","¿Las protecciones de las herramientas se encuentran en buenas condiciones?"]},"herr_sierra":{"grupo":"herramientas","nombre":"Sierra Circular","items":["¿El cable y enchufe de alimentación está en buen estado?","¿Herramienta cuenta con código de color del mes?","¿El disco está operativo?","¿El disco se encuentra en buen estado?","¿El botón de encendido está en buenas condiciones?","¿Existe mesón de trabajo estable?","¿Lugar de trabajo libre de obstáculos y de sustancias deslizantes?","¿Trabajador autorizado para operar la herramienta?","¿La herramienta cuenta con su protección de fábrica?"]},"herr_esmeril":{"grupo":"herramientas","nombre":"Esmeril Angular","items":["¿El esmeril cuenta con una cubierta o casquete de protección del disco, encontrándose bien ajustado y en buenas condiciones?","¿La parte expuesta del disco presenta un ángulo máximo de abertura de 180° (grados)?","¿Se mantiene una adecuada presión sobre la herramienta, evitando golpes y torsiones laterales sobre el disco?","¿La velocidad máxima indicada en el disco en r.p.m es igual o superior al esmeril angular?","¿El esmeril se guarda protegido de golpes de otras herramientas y objetos?","¿Se guarda en la bodega en un lugar limpio y seco?","¿El tipo de disco es el apropiado conforme a un trabajo de corte o desbaste?","¿El montaje del disco es correcto para evitar trizaduras y destrucciones bruscas?","¿Los flanges son adecuados?","¿Se ajusta adecuadamente el disco, evitando trizaduras, mal ajuste al eje y roces con el casquete protector del disco?","¿El operador utiliza el disco de desbaste por su periferia (cara esmeriladora) y no por las caras laterales?","¿El cable de alimentación se mantiene en buenas condiciones y cuenta con enchufe industrial?","¿El operador usa ropa ajustada y adecuada, evitando el empleo de mangas largas, ropa suelta u otros elementos que impidan la sujeción firme y manipulación segura del equipo?","¿El operador del esmeril utiliza todos sus elementos de protección personal? (Protector facial, anteojos de seguridad, protector auditivo, casco de seguridad, guantes, coleto, polainas y zapatos de seguridad)?","¿Herramienta cuenta con el código del color del mes?"]},"inst_banos":{"grupo":"instalaciones","nombre":"Baños y Duchas","items":[{"sec":"Baños"},"¿Existe cantidad de baños suficientes conforme a dotación de trabajadores?","¿Acceso a baños es expedito y libre de obstrucciones?","¿Tienen Puerta Individual?","¿Tienen papelero?",{"sec":"Duchas"},"¿Existe número suficiente de duchas conforme a dotación de trabajadores?","¿Cuentan las duchas con agua fría y caliente?","¿Se ubica el calefont fuera del recinto de duchas?","¿Piso de duchas es antideslizante?","¿Se conducen las aguas servidas al alcantarillado o planta de tratamiento?","¿Se proporcionan artículos suficientes para la limpieza de baños y duchas?","¿Existe un encargado para la limpieza de baños y duchas?"]},"inst_comedores":{"grupo":"instalaciones","nombre":"Comedores","items":["¿Se cuenta con Resolución Sanitaria autorizada por la Seremi de Salud?","¿Se cuenta con bancas y mesas suficientes para los trabajadores?","¿Cuentan con superficies lavables las bancas, sillas y mesas?","¿El piso es sólido y de fácil limpieza?","¿Se realiza desratización, desinsectación y sanitización programada?","¿Se cuenta con lavaplatos con agua potable?","¿Se cuenta con artefacto de refrigeración para los alimentos?","¿Se cuenta con cocinilla con quemadores en buen estado?","¿Las cañerías de la instalación de gas son de cobre?","¿Existe iluminación adecuada y red eléctrica?","¿Se provee de contenedores suficientes para la disposición de residuos?","¿Existe señalética con prohibición de fumar?","¿Se cuenta con extintor operativo en el comedor?","¿Se conducen las aguas servidas al alcantarillado o planta de tratamiento?","¿Se proporcionan artículos suficientes para la limpieza del comedor?","¿Existe un encargado para la limpieza del comedor?","¿Las vías de evacuación se encuentran señalizadas?"]},"inst_oficinas":{"grupo":"instalaciones","nombre":"Oficinas","items":["¿Se cuenta con escritorios y sillas suficientes para el personal?","¿Los escritorios y sillas se encuentran en buen estado?","¿El piso es sólido, parejo y de fácil limpieza?","¿Se realiza desratización, desinsectación y sanitización programada?","¿Las vías de circulación están despejadas y sin cables sueltos?","¿Existe iluminación adecuada?","¿La instalación eléctrica está en buen estado (enchufes, tableros, extensiones sin sobrecarga)?","¿La calefacción o climatización es segura y está en buen estado?","¿Se provee de contenedores suficientes para la disposición de residuos?","¿Existe señalética con prohibición de fumar?","¿Se cuenta con extintor operativo en la oficina?","¿Se cuenta con botiquín de primeros auxilios?","¿Se proporcionan artículos suficientes para la limpieza de la oficina?","¿Existe un encargado para la limpieza de la oficina?","¿Las vías de evacuación se encuentran señalizadas?"]},"inst_sustancias":{"grupo":"instalaciones","nombre":"Bodega de Sustancias Peligrosas","items":["¿Las sustancias peligrosas se almacenan en una bodega de sustancias peligrosas?","¿Las sustancias peligrosas se encuentran identificadas de acuerdo a la norma?","¿La bodega de sustancias peligrosas se encuentra separada de las otras bodegas?","¿La bodega de sustancias peligrosas se encuentra señalizada?","¿La bodega de sustancias peligrosas está construida de acuerdo al estándar?","¿Existe un encargado de la bodega?","¿Existe extintor en la bodega?","¿Existe un inventario de la bodega de sustancias peligrosas?","¿Existe un medio de trasvasije para las sustancias peligrosas?","¿Los depósitos de sustancias peligrosas se encuentran en buen estado?","¿Existe medio para contener derrames de sustancias peligrosas?","¿Se encuentran disponibles las hojas de seguridad (HDS) de cada sustancia peligrosa almacenada?"]},"inst_agua":{"grupo":"instalaciones","nombre":"Dispensador de Agua Potable","items":["¿Tiene letrero con la leyenda Agua Potable?","¿Tiene llave exterior para evitar contaminación?","¿En el lugar existen vasos desechables de un solo uso?","¿En el lugar existe basurero para botar los vasos usados?","¿Se realiza mantención diaria de los dispensadores?","¿La ubicación del dispensador es la adecuada?","¿Existe una persona responsable del dispensador?","¿Existe croquis de ubicación y distribución?"]},"inst_extintores":{"grupo":"instalaciones","nombre":"Extintores Instalaciones","items":["¿Hay cantidad suficiente de extintores en la faena, según el DS 594?","¿Están capacitados los trabajadores en el uso de extintores?","¿Todos los extintores de la obra son de la clase adecuada (ABC)?"],"porEquipo":["Está en un lugar accesible y libre de obstáculos","El manómetro indica presión normal (aguja en zona verde)","La boquilla y la manguera están en buen estado","Abrazaderas y pasador de seguridad en buen estado","Tiene sello de control de calidad de un organismo autorizado","Está bien rotulado y con fecha de vencimiento visible","Existe señalización del extintor","La señalización está en buen estado"]},"maq_camioneta":{"grupo":"maquinaria","nombre":"Camioneta","items":["Nivel de aceite de motor","Pérdida de aceite","Nivel de refrigerante","Estado de correas","Estado de neumáticos","Espejos","Nivel de aceite sistema de levante","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Estado de tolva","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","Botiquín","Gata","Triángulo","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Llave de rueda","Estado de portalón","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Documentos operador","Estado de nichos y ganchos de portalón","Parachoques trasero","Tapa de combustible","Batería, terminales y bornes","Encarpado"]},"maq_furgon_transporte_de_pasajeros":{"grupo":"maquinaria","nombre":"Furgón Transporte de Pasajeros","items":["Luces delanteras, bajas y altas","Luces traseras","Luces de freno","3ª luz de freno","Luces estacionamiento delantera","Luces estacionamiento traseras","Luces intermitentes delanteras","Luces intermitentes traseras","Luces del tablero","Luces de viraje interior cabina","Luces de emergencias","Luz de emergencia int. Cabina","Luces de retroceso y patente","Parabrisas delantero","Parabrisas trasero","Vidrios laterales (der./ izq.)","Puertas (chapas, seguros, manillas)","Espejos laterales","Espejo interior","Limpiaparabrisas","Calefacción/ventilación","Cinturón de seguridad","Fusibles","Marcador de temperatura","Marcador de bencina","Marcador de Km/Hrs","Cuenta kilómetros","Tacómetro","Bocina","Palanca de cambios","Caja de cambios","Frenos","Acelerador","Embrague","Freno de mano","Alarma de retroceso","Palanca de virajes","Palanca limpiaparabrisas","Nivel de aceite motor","Nivel de aceite hidráulico","Nivel de agua","Radiador","Capot","Neumático derecho (delantero)","Neumático izquierdo (delantero)","Llanta derecha pernos/tuercas (delantera)","Llanta izquierda pernos/tuercas (delantera)","Amortiguador derecho","Amortiguador izquierdo","Neumático derecho (trasero)","Neumático izquierdo (trasero)","Llanta derecha pernos/tuercas (trasera)","Llanta izquierda pernos/tuercas (trasera)","Amortiguadores, hoja de resortes","Volante","Barra de dirección","Eje cardán","Cadenas de seguridad eje cardán","Corona","Nivel de aceite dirección hidráulica","Rueda de repuesto","Llave de ruedas","Gata (mecánica o hidráulica)","Barra protectora de vuelcos","Caja Operación Invierno","Triángulos","Extintor vigente","Botiquín con accesorios","Pértiga","Baliza"]},"maq_excavadora_neumatica":{"grupo":"maquinaria","nombre":"Excavadora Neumática","items":["Nivel de aceite de motor","Nivel de aceite de hidráulico","Nivel de refrigerante","Estado de correas","Estado de estabilizador","Espejos","Estado de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite de hidráulico","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Estado de balde","Estado y funcionamiento aguilón","Estado de frenos","Neumáticos de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Desempeño de motor de giro","Estado de joystick","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asientos","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Pérdidas de aceite","Estado de pasadores de estabilizador","Estado de pasadores de balde","Estado de freno de estacionamiento","Documentos operador"]},"maq_excavadora":{"grupo":"maquinaria","nombre":"Excavadora","items":["Nivel de aceite de motor","Nivel de aceite de hidráulico","Nivel de refrigerante","Nivel de mandos finales","Nivel de aceite motor de giro","Espejos","Estado de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite de hidráulico","Pérdida de refrigerante","Estado de oruga","Estado de aro motriz","Extintor","Botiquín","Estado aguilón","Permiso de circulación","Seguro automotriz","Revisión técnica","Aire acondicionado","Calefacción","Estado de zapatas y pernos","Estado de tablero e instrumentos","Estado motor de giro","Estado de joystick","Vidrios y parabrisas","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asientos","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Estado de pasadores de balde","Estado de calzas y porta calzas","Documentos operador"]},"maq_motoniveladora":{"grupo":"maquinaria","nombre":"Motoniveladora","items":["Nivel de aceite de motor","Nivel de aceite de hidráulico","Nivel de refrigerante","Nivel de aceite de tándem","Nivel de aceite diferencial","Nivel de aceite de motor de giro de tornamesa","Estado de correas","Espejos","Estado de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite de hidráulico","Pérdida de aceite de transmisión","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Estado de pala","Estado de tornamesa","Estado de frenos","Neumáticos de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Estado de giro de la tornamesa","Estado de joystick","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asientos","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Pérdidas de aceite","Estado de pasadores de estabilizador","Estado de pasadores de balde","Estado de freno de estacionamiento","Documentos operador"]},"maq_retroexcavadora":{"grupo":"maquinaria","nombre":"Retroexcavadora","items":["Nivel de aceite de motor","Nivel de aceite de hidráulico","Nivel de refrigerante","Estado de correas","Estado de neumáticos","Estado de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite de hidráulico","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Estado de Balde","Estado y funcionamiento aguilón","Estado de frenos","Neumáticos de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Vidrio y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado estructura en general","Patentes","Espejos","Documentos operador"]},"maq_rodillo_tambor":{"grupo":"maquinaria","nombre":"Rodillo Tambor","items":["Nivel de aceite de motor","Nivel de aceite de hidráulico","Nivel de refrigerante","Estado de correas","Estado de neumáticos","Estado de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite de hidráulico","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Estado de frenos","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Vidrio y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado estructura en general","Patentes","Espejos","Documentos operador"]},"maq_barredora":{"grupo":"maquinaria","nombre":"Barredora","items":["Nivel de aceite de motor","Nivel de aceite hidráulico","Nivel de refrigerante","Estado de correas","Estado de escobillas","Espejos","Estado de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite hidráulico","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Freno de estacionamiento","Estado y funcionamiento de tornamesa de escobillas","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero de instrumentos","Estado de barredores","Estado de joystick","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Pérdida de aceite o combustible","Estado neumáticos","Documentos operador"]},"maq_planta_de_chancado":{"grupo":"maquinaria","nombre":"Planta de Chancado","items":["Estado de polines superiores","Estado de polines inferiores tensores","Estado de motores eléctricos","Estado de estructuras de cintas","Estado de reductores","Estado de caseta de control","Estado de tableros eléctricos","Estado de correas","Estado de enchufes eléctricos","Estado de muelas fija y móvil","Estado de arnero","Estado de mallas","Niveles de aceite de reductores","Alarma de partida","Horómetro","Estado de polín tensor","Extintores","Estado de polín guia","Botiquín"]},"maq_cargador_frontal":{"grupo":"maquinaria","nombre":"Cargador Frontal","items":["Nivel de aceite de motor","Nivel de aceite hidráulico","Nivel de refrigerante","Estado de correas","Espejos","Estado de neumáticos","Desempeño de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite hidráulico","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Estado de balde","Estado de pasadores de pantógrafo","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Freno de estacionamiento","Estado de joystick","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Pérdida de aceite","Estado de pasadores de pantógrafo y balde","Documentos operador"]},"maq_camion_tolva":{"grupo":"maquinaria","nombre":"Camión Tolva","items":["Nivel de aceite de motor","Nivel de aceite hidráulico","Nivel de refrigerante","Estado de correas","Espejos","Estado de neumáticos","Desempeño de sistema hidráulico","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Pérdida de aceite hidráulico","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","2 conos mínimo","Botiquín","Estado de tolva","Estado de cilindros de levante de tolva","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Freno de estacionamiento","Palanca de levante de tolva","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Patentes","Pérdida de aceite","Estado de pasadores y traba de tolva","Documentos operador"]},"maq_camion_aljibe":{"grupo":"maquinaria","nombre":"Camión Aljibe","items":["Nivel de aceite de motor","Nivel de aceite de dirección","Nivel de refrigerante","Estado de correas","Estado de neumáticos","Espejos","Fijaciones de estanque","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Estado de estanque","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","Botiquín","Gata","Triángulo","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Llave de rueda","Estado de aspersores","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Estado de regadera y extensiones","Pérdida de aceite","Patentes","Documentos operador"]},"maq_camion_mantencion":{"grupo":"maquinaria","nombre":"Camión Mantención","items":["Nivel de aceite de motor","Nivel de aceite de dirección","Estado de correas","Estado de neumáticos","Espejos","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","Botiquín","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Pérdida de aceite","Patentes","Documentos operador","Estado del generador","Combustible del generador","Estado del soplador"]},"maq_camion_combustible":{"grupo":"maquinaria","nombre":"Camión Combustible","items":["Nivel de aceite de motor","Nivel de aceite de dirección","Estado de correas","Estado de neumáticos","Retrovisores","Fijaciones de estanque","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Estado de estanque","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","Botiquín","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Pérdida de aceite","Patentes","Documentos operador"]},"maq_camion_imprimador":{"grupo":"maquinaria","nombre":"Camión Imprimador","items":["Nivel de aceite de motor","Nivel de aceite de dirección","Estado de correas","Estado de neumáticos","Espejos","Fijaciones de estanque","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Estado de estanque","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","Botiquín","Gata","Triángulo","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Estado de regadera y extensiones","Pérdida de aceite","Patentes","Documentos operador"]},"maq_generador":{"grupo":"maquinaria","nombre":"Generador","items":["Nivel de aceite de motor","Fijaciones de estanque","Sistema eléctrico","Pérdida de aceite de motor","Estado de estanque","Logo de la empresa","Estado de motor","Pérdida de aceite","Caja acústica"]},"maq_camion_mixer":{"grupo":"maquinaria","nombre":"Camión Mixer","items":["Nivel de aceite de motor","Nivel de aceite de dirección","Estado de correas","Estado de neumáticos","Retrovisores","Estado de luces","Sistema eléctrico","Bocina","Baliza","Alarma de retroceso","Pérdida de aceite de motor","Estado de estanque","Seguro automotriz","Permiso de circulación","Revisión técnica","Extintor","Botiquín","Gata","Triángulo","Estado de frenos","Neumático de repuesto","Aire acondicionado","Calefacción","Estado de tablero e instrumentos","Vidrios y parabrisas","Estado de dirección","Estado de chapas y puertas","Logo de la empresa","Estado de motor","Estado de asiento","Estado de cinturón de seguridad","Estado de estructura en general","Pérdida de aceite","Patentes","Documentos operador"]},"senalizacion":{"grupo":"senalizacion","nombre":"Señalización","items":["¿Señales están en buen estado?","¿Señales en cantidad suficiente?","¿Señales están de acuerdo con el terreno?","¿Señales se reponen rápidamente?","¿Existe personal responsable de señalización?","¿Se cuenta con banderero o señalero?","¿Banderero o señalero tiene paletas?","¿Usa elementos de protección personal?","¿Señales se encuentran bien instaladas?","¿Se ven a distancia?","¿Existen barreras de seguridad?","¿Corresponden al sector?","¿Se usa señal de fin de trabajos?","¿Advierten los riesgos?","¿Montaje adecuado?","¿Cumplen los objetivos?","¿Leyenda clara?","¿Leyenda de acuerdo con el tramo?","¿En la reparación se utiliza rodillo (compactación)?","¿Mantención de la señalética?"]}}};
+
+    /* =====================================================================
+       CHECK LIST: maquinaria, herramientas, instalaciones y señalización
+       El catálogo (CHECKLISTS) tiene los formatos oficiales CEX-RE-SG-07 ya corregidos.
+       Maquinaria: un registro por día (B / R / M / N/A).
+       Herramientas, instalaciones y señalización: SÍ / NO / N/A.
+       ===================================================================== */
+    const ETIQUETA_OP = { SI: "SÍ", NO: "NO", NA: "N/A", B: "B", R: "R", M: "M" };
+    const VALOR_OP = { "SÍ": "SI", "NO": "NO", "N/A": "NA", "B": "B", "R": "R", "M": "M" };
+    const MALAS = ["NO", "R", "M"];                       // respuestas que piden observación
+    const NOMBRES_FIRMA = {                                // de qué campo sale el nombre de cada firma
+      maquinaria: ["operador", null, null], herramientas: ["inspector", "acargo"],
+      instalaciones: ["inspector"], senalizacion: ["inspector", "revisor"]
+    };
+    let ckGrupo = null, ckId = null, pdfCheck = null, idHistCheck = null;
+    let ckFotos = [];                                      // [{ img: "data:image/jpeg…", texto }]
+    const MAX_FOTOS_CHECK = 6;
+    let ckUltimos = leerGuardado("pt_check_ult", {});    // datos del último check list de cada tipo
+    let ckExtGuardados = leerGuardado("pt_extintores", {}); // ubicaciones de extintores por instalación
+
+    function iniciarCheck() {
+      if (document.getElementById("ckGrupos").innerHTML) return;
+      const iconos = { maquinaria: "🚜", herramientas: "🔧", instalaciones: "🏢", senalizacion: "🚧" };
+      document.getElementById("ckGrupos").innerHTML = Object.entries(CHECKLISTS.grupos).map(([id, g]) =>
+        `<button type="button" class="depto" data-g="${id}" onclick="elegirGrupoCheck('${id}')">${iconos[id]} ${g.nombre}</button>`).join("");
+    }
+
+    function elegirGrupoCheck(g) {
+      document.querySelectorAll("#ckGrupos .depto").forEach(b => b.classList.toggle("activo", b.dataset.g === g));
+      const listas = Object.entries(CHECKLISTS.listas).filter(([, l]) => l.grupo === g);
+      if (listas.length === 1) { document.getElementById("ckListas").innerHTML = ""; elegirCheck(listas[0][0]); return; }
+      document.getElementById("ckListas").innerHTML = listas.map(([id, l]) =>
+        `<button type="button" class="ck-lista" data-id="${id}" onclick="elegirCheck('${id}')">${l.nombre}<small>${l.items.filter(i => typeof i === "string").length + (l.porEquipo ? l.porEquipo.length : 0)} ítems</small></button>`).join("");
+      document.getElementById("ckCuerpo").style.display = "none";
+      document.getElementById("cajaEnvioCheck").style.display = "none";
+    }
+
+    // Arma el formulario del check list elegido
+    function elegirCheck(id, conservar) {
+      const l = CHECKLISTS.listas[id], g = CHECKLISTS.grupos[l.grupo];
+      const previos = conservar ? leerCamposCheck() : null;
+      ckId = id; ckGrupo = l.grupo; pdfCheck = null; idHistCheck = null;
+      document.querySelectorAll("#ckListas .ck-lista").forEach(b => b.classList.toggle("activo", b.dataset.id === id));
+      document.getElementById("cajaEnvioCheck").style.display = "none";
+      document.getElementById("errorCheck").textContent = "";
+      document.getElementById("titulo").textContent = "Check list " + l.nombre;
+
+      // Datos de encabezado: se rellenan con lo último usado en este tipo (o en cualquiera, para obra e inspector)
+      const ult = { ...(ckUltimos.general || {}), ...(ckUltimos[id] || {}), ...(previos || {}) };
+      const hoy = new Date().toLocaleDateString("sv-SE");
+      document.getElementById("ckCampos").innerHTML = g.campos.map(([c, et, req]) => c === "fecha"
+        ? `<label>${et}</label><input type="date" name="ck_${c}" value="${hoy}" required>`
+        : `<label>${et}</label><input type="text" name="ck_${c}" ${req ? "required" : ""} value="${html(c === "obra" ? (ult.obra || listado?.obra || "") : (ult[c] || ""))}" ${["operador", "inspector", "acargo", "supervisor", "revisor"].includes(c) ? 'list="ckNombres" autocomplete="off"' : ""}>`
+      ).join("") + `<datalist id="ckNombres">${(listado?.lista || []).map(p => `<option value="${html(p.nombre)}">`).join("")}</datalist>`;
+
+      // Preguntas
+      let n = 0;
+      document.getElementById("ckAyuda").textContent = g.ayuda;
+      document.getElementById("ckItems").innerHTML = l.items.map(it => {
+        if (typeof it !== "string") return `<div class="ck-sec">${html(it.sec)}</div>`;
+        const i = n++;
+        return htmlPreguntaCheck(`${i + 1}. ${it}`, `ck${i}`, g.escala, l.grupo === "senalizacion");
+      }).join("") + `<div class="ck-resumen" id="ckResumen" style="display:none"></div>`;
+
+      // Extintores (uno o varios por registro)
+      document.getElementById("ckCajaExt").style.display = l.porEquipo ? "block" : "none";
+      document.getElementById("ckExtintores").innerHTML = "";
+      if (l.porEquipo) {
+        const guardados = ckExtGuardados[normalizar(ult.instalacion || "")] || ckExtGuardados._ultimo || [""];
+        guardados.forEach(u => agregarExtintor(u));
+      }
+
+      // Señalización: acciones correctivas
+      document.getElementById("ckCajaAcc").style.display = g.acciones ? "block" : "none";
+      document.getElementById("ckAcciones").innerHTML = "";
+      document.querySelector("[name=ckSeguimiento]").value = "";
+      document.querySelector("[name=ckObs]").value = "";
+      ckFotos = []; pintarFotosCheck();
+
+      // Firmas
+      const fuentes = NOMBRES_FIRMA[l.grupo];
+      document.getElementById("ckFirmas").innerHTML = g.firmas.map(([et, req], i) => `
+        <div class="ck-firma" data-req="${req}" data-fuente="${fuentes[i] || ""}">
+          ${fuentes[i] ? "" : `<label>Nombre ${et.toLowerCase()}${req ? "" : " (si está presente)"}</label><input type="text" name="ckNomFirma${i}" list="ckNombres" autocomplete="off" value="${html(ult["firma" + i] || "")}">`}
+          ${htmlFirma("Firma " + et.toLowerCase())}
+        </div>`).join("");
+      activarFirmas();
+
+      document.getElementById("ckCuerpo").style.display = "block";
+      document.getElementById("ckCampos").closest(".tarjeta").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function htmlPreguntaCheck(texto, nombre, escala, obsSiempre) {
+      return `<div class="pregunta"><p>${html(texto)}</p>
+        <div class="opciones">${escala.map(op => `<label><input type="radio" name="${nombre}" value="${VALOR_OP[op]}" required><span>${op}</span></label>`).join("")}</div>
+        <div class="ck-obs" style="display:${obsSiempre ? "block" : "none"}">
+          <input type="text" name="${nombre}_obs" placeholder="${obsSiempre ? "Observación (opcional)" : "¿Qué se encontró y qué se hará?"}">
+        </div></div>`;
+    }
+
+    // Si la respuesta es NO / R / M aparece la observación y es obligatoria
+    document.getElementById("formCheck").addEventListener("change", e => {
+      if (e.target.type !== "radio" || !e.target.closest("#ckItems, #ckExtintores")) return;
+      const preg = e.target.closest(".pregunta");
+      preg.classList.remove("campo-falta");
+      const obs = preg.querySelector(".ck-obs"), mala = MALAS.includes(e.target.value);
+      if (ckGrupo !== "senalizacion" && obs) obs.style.display = mala ? "block" : "none";
+      if (obs) {
+        const inp = obs.querySelector("input");
+        inp.required = mala && ckGrupo !== "senalizacion";
+        if (ckGrupo === "senalizacion") inp.placeholder = mala ? "¿Qué se encontró y qué se hará?" : "Observación (opcional)";
+      }
+      resumenCheck();
+    });
+    document.getElementById("formCheck").addEventListener("input", e => e.target.classList.remove("campo-falta"));
+
+    function resumenCheck() {
+      const malas = [...document.querySelectorAll("#ckItems input:checked, #ckExtintores input:checked")].filter(i => MALAS.includes(i.value)).length;
+      const caja = document.getElementById("ckResumen");
+      if (!caja) return;
+      caja.style.display = "block";
+      caja.classList.toggle("hay", malas > 0);
+      caja.textContent = malas ? `${malas} ítem(s) con observación (${ckGrupo === "maquinaria" ? "reparar o malo" : "no cumple"})` : "Sin observaciones hasta ahora";
+    }
+
+    async function agregarFotoCheck(input) {
+      const archivo = input.files[0];
+      input.value = "";
+      if (!archivo) return;
+      try {
+        const img = await createImageBitmap(archivo);
+        const escala = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const lienzo = document.createElement("canvas");
+        lienzo.width = Math.round(img.width * escala);
+        lienzo.height = Math.round(img.height * escala);
+        lienzo.getContext("2d").drawImage(img, 0, 0, lienzo.width, lienzo.height);
+        ckFotos.push({ img: lienzo.toDataURL("image/jpeg", 0.72), texto: "" });
+        pintarFotosCheck();
+      } catch (e) {
+        document.getElementById("errorCheck").textContent = "No se pudo leer la foto: " + e.message;
+      }
+    }
+    function pintarFotosCheck() {
+      document.getElementById("ckFotos").innerHTML = ckFotos.map((f, i) => `
+        <div class="ck-foto"><img src="${f.img}" alt="Foto ${i + 1}">
+          <div><textarea placeholder="¿Qué muestra la foto? (opcional)" oninput="ckFotos[${i}].texto = this.value">${html(f.texto)}</textarea>
+          <button type="button" class="btn btn-quitar" onclick="ckFotos.splice(${i}, 1); pintarFotosCheck()">Quitar foto</button></div>
+        </div>`).join("");
+      document.getElementById("ckBtnFoto").style.display = ckFotos.length >= MAX_FOTOS_CHECK ? "none" : "block";
+    }
+
+    function agregarExtintor(ubicacion = "") {
+      const l = CHECKLISTS.listas[ckId];
+      const cont = document.getElementById("ckExtintores");
+      const k = Date.now() + Math.random().toString(36).slice(2, 6);
+      const div = document.createElement("div");
+      div.className = "ck-ext"; div.dataset.k = k;
+      div.innerHTML = `<h3 class="num"></h3>
+        <button type="button" class="btn btn-quitar quitar" onclick="this.closest('.ck-ext').remove(); renumerarExt()">Quitar</button>
+        <label>Ubicación / identificación</label>
+        <input type="text" name="ext_${k}_ubic" required placeholder="Ej: Oficina, Laboratorio 1, Casa 2" value="${html(ubicacion)}">
+        ${l.porEquipo.map((t, j) => htmlPreguntaCheck(t, `ext_${k}_${j}`, CHECKLISTS.grupos[l.grupo].escala, false)).join("")}`;
+      cont.appendChild(div);
+      renumerarExt();
+    }
+    function renumerarExt() {
+      document.querySelectorAll("#ckExtintores .ck-ext h3").forEach((h, i) => h.textContent = `Extintor N° ${i + 1}`);
+    }
+
+    function agregarAccion() {
+      const div = document.createElement("div");
+      div.className = "bloque ck-accion";
+      div.innerHTML = `<span class="num"></span>
+        <button type="button" class="btn btn-quitar quitar" onclick="this.closest('.bloque').remove(); renumerar('ckAcciones', 'Acción')">Quitar</button>
+        <label>Acción correctiva</label><textarea oninput="autoAltura(this)" required></textarea>
+        <div class="dos-col"><div><label>Responsable</label><input type="text" list="ckNombres" required></div>
+        <div><label>Fecha</label><input type="date" required></div></div>`;
+      document.getElementById("ckAcciones").appendChild(div);
+      renumerar("ckAcciones", "Acción");
+    }
+
+    function leerCamposCheck() {
+      const d = {};
+      document.querySelectorAll("#ckCampos input[name^=ck_]").forEach(i => d[i.name.slice(3)] = i.value.trim());
+      document.querySelectorAll("#ckFirmas input[name^=ckNomFirma]").forEach(i => d["firma" + i.name.slice(10)] = i.value.trim());
+      return d;
+    }
+
+    async function revisarCheck(evento) {
+      evento.preventDefault();
+      const form = document.getElementById("formCheck"), error = document.getElementById("errorCheck");
+      error.textContent = "";
+      const l = CHECKLISTS.listas[ckId];
+      if (l.porEquipo && !document.querySelector("#ckExtintores .ck-ext")) {
+        error.textContent = "Agrega al menos un extintor.";
+        document.getElementById("ckCajaExt").scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const invalido = [...form.querySelectorAll("#ckCuerpo [required]")].find(c => !c.checkValidity());
+      if (invalido) {
+        const marca = invalido.type === "radio" ? invalido.closest(".pregunta") : invalido;
+        marca.classList.add("campo-falta");
+        const titulo = invalido.closest(".ck-ext, .bloque")?.querySelector("h3, .num")?.textContent || invalido.closest(".tarjeta")?.querySelector("h2")?.textContent || "";
+        const sinResp = form.querySelectorAll("#ckItems .pregunta, #ckExtintores .pregunta").length -
+                        form.querySelectorAll("#ckItems input[type=radio]:checked, #ckExtintores input[type=radio]:checked").length;
+        error.textContent = invalido.type === "radio"
+          ? `Falta responder ${sinResp} ítem(s)${titulo ? " (" + titulo + ")" : ""}. El primero está marcado en rojo.`
+          : `Falta completar un campo${titulo ? " en " + titulo : ""}. Está marcado en rojo.`;
+        marca.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (invalido.type !== "radio") setTimeout(() => invalido.focus({ preventScroll: true }), 500);
+        return;
+      }
+      // Firmas: las obligatorias deben estar; las opcionales, si tienen nombre, deben tener firma (y al revés)
+      for (const caja of document.querySelectorAll("#ckFirmas .ck-firma")) {
+        const c = caja.querySelector("canvas"), nom = caja.querySelector("input");
+        const firmo = !!c.dataset.firmado, req = caja.dataset.req === "1";
+        const fuente = caja.dataset.fuente ? form.querySelector(`[name=ck_${caja.dataset.fuente}]`) : null;
+        const tieneNombre = !!(nom ? nom.value.trim() : fuente?.value.trim());
+        if ((req || tieneNombre) && !firmo) {
+          caja.querySelector(".firma").classList.add("falta");
+          error.textContent = req ? "Falta una firma. Está marcada en rojo." : "Escribiste un nombre pero falta su firma. Si no está, borra el nombre.";
+          c.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+        if (firmo && !tieneNombre) {
+          (nom || fuente).classList.add("campo-falta");
+          error.textContent = "Hay una firma sin nombre. Escribe el nombre de quien firmó.";
+          (nom || fuente).scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+      }
+      if (!window.PDFLib) { error.textContent = "No se cargó la herramienta de PDF."; return; }
+
+      const r = recopilarCheck();
+      // Recordamos los datos para la próxima vez (sin la fecha)
+      const { fecha, ...resto } = r.campos;
+      ckUltimos[ckId] = { ...resto, ...Object.fromEntries(r.firmas.map((f, i) => ["firma" + i, f.nombre])) };
+      ckUltimos.general = { ...(ckUltimos.general || {}), ...(resto.obra ? { obra: resto.obra } : {}), ...(resto.inspector ? { inspector: resto.inspector } : {}) };
+      guardar("pt_check_ult", ckUltimos);
+      if (r.extintores) {
+        const ubic = r.extintores.map(e => e.ubicacion);
+        ckExtGuardados[normalizar(r.campos.instalacion || "")] = ubic; ckExtGuardados._ultimo = ubic;
+        guardar("pt_extintores", ckExtGuardados);
+      }
+
+      error.textContent = "Generando PDF del check list…";
+      try {
+        const bytes = await crearPDF_Check(r);
+        const limpio = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_");
+        const quien = r.campos.sigla || r.campos.instalacion || r.campos.acargo || r.campos.lugar || "";
+        pdfCheck = {
+          bytes,
+          nombreArchivo: `CheckList_${limpio(r.nombre)}${quien ? "_" + limpio(quien) : ""}_${r.campos.fecha}.pdf`,
+          asunto: `Check list ${r.nombre}${quien ? " – " + quien : ""} – ${r.fechaCL}`
+        };
+        idHistCheck = await guardarEnHistorial(idHistCheck, "check", pdfCheck, r.campos.fecha,
+          `${r.nombre}${quien ? " · " + quien : ""} · ${r.malas ? r.malas + " observación(es)" : "sin observaciones"}`);
+        error.textContent = "";
+        document.getElementById("infoPDFCheck").textContent = `${pdfCheck.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB · se enviará a ${CORREO_DESTINO}`;
+        document.getElementById("mensajeCheck").textContent = "";
+        document.getElementById("cajaEnvioCheck").style.display = "block";
+        document.getElementById("cajaEnvioCheck").scrollIntoView({ behavior: "smooth" });
+      } catch (e) {
+        error.textContent = "No se pudo generar el PDF: " + e.message;
+      }
+    }
+
+    function recopilarCheck() {
+      const l = CHECKLISTS.listas[ckId], g = CHECKLISTS.grupos[l.grupo], f = document.getElementById("formCheck");
+      const val = n => f.querySelector(`[name="${n}"]:checked`)?.value || "";
+      const txt = n => f.querySelector(`[name="${n}"]`)?.value.trim() || "";
+      const campos = {};
+      g.campos.forEach(([c]) => campos[c] = txt("ck_" + c));
+      let n = 0;
+      const items = l.items.map(it => typeof it === "string"
+        ? { n: ++n, texto: it, resp: val("ck" + (n - 1)), obs: txt(`ck${n - 1}_obs`) }
+        : { sec: it.sec });
+      const extintores = l.porEquipo ? [...document.querySelectorAll("#ckExtintores .ck-ext")].map(div => {
+        const k = div.dataset.k;
+        return { ubicacion: txt(`ext_${k}_ubic`), resp: l.porEquipo.map((t, j) => ({ texto: t, resp: val(`ext_${k}_${j}`), obs: txt(`ext_${k}_${j}_obs`) })) };
+      }) : null;
+      const acciones = [...document.querySelectorAll("#ckAcciones .ck-accion")].map(b => {
+        const [a, resp, fe] = b.querySelectorAll("textarea, input");
+        return { accion: a.value.trim(), responsable: resp.value.trim(), fecha: fe.value.split("-").reverse().join("/") };
+      });
+      const firmas = [...document.querySelectorAll("#ckFirmas .ck-firma")].map((caja, i) => {
+        const c = caja.querySelector("canvas");
+        const nombre = caja.dataset.fuente ? campos[caja.dataset.fuente] : caja.querySelector("input").value.trim();
+        return { etiqueta: g.firmas[i][0], nombre, imagen: c.dataset.firmado ? c.toDataURL("image/png") : null };
+      });
+      const todas = [...items.filter(i => i.resp), ...(extintores || []).flatMap(e => e.resp)];
+      return {
+        id: ckId, nombre: l.nombre, grupo: l.grupo, grupoNombre: g.nombre, codigo: g.codigo, escala: g.escala,
+        campos, fechaCL: campos.fecha.split("-").reverse().join("/"), items, extintores, acciones, firmas,
+        seguimiento: txt("ckSeguimiento"), obs: txt("ckObs"), fotos: ckFotos.map(f => ({ ...f, texto: f.texto.trim() })),
+        malas: todas.filter(i => MALAS.includes(i.resp)).length
+      };
+    }
+
+    function otroCheck(mismosDatos) {
+      if (mismosDatos) elegirCheck(ckId, true);
+      else {
+        document.getElementById("ckCuerpo").style.display = "none";
+        document.getElementById("cajaEnvioCheck").style.display = "none";
+        document.querySelectorAll("#ckListas .ck-lista").forEach(b => b.classList.remove("activo"));
+        document.getElementById("titulo").textContent = "Check list";
+        window.scrollTo(0, 0);
+      }
+    }
+
+    /* ----- PDF del check list ----- */
+    async function crearPDF_Check(r) {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      doc.setTitle(`Check list ${r.nombre} – ${r.fechaCL}`);
+      const fN = await doc.embedFont(StandardFonts.Helvetica);
+      const fB = await doc.embedFont(StandardFonts.HelveticaBold);
+      const logo = await doc.embedPng(LOGO_EMPRESA);
+      const cache = {};
+      const imagen = async src => cache[src] ||= await doc.embedPng(src);
+
+      const A = 595.28, H = 841.89, M = 36, ANCHO = A - 2 * M;
+      const ROJO = rgb(0.72, 0.06, 0.16), GRAFITO = rgb(0.137, 0.157, 0.188), NEGRO = rgb(0.12, 0.16, 0.2), GRIS = rgb(0.4, 0.44, 0.52);
+      const VERDE = rgb(0.07, 0.5, 0.36), AMBAR = rgb(0.71, 0.28, 0.03), LINEA = rgb(0.72, 0.75, 0.8), FONDO = rgb(0.95, 0.96, 0.97);
+      const COLOR_RESP = { SI: VERDE, B: VERDE, NO: ROJO, M: ROJO, R: AMBAR, NA: GRIS };
+      let pag, y;
+
+      const limpiar = t => String(t ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\t/g, " ")
+        .replace(/[^\n\x20-\x7E\xA0-\xFF–—•…]/g, "");
+      function partir(texto, fuente, tam, ancho) {
+        const lineas = [];
+        for (const parrafo of limpiar(texto).split("\n")) {
+          let linea = "";
+          for (let palabra of parrafo.split(/\s+/).filter(Boolean)) {
+            const prueba = linea ? linea + " " + palabra : palabra;
+            if (fuente.widthOfTextAtSize(prueba, tam) <= ancho) { linea = prueba; continue; }
+            if (linea) lineas.push(linea);
+            while (fuente.widthOfTextAtSize(palabra, tam) > ancho) {
+              let k = palabra.length;
+              while (k > 1 && fuente.widthOfTextAtSize(palabra.slice(0, k), tam) > ancho) k--;
+              lineas.push(palabra.slice(0, k)); palabra = palabra.slice(k);
+            }
+            linea = palabra;
+          }
+          lineas.push(linea);
+        }
+        return lineas;
+      }
+      function nuevaPagina() {
+        pag = doc.addPage([A, H]);
+        y = H - M;
+        const TAM = 42;
+        pag.drawImage(logo, { x: A - M - TAM, y: y - TAM + 4, width: TAM, height: TAM });
+        for (const l of partir(`CHECK LIST ${r.nombre.toUpperCase()}`, fB, 11, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 11, size: 11, font: fB, color: NEGRO }); y -= 14; }
+        pag.drawText(limpiar(`Programa de Prevención de Riesgos · ${r.grupoNombre} · Código ${r.codigo}`), { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 11;
+        if (r.campos.obra) for (const l of partir("Obra: " + r.campos.obra, fN, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
+        y = Math.min(y, H - M - TAM) - 6;
+        pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 2, color: ROJO });
+        y -= 10;
+      }
+      function hayEspacio(alto) { if (y - alto < M + 24) nuevaPagina(); }
+      function seccion(titulo) {
+        hayEspacio(60);
+        y -= 4;
+        pag.drawRectangle({ x: M, y: y - 16, width: ANCHO, height: 16, color: GRAFITO });
+        pag.drawRectangle({ x: M, y: y - 16, width: 4, height: 16, color: ROJO });
+        pag.drawText(limpiar(titulo).toUpperCase(), { x: M + 10, y: y - 11.5, size: 9, font: fB, color: rgb(1, 1, 1) });
+        y -= 22;
+      }
+      function parrafo(texto, { tam = 8.5, fuente = fN, color = NEGRO } = {}) {
+        for (const l of partir(texto, fuente, tam, ANCHO)) {
+          hayEspacio(tam * 1.35);
+          pag.drawText(l, { x: M, y: y - tam, size: tam, font: fuente, color });
+          y -= tam * 1.35;
+        }
+      }
+      // Tabla genérica: celdas de texto, {negrita}, {marca, color} (una X de color) o {imagen}
+      async function tabla(columnas, filas, { tam = 7.5, altoFirma = 40, conTitulos = true } = {}) {
+        const pad = 3.5, al = tam * 1.25, anchos = columnas.map(c => c.ancho * ANCHO);
+        const medir = (celda, w) => {
+          if (celda && celda.imagen !== undefined) return { ...celda, alto: altoFirma + 2 * pad };
+          const c = (celda !== null && typeof celda === "object") ? celda : { texto: celda };
+          const lb = c.negrita ? partir(c.negrita, fB, tam, w - 2 * pad) : [];
+          const ln = (c.texto ?? "") !== "" ? partir(String(c.texto), fN, tam, w - 2 * pad) : [];
+          return { ...c, lb, ln, alto: (lb.length + ln.length) * al + 2 * pad };
+        };
+        const fila = async (celdas, esTitulo) => {
+          const med = celdas.map((c, i) => medir(c, anchos[i]));
+          const alto = Math.max(14, ...med.map(m => m.alto));
+          if (y - alto < M + 24) { nuevaPagina(); if (!esTitulo && conTitulos) await fila(columnas.map(c => ({ negrita: c.titulo })), true); }
+          let x = M;
+          for (let i = 0; i < med.length; i++) {
+            const m = med[i], w = anchos[i];
+            const fondo = esTitulo ? FONDO : m.fondo;
+            pag.drawRectangle({ x, y: y - alto, width: w, height: alto, borderColor: LINEA, borderWidth: 0.6, ...(fondo ? { color: fondo } : {}) });
+            if (m.imagen) {
+              const img = await imagen(m.imagen);
+              const s = Math.min((w - 2 * pad) / img.width, (alto - 2 * pad) / img.height);
+              pag.drawImage(img, { x: x + (w - img.width * s) / 2, y: y - alto + (alto - img.height * s) / 2, width: img.width * s, height: img.height * s });
+            } else {
+              let ty = y - pad - tam;
+              const esc = (l, f) => { const tx = columnas[i].centro ? x + (w - f.widthOfTextAtSize(l, tam)) / 2 : x + pad; pag.drawText(l, { x: tx, y: ty, size: tam, font: f, color: m.color || NEGRO }); ty -= al; };
+              m.lb.forEach(l => esc(l, fB)); m.ln.forEach(l => esc(l, fN));
+            }
+            x += w;
+          }
+          y -= alto;
+        };
+        if (conTitulos) await fila(columnas.map(c => ({ negrita: c.titulo })), true);
+        for (const f of filas) await fila(f, false);
+        y -= 8;
+      }
+      const marca = (resp, op) => resp === VALOR_OP[op] ? { negrita: "X", color: COLOR_RESP[resp] } : "";
+
+      /* ---------- Armado ---------- */
+      nuevaPagina();
+      seccion("1. Antecedentes");
+      const g = CHECKLISTS.grupos[r.grupo];
+      const pares = g.campos.filter(([c]) => c !== "obra").map(([c, et]) => [et, c === "fecha" ? r.fechaCL : (r.campos[c] || "—")]);
+      const filasAnt = [];
+      for (let i = 0; i < pares.length; i += 2) filasAnt.push([{ negrita: pares[i][0] }, pares[i][1], pares[i + 1] ? { negrita: pares[i + 1][0] } : "", pares[i + 1] ? pares[i + 1][1] : ""]);
+      await tabla([{ ancho: 0.2 }, { ancho: 0.3 }, { ancho: 0.2 }, { ancho: 0.3 }], filasAnt, { conTitulos: false, tam: 8 });
+      if (r.grupo === "maquinaria") parrafo("Nomenclatura: B = Buen estado · R = Reparar · M = Malo · N/A = No aplica", { tam: 7.5, color: GRIS });
+
+      seccion("2. Componentes a revisar");
+      const colResp = r.escala.map(op => ({ titulo: op, ancho: r.escala.length === 4 ? 0.055 : 0.06, centro: true }));
+      const anchoResp = colResp.reduce((s, c) => s + c.ancho, 0);
+      const columnas = [{ titulo: "N°", ancho: 0.05, centro: true }, { titulo: r.grupo === "maquinaria" ? "Componente" : "Pregunta", ancho: 0.95 - anchoResp - 0.27 }, ...colResp, { titulo: "Observación", ancho: 0.27 }];
+      const filas = [];
+      for (const it of r.items) {
+        if (it.sec) { filas.push(["", { negrita: it.sec.toUpperCase(), fondo: FONDO }, ...colResp.map(() => ({ texto: "", fondo: FONDO })), { texto: "", fondo: FONDO }]); continue; }
+        filas.push([String(it.n), it.texto, ...r.escala.map(op => marca(it.resp, op)), it.obs ? { texto: it.obs, color: MALAS.includes(it.resp) ? ROJO : NEGRO } : ""]);
+      }
+      await tabla(columnas, filas);
+
+      if (r.extintores) {
+        seccion("3. Extintores revisados");
+        for (const [i, e] of r.extintores.entries()) {
+          hayEspacio(40 + 16 * (e.resp.length + 1) + e.resp.filter(x => x.obs).length * 9);
+          parrafo(`Extintor N° ${i + 1}: ${e.ubicacion}`, { fuente: fB, tam: 8.5 });
+          await tabla([{ titulo: "N°", ancho: 0.05, centro: true }, { titulo: "Punto revisado", ancho: 0.95 - anchoResp - 0.27 }, ...colResp, { titulo: "Observación", ancho: 0.27 }],
+            e.resp.map((x, j) => [String(j + 1), x.texto, ...r.escala.map(op => marca(x.resp, op)), x.obs ? { texto: x.obs, color: ROJO } : ""]));
+        }
+      }
+
+      const nSig = r.extintores ? 4 : 3;
+      const resumen = r.malas ? `${r.malas} ítem(s) con observación (${r.grupo === "maquinaria" ? "R o M" : "NO cumple"}).` : "Sin observaciones: todos los ítems revisados cumplen o no aplican.";
+      seccion(`${nSig}. Resultado y observaciones`);
+      parrafo(resumen, { fuente: fB, color: r.malas ? ROJO : VERDE });
+      if (r.obs) parrafo(r.obs);
+      let sig = nSig + 1;
+      if (g.acciones) {
+        seccion(`${sig++}. Acciones correctivas recomendadas`);
+        if (r.acciones.length) await tabla([{ titulo: "N°", ancho: 0.05, centro: true }, { titulo: "Acción correctiva", ancho: 0.55 }, { titulo: "Responsable", ancho: 0.25 }, { titulo: "Fecha", ancho: 0.15, centro: true }],
+          r.acciones.map((a, i) => [String(i + 1), a.accion, a.responsable, a.fecha]));
+        else parrafo("No se registraron acciones correctivas.", { color: GRIS });
+        seccion(`${sig++}. Seguimiento de acciones correctivas de inspecciones anteriores`);
+        parrafo(r.seguimiento || "Sin seguimiento registrado.", { color: r.seguimiento ? NEGRO : GRIS });
+      }
+
+      hayEspacio(120);
+      seccion(`${sig}. Firmas`);
+      const fs = r.firmas.filter(f => f.imagen);
+      const w = 1 / fs.length;
+      await tabla(fs.map(f => ({ titulo: f.etiqueta, ancho: w, centro: true })), [
+        fs.map(f => f.nombre), fs.map(f => ({ imagen: f.imagen })), fs.map(() => `Fecha: ${r.fechaCL}`)
+      ], { altoFirma: 46 });
+      const ausentes = r.firmas.filter(f => !f.imagen).map(f => f.etiqueta.toLowerCase());
+      if (ausentes.length) parrafo(`Sin firma de ${ausentes.join(" ni ")} (no presente).`, { tam: 7.5, color: GRIS });
+
+      // Registro fotográfico: 2 fotos por fila, con su descripción debajo
+      if (r.fotos.length) {
+        y -= 6;
+        seccion(`${sig + 1}. Registro fotográfico`);
+        const CAJA = (ANCHO - 10) / 2, ALTO = 190;
+        for (let i = 0; i < r.fotos.length; i += 2) {
+          const fila = r.fotos.slice(i, i + 2);
+          const lineas = fila.map(f => f.texto ? partir(`Foto ${r.fotos.indexOf(f) + 1}: ${f.texto}`, fN, 7.5, CAJA) : [`Foto ${r.fotos.indexOf(f) + 1}`]);
+          const altoTexto = Math.max(...lineas.map(l => l.length)) * 9.5 + 4;
+          hayEspacio(ALTO + altoTexto + 10);
+          for (let j = 0; j < fila.length; j++) {
+            const img = await doc.embedJpg(fila[j].img);
+            const s = Math.min(CAJA / img.width, ALTO / img.height);
+            const w = img.width * s, hh = img.height * s;
+            const x0 = M + j * (CAJA + 10), x = x0 + (CAJA - w) / 2;
+            pag.drawImage(img, { x, y: y - hh, width: w, height: hh });
+            pag.drawRectangle({ x, y: y - hh, width: w, height: hh, borderColor: LINEA, borderWidth: 0.6 });
+            lineas[j].forEach((l, k) => pag.drawText(l, { x: x0, y: y - ALTO - 10 - k * 9.5, size: 7.5, font: k === 0 ? fB : fN, color: NEGRO }));
+          }
+          y -= ALTO + altoTexto + 10;
+        }
+      }
+
+      const hojas = doc.getPages();
+      const pie = limpiar(`Check list ${r.nombre} · ${r.fechaCL} · Generado con la app Prevención en Terreno`);
+      hojas.forEach((h, i) => {
+        h.drawText(pie, { x: M, y: 20, size: 6.5, font: fN, color: GRIS });
+        const t = `Página ${i + 1} de ${hojas.length}`;
+        h.drawText(t, { x: A - M - fN.widthOfTextAtSize(t, 7), y: 20, size: 7, font: fN, color: GRIS });
+      });
+      return await doc.save();
+    }
+
+    async function compartirCheck() {
+      const msj = document.getElementById("mensajeCheck");
+      if (!pdfCheck) return;
+      const archivo = new File([pdfCheck.bytes], pdfCheck.nombreArchivo, { type: "application/pdf" });
+      const datos = { files: [archivo], title: pdfCheck.asunto, text: `${pdfCheck.asunto}\nPara: ${CORREO_DESTINO}` };
+      if (navigator.canShare && navigator.canShare(datos)) {
+        try { await navigator.share(datos); msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`; }
+        catch (e) { msj.textContent = e.name === "AbortError" ? "Envío cancelado." : `No se pudo compartir (${e.name}). Usa "Guardar PDF".`; }
+      } else {
+        guardarPDFCheck();
+        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas: adjúntalo a un correo para ${CORREO_DESTINO}.`;
+      }
+    }
+    function guardarPDFCheck() {
+      const msj = document.getElementById("mensajeCheck");
+      try {
+        const url = URL.createObjectURL(new Blob([pdfCheck.bytes], { type: "application/pdf" }));
+        const a = document.createElement("a"); a.href = url; a.download = pdfCheck.nombreArchivo;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        msj.textContent = `PDF guardado como ${pdfCheck.nombreArchivo} (carpeta Descargas).`;
+      } catch { msj.textContent = "No se pudo guardar el PDF."; }
     }
   </script>
 </body>

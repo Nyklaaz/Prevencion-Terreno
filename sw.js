@@ -7,7 +7,7 @@
    IMPORTANTE: cada vez que subas cambios a GitHub, cambia VERSION
    (por ejemplo "2026-11-20"). Así el teléfono sabe que hay algo nuevo.
    ===================================================================== */
-const VERSION = "prevencion-2026-11-13c";
+const VERSION = "prevencion-2026-11-13e";
 const ARCHIVOS = ["./", "./index.html", "./irl-datos.js", "./pdf-lib.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
 const ESPERA_RED = 4000;   // con señal mala, a los 4 segundos usamos la copia guardada
