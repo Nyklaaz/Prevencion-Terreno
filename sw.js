@@ -7,14 +7,15 @@
    IMPORTANTE: cada vez que subas cambios a GitHub, cambia VERSION
    (por ejemplo "2026-11-20"). Así el teléfono sabe que hay algo nuevo.
    ===================================================================== */
-const VERSION = "prevencion-2026-11-13k";
-const ARCHIVOS = ["./", "./index.html", "./irl-datos.js", "./plantillas.js", "./pdf-lib.min.js",
+const VERSION = "prevencion-2026-11-13n";
+const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
 const ESPERA_RED = 4000;   // con señal mala, a los 4 segundos usamos la copia guardada
 
 // Al instalarse: guardamos todos los archivos
 self.addEventListener("install", evento => {
-  evento.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCHIVOS)));
+  // Los archivos de la app, y si existe (versión de una empresa) el paquete de formatos incluido
+  evento.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCHIVOS).then(() => c.add("./paquete-incluido.js").catch(() => {}))));
   self.skipWaiting();
 });
 
