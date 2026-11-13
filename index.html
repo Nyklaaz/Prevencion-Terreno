@@ -235,6 +235,19 @@
     .fila-campos label { margin-top: 6px; }
     .fila-tema { grid-column: 1 / -1; font-weight: 700; font-size: 14px; }
     .fila-ed { padding-top: 10px; }
+    #informe input[type=month], #informe input[type=number], #historial input[type=month] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; font-family: inherit; background: white; color: inherit; }
+    .inf-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
+    .inf-dato { background: #f6f7f9; border-radius: 8px; padding: 8px 10px; }
+    .inf-dato b { display: block; font-size: 18px; color: var(--oscuro); }
+    .inf-dato small { color: #56606b; font-size: 12px; }
+    .inf-falta { margin: 0; padding-left: 18px; font-size: 14px; line-height: 1.5; color: var(--mal); }
+    .inf-ok { font-weight: 600; color: var(--ok); margin: 0; }
+    .docs-mes { display: grid; gap: 6px; margin-bottom: 8px; }
+    .doc-mes { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--borde); border-radius: 8px; background: white; font-size: 14px; }
+    .doc-mes.listo { background: #ecfdf3; border-color: #abefc6; }
+    .doc-mes button { padding: 6px 10px; font-size: 13px; width: auto; }
+    .tres-col { display: grid; grid-template-columns: 1.3fr .7fr 1fr; gap: 8px; }
+    @media (max-width: 520px) { .tres-col { grid-template-columns: 1fr 1fr; } .tres-col > :first-child { grid-column: 1 / -1; } }
     .exportar { margin-top: 8px; border: 1px solid var(--borde); border-radius: 8px; padding: 10px; background: white; }
     .exportar summary { cursor: pointer; font-weight: 600; font-size: 14px; }
     .exportar .dos-col { margin-top: 8px; align-items: center; }
@@ -499,18 +512,27 @@
       <form id="formInforme" onsubmit="generarInforme(event)" novalidate>
         <div class="tarjeta">
           <h2>Mes a informar</h2>
-          <div class="dos-col">
+          <div class="tres-col">
             <div><label>Mes</label><input type="month" id="infMes" onchange="cambiarMesInforme()"></div>
             <div><label>N° de informe</label><input type="number" min="1" data-m="numero"></div>
+            <div><label>Fecha del informe</label><input type="date" data-m="fecha"></div>
           </div>
-          <label>Fecha del informe</label><input type="date" data-m="fecha">
           <p class="ayuda" id="infResumenHist" style="margin-top:10px"></p>
           <label class="btn btn-secundario" style="margin-top:6px">📥 Cargar registros del celular
             <input type="file" accept="application/pdf,.pdf" onchange="importarRegistros(this)" hidden>
           </label>
           <p class="mensaje" id="infMsjImport"></p>
           <p class="ayuda">Todo lo que escribes aquí queda guardado en este equipo automáticamente.</p>
+          <div class="dos-col" style="margin-top:6px">
+            <button type="button" class="btn btn-secundario" onclick="guardarRespaldo()">💾 Guardar respaldo</button>
+            <label class="btn btn-secundario" style="margin:0">♻️ Restaurar respaldo
+              <input type="file" accept=".json,application/json" onchange="restaurarRespaldo(this)" hidden>
+            </label>
+          </div>
+          <p class="ayuda" id="infRespaldo" style="margin-top:6px"></p>
         </div>
+
+        <div class="tarjeta" id="infPanel"></div>
 
         <details class="tarjeta inf-plegable">
           <summary><h2>Datos del contrato</h2><small>Se llenan una vez</small></summary>
@@ -577,7 +599,8 @@
 
         <div class="tarjeta">
           <h2>Accidentes del contrato</h2>
-          <p class="ayuda">Registro de todos los accidentes. La estadística, la nómina y los días perdidos de cada mes (incluido el arrastre) se calculan solos con las fechas de reposo y alta.</p>
+          <p class="ayuda">Registro de todos los accidentes. La estadística, la nómina y los días perdidos de cada mes (incluido el arrastre) se calculan solos con las fechas de reposo y alta. Elige al trabajador del listado y se llenan nombre, RUT y cargo.</p>
+          <datalist id="infListadoNombres"></datalist>
           <div id="infAccidentes"></div>
           <button type="button" class="btn btn-secundario" onclick="agregarFila('infAccidentes')">+ Registrar accidente</button>
         </div>
@@ -606,14 +629,21 @@
 
         <div class="tarjeta">
           <h2>Anexos</h2>
-          <p class="ayuda">Sube los PDF o fotos (fumigación, mantención de baños, capacitaciones, investigación de accidentes…). Van al final del informe en este orden.</p>
+          <p class="ayuda">Sube los PDF o fotos (fumigación, mantención de baños, capacitaciones, investigación de accidentes…). Van al final del informe en este orden y cada uno agrega su línea en el punto 3.</p>
+          <h3>Documentos de todos los meses</h3>
+          <div id="infDocsMes" class="docs-mes"></div>
+          <details class="exportar" style="margin-bottom:10px">
+            <summary>Editar la lista de documentos de todos los meses</summary>
+            <p class="ayuda">Uno por línea. Un documento queda ✅ cuando subes un anexo con ese título.</p>
+            <textarea data-c="docsMes" oninput="autoAltura(this)"></textarea>
+          </details>
           <div class="dos-col">
             <div><label>Título del anexo</label><input type="text" id="anxTitulo" list="anxSugeridos" placeholder="Ej: Certificado de fumigación"></div>
             <div><label>Dónde va</label><select id="anxUbic"><option value="anexos">Anexos (al final)</option><option value="cphs">Punto 9: Acta CPHS</option></select></div>
           </div>
           <datalist id="anxSugeridos"><option value="Certificado de fumigación"><option value="Registro mantención baños químicos"><option value="Capacitación sobre prevención de riesgos"><option value="Recepción difusión protocolos MINSAL"><option value="Investigación de accidente"><option value="Charla integral – Difusión de PTS"></datalist>
           <label class="btn btn-secundario" style="margin-top:10px">📎 Subir archivos (PDF o fotos)
-            <input type="file" accept="application/pdf,image/*" multiple onchange="subirAnexos(this)" hidden>
+            <input type="file" id="anxArchivo" accept="application/pdf,image/*" multiple onchange="subirAnexos(this)" hidden>
           </label>
           <div id="infAnexos" style="margin-top:10px"></div>
           <h3>Registros de la app que van como anexo</h3>
@@ -3103,6 +3133,8 @@
       "Comprobante Cotización Organismo Administrador", "Experto Firma Libro de Asistencia"];
     const TEXTO_INTRO = "El presente informe se desarrolla en cumplimiento de las Bases Administrativas del contrato a ejecutar por la {empresa}, basándose en el acatamiento de estas y de los aspectos legales definidos en la Ley 16.744, que establece normas sobre accidentes del trabajo y enfermedades profesionales, con el fin de llevar un control adecuado de los riesgos del trabajo, manteniendo así la obra libre de incidentes no deseados.";
     const TEXTO_PROPOSITO = "La administración de {empresa} considera dentro de sus principales responsabilidades la protección de la salud e integridad física de sus trabajadores, por lo que la Prevención de Riesgos Laborales y Enfermedades Profesionales, así como el cumplimiento de los programas propuestos, deberá mantenerse en forma constante y sostenida durante el desarrollo del contrato que la empresa ejecuta para el MOP.";
+    const DOCS_MES = ["Certificado de fumigación", "Registro mantención baños químicos", "Capacitación sobre prevención de riesgos", "Comprobante cotización organismo administrador", "Acta CPHS"];
+    const OBS_AUTO = /^(No se registran accidentes en el mes|Durante el mes se registra|Reunión ordinaria|A la fecha el comité|No hay reunión del CPHS)/;
     const TEXTO_CIERRE = "No hay cambios del programa oficial del contrato ni actualización de la matriz de riesgos. No hay recomendaciones de otros organismos fiscalizadores como administradores de la Ley N° 16.744, MOP, Inspección del Trabajo y Seremi de Salud; no han dejado observaciones (Pto. 7.1.3 de las bases).";
 
     // Filas editables: cada lista se arma con sus columnas
@@ -3112,6 +3144,7 @@
       infDelMes: { titulo: "", fijas: true, cols: [{ k: "tema", t: "", tipo: "fijo" }, { k: "adjunta", t: "Se adjunta", tipo: "select", op: ["SI", "NO", "NO APLICA"] }, { k: "obs", t: "Observación (razón si es NO)" }] },
       infActividades: { titulo: "Actividad", cols: [{ k: "texto", t: "", tipo: "area" }] },
       infAccidentes: { titulo: "Accidente", cols: [
+        { k: "buscar", t: "Elegir trabajador del listado", tipo: "listado" },
         { k: "nombre", t: "Nombre del trabajador" }, { k: "rut", t: "RUT" }, { k: "cargo", t: "Cargo" }, { k: "sexo", t: "Sexo", tipo: "select", op: ["M", "F"] },
         { k: "fecha", t: "Fecha del accidente", tipo: "date" }, { k: "categoria", t: "Categoría", tipo: "select", op: ["Leve sin tiempo perdido (ATP)", "Leve con tiempo perdido (CTP)", "Grave", "Fatal"] },
         { k: "tipo", t: "Tipo de accidente", tipo: "select", op: ["Del trabajo", "De trayecto"] }, { k: "parte", t: "Parte del cuerpo dañada" },
@@ -3128,6 +3161,7 @@
       if (c.tipo === "fijo") return `<div class="fila-tema">${html(v)}</div><input type="hidden" data-k="${c.k}" value="${html(v)}">`;
       const lab = c.t ? `<label>${c.t}</label>` : "";
       if (c.tipo === "select") return `<div>${lab}<select data-k="${c.k}">${["", ...c.op].map(o => `<option ${o === v ? "selected" : ""}>${o}</option>`).join("")}</select></div>`;
+      if (c.tipo === "listado") return `<div class="ancho">${lab}<input type="search" data-k="${c.k}" list="infListadoNombres" placeholder="🔍 Escribe nombre o RUT y elígelo" autocomplete="off" onchange="elegirAccidentado(this)"></div>`;
       if (c.tipo === "area") return `<div class="ancho">${lab}<textarea data-k="${c.k}" oninput="autoAltura(this)">${html(v)}</textarea></div>`;
       return `<div>${lab}<input type="${c.tipo || "text"}" data-k="${c.k}" value="${html(v)}"></div>`;
     }
@@ -3150,10 +3184,25 @@
       numerarFilas(id);
       guardarInforme();
     }
-    function quitarFila(boton, id) { boton.closest(".fila-ed").remove(); numerarFilas(id); guardarInforme(); }
+    function quitarFila(boton, id) { boton.closest(".fila-ed").remove(); numerarFilas(id); guardarInforme(); if (id === "infAccidentes" || id === "infActas") autoDelMes(); }
     function leerFilas(id) {
       return [...document.querySelectorAll(`#${id} .fila-ed`)].map(div =>
         Object.fromEntries(FILAS[id].cols.map(c => [c.k, div.querySelector(`[data-k="${c.k}"]`).value.trim()])));
+    }
+
+    function pintarListadoInforme() {
+      document.getElementById("infListadoNombres").innerHTML = (listado?.lista || []).map(p => `<option value="${html(p.nombre)} · ${html(p.rut)}">`).join("");
+    }
+    function elegirAccidentado(input) {
+      const rut = claveRut((input.value.split(" · ")[1] || ""));
+      const p = (listado?.lista || []).find(x => claveRut(x.rut) === rut);
+      if (!p) return;
+      const fila = input.closest(".fila-ed"), poner = (k, v) => { if (v) fila.querySelector(`[data-k="${k}"]`).value = v; };
+      poner("nombre", p.nombre); poner("rut", p.rut);
+      const idIRL = cargosIRL[rut];
+      poner("cargo", cargos[rut] || (idIRL && window.IRL_DATOS?.cargos?.[idIRL]?.nombre) || "");
+      input.value = "";
+      guardarInforme();
     }
 
     let infContrato = leerGuardado("pt_inf_contrato", {});
@@ -3178,6 +3227,7 @@
         const programar = () => { clearTimeout(espera); espera = setTimeout(guardarInforme, 400); };
         f.addEventListener("input", programar);
         f.addEventListener("change", programar);
+        ["infAccidentes", "infActas"].forEach(id => document.getElementById(id).addEventListener("change", () => setTimeout(() => { guardarInforme(); autoDelMes(); }, 450)));
         f.querySelectorAll("canvas").forEach(c => c.addEventListener("pointerup", () => setTimeout(guardarFirmasInforme, 50)));
         f.querySelectorAll(".btn-limpiar").forEach(b => b.addEventListener("click", () => setTimeout(guardarFirmasInforme, 50)));
         pintarContrato();
@@ -3185,10 +3235,13 @@
       }
       setTimeout(restaurarFirmasInforme, 60);   // el lienzo necesita estar visible para tomar su tamaño
       pintarResumenMes();
+      pintarListadoInforme();
+      const r = leerGuardado("pt_inf_ultimoRespaldo", null);
+      document.getElementById("infRespaldo").textContent = r ? `Último respaldo: ${new Date(r).toLocaleString("es-CL")}` : "Todavía no has guardado un respaldo. Guárdalo en un pendrive o en tu correo.";
     }
 
     function pintarContrato() {
-      const c = { empresa: "Constructora Expando SpA", rutEmpresa: "77.749.613-1", tipoEmpresa: "Prestador de Servicios", ...infContrato };
+      const c = { empresa: "Constructora Expando SpA", rutEmpresa: "77.749.613-1", tipoEmpresa: "Prestador de Servicios", docsMes: DOCS_MES.join("\n"), ...infContrato };
       document.querySelectorAll("#formInforme [data-c]").forEach(el => { el.value = c[el.dataset.c] ?? ""; if (el.tagName === "TEXTAREA") autoAltura(el); });
       pintarFilas("infDelContrato", c.delContrato || DEL_CONTRATO.map(tema => ({ tema })));
       pintarFilas("infAccidentes", infListas.accidentes || []);
@@ -3203,6 +3256,7 @@
     }
     function calcularDotacion(forzar) {
       const k = infMesActual, total = dotacionListado(k);
+      pintarListadoInforme();
       const campoF = document.querySelector("[data-m=dotF]"), campoM = document.querySelector("[data-m=dotM]"), campoHH = document.querySelector("[data-m=hh]");
       const info = document.getElementById("infInfoDot");
       if (total !== null && (forzar || campoM.value === "")) {
@@ -3223,6 +3277,7 @@
       await cargarListado(input);
       const aviso = document.getElementById("errorListado").textContent;
       calcularDotacion(true);
+      pintarListadoInforme();
       if (aviso) document.getElementById("infInfoDot").textContent = aviso;
     }
 
@@ -3236,7 +3291,7 @@
       const previo = Object.keys(infMeses).filter(m => m < k).sort().pop();
       const p = previo ? infMeses[previo] : {};
       const m = infMeses[k] || {
-        numero: p.numero ? +p.numero + 1 : "", fecha: "", dotF: p.dotF ?? "", dotM: p.dotM ?? "", hh: "",
+        numero: p.numero ? +p.numero + 1 : "", fecha: (() => { const [a, mm] = k.split("-").map(Number); return new Date(a, mm, 5).toLocaleDateString("sv-SE"); })(), dotF: p.dotF ?? "", dotM: p.dotM ?? "", hh: "",
         delMes: (p.delMes || DEL_MES.map(tema => ({ tema, adjunta: "SI" }))).map(r => ({ ...r, obs: "" })),
         visita: "", actividades: [], cierre: TEXTO_CIERRE, multas: [], hechos: [], anexosHist: []
       };
@@ -3250,10 +3305,13 @@
       pintarAnexos();
       pintarResumenMes();
       calcularDotacion(false);
+      pintarListadoInforme();
+      autoDelMes();
     }
 
+    let infBloqueado = false;   // mientras se restaura un respaldo no se guarda nada encima
     function guardarInforme() {
-      if (!infMesActual) return;
+      if (!infMesActual || infBloqueado) return;
       document.querySelectorAll("#formInforme [data-c]").forEach(el => infContrato[el.dataset.c] = el.value.trim());
       infContrato.delContrato = leerFilas("infDelContrato");
       const m = infMeses[infMesActual] || {};
@@ -3266,14 +3324,17 @@
       guardar("pt_inf_contrato", infContrato);
       guardar("pt_inf_meses", infMeses);
       guardar("pt_inf_listas", infListas);
+      pintarPanel();
     }
 
     function guardarFirmasInforme() {
+      if (infBloqueado) return;
       for (const [id, k] of [["infFirmaExperto", "experto"], ["infFirmaResidente", "residente"], ["infFirmaRepresentante", "representante"]]) {
         const c = document.querySelector(`#${id} canvas`);
         infFirmas[k] = c.dataset.firmado ? c.toDataURL("image/png") : null;
       }
       guardar("pt_inf_firmas", infFirmas);
+      pintarPanel();
     }
     function restaurarFirmasInforme() {
       for (const [id, k] of [["infFirmaExperto", "experto"], ["infFirmaResidente", "residente"], ["infFirmaRepresentante", "representante"]]) {
@@ -3372,6 +3433,12 @@
           msj.textContent = `No se pudo leer "${a.name}" (${e.message}). Si es un PDF protegido, imprímelo como PDF nuevo y vuelve a subirlo.`;
         }
       }
+      // Cada anexo agrega su línea en el punto 3 (si no estaba)
+      const tituloLinea = titulo || (archivos[0] && archivos[0].name.replace(/\.[^.]+$/, ""));
+      if (tituloLinea && archivos.length) {
+        const ya = leerFilas("infActividades").some(a => normalizar(a.texto).includes(normalizar(tituloLinea)));
+        if (!ya) agregarFila("infActividades", { texto: `Se adjunta ${tituloLinea.charAt(0).toLowerCase() + tituloLinea.slice(1)}.` });
+      }
       document.getElementById("anxTitulo").value = "";
       pintarAnexos();
     }
@@ -3379,8 +3446,19 @@
       try { return (await operacionBD("readonly", s => s.getAll())).filter(r => r.tipo === "anexo" && r.mes === k).sort((a, b) => (a.orden ?? a.creado) - (b.orden ?? b.creado)); }
       catch { return []; }
     }
+    const docsDelContrato = () => String(infContrato.docsMes ?? DOCS_MES.join("\n")).split("\n").map(t => t.trim()).filter(Boolean);
+    const docListo = (doc, anexos) => anexos.some(a => normalizar(a.titulo).includes(normalizar(doc)) || normalizar(doc).includes(normalizar(a.titulo)));
+    function pedirDocumento(doc) {
+      document.getElementById("anxTitulo").value = doc;
+      document.getElementById("anxUbic").value = /acta.*(cphs|comit)/i.test(normalizar(doc)) ? "cphs" : "anexos";
+      document.getElementById("anxArchivo").click();
+    }
     async function pintarAnexos() {
       const lista = await anexosDelMes(infMesActual);
+      document.getElementById("infDocsMes").innerHTML = docsDelContrato().map(d => docListo(d, lista)
+        ? `<div class="doc-mes listo"><span>✅ ${html(d)}</span></div>`
+        : `<div class="doc-mes"><span>⏳ ${html(d)}</span><button type="button" class="btn btn-secundario" onclick="pedirDocumento(this.dataset.d)" data-d="${html(d)}">Subir</button></div>`).join("");
+      pintarPanel();
       document.getElementById("infAnexos").innerHTML = lista.map((a, i) => `
         <div class="registro">
           <div class="tit">${a.mime === "application/pdf" ? "📄" : "🖼️"} ${html(a.titulo)}</div>
@@ -3405,6 +3483,116 @@
       await operacionBD("readwrite", s => s.delete(id));
       pintarAnexos();
     }
+
+
+    /* ----- Tabla "Del mes" automática (no pisa lo que escribiste a mano) ----- */
+    function autoDelMes() {
+      const k = infMesActual;
+      if (!k || !document.querySelector("#infDelMes .fila-ed")) return;
+      const filas = leerFilas("infDelMes");
+      const acc = infListas.accidentes.filter(a => String(a.fecha).startsWith(k)).length;
+      const actasMes = (infListas.actas || []).filter(a => String(a.fecha).startsWith(k));
+      const C = infContrato;
+      const poner = (r, adjunta, obs) => { if (!r.obs || OBS_AUTO.test(r.obs)) { r.adjunta = adjunta; r.obs = obs; } };
+      for (const r of filas) {
+        const t = normalizar(r.tema);
+        if (t.includes("nomina") && t.includes("accidentad") || t.includes("investigacion de accidente"))
+          poner(r, acc ? "SI" : "NO APLICA", acc ? `Durante el mes se registra(n) ${acc} accidente(s) del trabajo` : "No se registran accidentes en el mes");
+        else if (t.includes("acta") && t.includes("comite"))
+          poner(r, actasMes.length ? "SI" : "NO", actasMes.length ? `Reunión ordinaria N°${actasMes.map(a => a.num).join(", ")} del ${actasMes.map(a => fechaCLde(a.fecha)).join(", ")}`
+                                                   : (C.cphsEstado ? C.cphsEstado : "No hay reunión del CPHS en el mes"));
+        else if (t.includes("estadistica")) { if (!r.adjunta) r.adjunta = "SI"; }
+      }
+      pintarFilas("infDelMes", filas);
+      guardarInforme();
+    }
+
+    /* ----- Resumen del mes y lo que falta ----- */
+    let panelPendiente = null;
+    function pintarPanel() { clearTimeout(panelPendiente); panelPendiente = setTimeout(pintarPanelAhora, 150); }
+    async function pintarPanelAhora() {
+      const k = infMesActual, caja = document.getElementById("infPanel");
+      if (!k || !caja) return;
+      const m = infMeses[k] || {}, C = infContrato, est = estadistica(k);
+      const f = est.filas[est.filas.length - 1] || {};
+      const regs = (await registrosDelMes(k)).filter(r => ["charla", "irl", "check"].includes(r.tipo));
+      const anexos = await anexosDelMes(k);
+      const docs = docsDelContrato(), pendientes = docs.filter(d => !docListo(d, anexos));
+      const accMes = infListas.accidentes.filter(a => String(a.fecha).startsWith(k)).length;
+      const n = v => String(+(+v || 0).toFixed(2)).replace(".", ",");
+      const dato = (v, t) => `<div class="inf-dato"><b>${v}</b><small>${t}</small></div>`;
+      const falta = [];
+      [["safi", "Código SAFI del contrato"], ["contrato", "Nombre del contrato"], ["experto", "Nombre del experto"], ["residente", "Nombre del profesional residente"], ["representante", "Nombre del representante legal"]]
+        .forEach(([c, t]) => { if (!C[c]) falta.push(t); });
+      if (!m.numero) falta.push("N° de informe");
+      if (!f.total) falta.push("Dotación del mes (carga el listado de personal)");
+      if (!f.hh) falta.push("Horas hombre del mes");
+      if (!infFirmas.representante) falta.push("Firma del representante legal (obligatoria)");
+      if (!infFirmas.residente) falta.push("Firma del profesional residente");
+      if (!infFirmas.experto) falta.push("Firma del experto");
+      if (!regs.length) falta.push("Registros del celular (charlas, IRL, check list) del mes");
+      if (!(m.actividades || []).some(a => a.texto)) falta.push('Actividades del punto 3 (botón "Armar desde el historial")');
+      pendientes.forEach(d => falta.push(`Documento: ${d}`));
+      caja.innerHTML = `<h2>Resumen de ${nombreMes(k)}</h2>
+        <div class="inf-panel">
+          ${dato(f.total || 0, `Dotación (${n(f.dotF)} M · ${n(f.dotM)} H)`)}
+          ${dato((f.hh || 0).toLocaleString("es-CL"), "Horas hombre")}
+          ${dato(accMes, "Accidentes del mes")}
+          ${dato((f.diasMes || 0) + (f.arrastre || 0), "Días perdidos del mes")}
+          ${dato(n(est.tasaAcc), "Tasa accidentabilidad (acum.)")}
+          ${dato(n(est.frecuencia), "Índice frecuencia (acum.)")}
+          ${dato(`${regs.filter(r => r.tipo === "charla").length} / ${regs.filter(r => r.tipo === "irl").length} / ${regs.filter(r => r.tipo === "check").length}`, "Charlas / IRL / Check list")}
+          ${dato(`${docs.length - pendientes.length} de ${docs.length}`, "Documentos del mes")}
+        </div>
+        ${falta.length ? `<p style="margin:0 0 4px;font-weight:700">Falta:</p><ul class="inf-falta">${falta.map(t => `<li>${html(t)}</li>`).join("")}</ul>`
+                       : `<p class="inf-ok">✅ Todo listo para descargar la carpeta del mes.</p>`}`;
+    }
+
+    /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL"];
+    function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
+    async function guardarRespaldo() {
+      guardarInforme(); guardarFirmasInforme();
+      const aviso = document.getElementById("infRespaldo");
+      aviso.textContent = "Armando el respaldo…";
+      try {
+        const regs = await operacionBD("readonly", s => s.getAll());
+        const datos = {
+          app: "prevencion-terreno", tipo: "respaldo", v: 1, creado: new Date().toISOString(),
+          almacen: Object.fromEntries(CLAVES_RESPALDO.map(c => [c, localStorage.getItem(c)]).filter(([, v]) => v !== null)),
+          registros: regs.map(({ id, pdf, ...resto }) => ({ ...resto, pdf: bytesAB64(new Uint8Array(pdf)) }))
+        };
+        const hoy = new Date().toLocaleDateString("sv-SE");
+        descargarArchivo(textoABytes(JSON.stringify(datos)), `Respaldo_Prevencion_${hoy}.json`, "application/json");
+        guardar("pt_inf_ultimoRespaldo", Date.now());
+        aviso.textContent = `✅ Respaldo guardado (Respaldo_Prevencion_${hoy}.json, ${regs.length} archivos). Guárdalo en un pendrive o mándatelo al correo.`;
+      } catch (e) { aviso.textContent = "No se pudo armar el respaldo: " + e.message; }
+    }
+    async function restaurarRespaldo(input) {
+      const a = input.files[0];
+      input.value = "";
+      if (!a) return;
+      const aviso = document.getElementById("infRespaldo");
+      try {
+        const d = JSON.parse(await a.text());
+        if (d.app !== "prevencion-terreno" || d.tipo !== "respaldo") { aviso.textContent = "Ese archivo no es un respaldo de la app."; return; }
+        if (!confirm(`¿Restaurar el respaldo del ${new Date(d.creado).toLocaleString("es-CL")}? Reemplaza los datos del informe de este equipo (los PDF que ya están no se duplican).`)) return;
+        infBloqueado = true;
+        Object.entries(d.almacen || {}).forEach(([c, v]) => { try { localStorage.setItem(c, v); } catch {} });
+        const existentes = await operacionBD("readonly", s => s.getAll());
+        const ya = new Set(existentes.map(r => `${r.tipo}|${r.nombreArchivo}|${r.creado}`));
+        let n = 0;
+        for (const r of d.registros || []) {
+          if (ya.has(`${r.tipo}|${r.nombreArchivo}|${r.creado}`)) continue;
+          await operacionBD("readwrite", s => s.put({ ...r, pdf: b64aBytes(r.pdf) }));
+          n++;
+        }
+        sessionStorage.setItem("pt_abrirInforme", "1");
+        aviso.textContent = `✅ Respaldo restaurado (${n} archivos nuevos). Recargando…`;
+        setTimeout(() => location.reload(), 800);
+      } catch (e) { infBloqueado = false; aviso.textContent = "No se pudo leer el respaldo: " + e.message; }
+    }
+    try { if (sessionStorage.getItem("pt_abrirInforme")) { sessionStorage.removeItem("pt_abrirInforme"); setTimeout(() => mostrar("informe"), 300); } } catch {}
 
     /* ----- Pasar registros del celular al PC -----
        El celular arma UN PDF con todos los registros del mes (se puede abrir y leer normal).
@@ -3523,6 +3711,7 @@
 
     /* ----- PDF del informe ----- */
     function validarInforme() {
+      autoDelMes(); guardarInforme();
       const error = document.getElementById("errorInforme");
       const faltan = [["safi", "código SAFI"], ["contrato", "nombre del contrato"], ["experto", "experto"], ["representante", "representante legal"]].filter(([c]) => !infContrato[c]).map(([, t]) => t);
       if (faltan.length) {
@@ -4264,8 +4453,9 @@
         const zip = armarZip(archivos);
         descargarArchivo(zip, `${archivoBase}.zip`, "application/zip");
         error.textContent = "";
+        const ultimo = leerGuardado("pt_inf_ultimoRespaldo", 0);
+        document.getElementById("mensajeInforme").textContent = Date.now() - ultimo > 7 * 86400000 ? "💾 Recomendado: guarda un respaldo ahora (botón arriba, en Mes a informar)." : "";
         document.getElementById("infoPDFInforme").textContent = `Carpeta ${archivoBase}.zip descargada (${(zip.length / 1048576).toFixed(1)} MB): informe en PDF y Word, Excel del informe, IFOS SAFI, ${regs.length} registros y ${anexos.length} anexos.`;
-        document.getElementById("mensajeInforme").textContent = "";
         document.getElementById("cajaEnvioInforme").style.display = "block";
         document.getElementById("cajaEnvioInforme").scrollIntoView({ behavior: "smooth" });
       } catch (e) {
