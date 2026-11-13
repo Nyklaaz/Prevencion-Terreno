@@ -4,10 +4,13 @@
    sus archivos en el teléfono. Si no hay señal, entrega esa copia.
    Si hay señal, trae la versión nueva y actualiza la copia.
 
-   IMPORTANTE: cada vez que subas cambios a GitHub, cambia VERSION
+   IMPORTANTE: cada vez que subas cambios a GitHub, cambia la fecha de VERSION
    (por ejemplo "2026-11-20"). Así el teléfono sabe que hay algo nuevo.
+   Cada versión de la app (cada carpeta) tiene sus propias copias: así dos versiones
+   en el mismo sitio no se borran entre ellas.
    ===================================================================== */
-const VERSION = "prevencion-2026-11-13n";
+const BASE = "prevencion:" + self.registration.scope + ":";
+const VERSION = BASE + "2026-11-13o";
 const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
 const ESPERA_RED = 4000;   // con señal mala, a los 4 segundos usamos la copia guardada
@@ -19,10 +22,18 @@ self.addEventListener("install", evento => {
   self.skipWaiting();
 });
 
-// Al activarse: borramos copias de versiones antiguas
+// Al activarse: borramos SOLO nuestras copias antiguas (las de otras versiones de la app no se tocan)
 self.addEventListener("activate", evento => {
-  evento.waitUntil(caches.keys().then(claves =>
-    Promise.all(claves.filter(k => k !== VERSION).map(k => caches.delete(k)))));
+  evento.waitUntil((async () => {
+    for (const k of await caches.keys()) {
+      if (k === VERSION) continue;
+      if (k.startsWith(BASE)) { await caches.delete(k); continue; }
+      if (/^prevencion-20\d\d/.test(k)) {   // nombre antiguo (sin carpeta): se borra solo si es de esta carpeta
+        const dentro = await (await caches.open(k)).keys();
+        if (dentro.length && dentro[0].url.startsWith(self.registration.scope)) await caches.delete(k);
+      }
+    }
+  })());
   self.clients.claim();
 });
 

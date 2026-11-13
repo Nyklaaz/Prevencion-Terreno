@@ -48,6 +48,22 @@
        En la versión abierta ese archivo no existe y la app parte en blanco. -->
   <script src="paquete-incluido.js"></script>
   <script>
+    /* Datos separados por versión. Varias versiones pueden estar en el mismo sitio
+       (ej. nyklaaz.github.io/prevencion-terreno y nyklaaz.github.io/APR-terreno-libre) y el navegador
+       les comparte el almacenamiento. La versión con paquete incluido (empresa) usa los nombres de siempre;
+       cualquier otra guarda sus datos con el nombre de su carpeta para no mezclarse. */
+    var ESPACIO_DATOS = window.PAQUETE_INCLUIDO ? "" : "[" + location.pathname.replace(/[^\/]*$/, "") + "]";
+    (function () {
+      if (!ESPACIO_DATOS) return;
+      ["getItem", "setItem", "removeItem"].forEach(function (fn) {
+        var original = Storage.prototype[fn];
+        Storage.prototype[fn] = function (clave) {
+          var args = Array.prototype.slice.call(arguments);
+          if (typeof clave === "string" && clave.indexOf("pt_") === 0) args[0] = ESPACIO_DATOS + clave;
+          return original.apply(this, args);
+        };
+      });
+    })();
     var PAQUETE = null;
     try { PAQUETE = JSON.parse(localStorage.getItem("pt_paquete") || "null"); } catch (e) {}
     // Si no se ha cargado otro paquete en este equipo, se usa el incluido (sin la parte de IRL, que se carga al entrar)
@@ -2448,7 +2464,7 @@
 
     function abrirBD() {
       return new Promise((ok, falla) => {
-        const pedido = indexedDB.open("prevencion-terreno", 1);
+        const pedido = indexedDB.open("prevencion-terreno" + ESPACIO_DATOS, 1);
         pedido.onupgradeneeded = () => pedido.result.createObjectStore("registros", { keyPath: "id", autoIncrement: true });
         pedido.onsuccess = () => ok(pedido.result);
         pedido.onerror = () => falla(pedido.error);
@@ -4776,7 +4792,7 @@
        ===================================================================== */
     function abrirBDPaquete() {
       return new Promise((ok, falla) => {
-        const pedido = indexedDB.open("prevencion-paquete", 1);
+        const pedido = indexedDB.open("prevencion-paquete" + ESPACIO_DATOS, 1);
         pedido.onupgradeneeded = () => pedido.result.createObjectStore("datos");
         pedido.onsuccess = () => ok(pedido.result);
         pedido.onerror = () => falla(pedido.error);
