@@ -445,6 +445,11 @@
             <label>Cargo (define qué IRL se entrega)</label>
             <select name="irlCargo" id="irlCargo" required onchange="cambioCargoIRL()"></select>
             <label class="check-linea"><input type="checkbox" name="irlLicencia" onchange="pintarContenidoIRL()"> Conduce vehículos livianos (agrega la IRL complementaria de conductor)</label>
+            <details class="exportar" id="irlCajaAdic" style="margin-top:10px">
+              <summary>Otros cargos que también cumple <span id="irlCuentaAdic"></span></summary>
+              <p class="ayuda">Marca los otros cargos que hace este trabajador (por ejemplo, un maestro carpintero que también opera maquinaria pesada). Cada uno agrega su IRL adicional en el mismo PDF y sus PTS y HDS predeterminados.</p>
+              <div id="irlAdicionales" class="irl-marcas" style="max-height:220px"></div>
+            </details>
           </div>
         </div>
 
@@ -1922,6 +1927,7 @@
     let pdfIRL = null;                                    // { bytes, nombreArchivo, asunto }
     let cargosIRL = leerGuardado("pt_cargoIRL", {});      // rut -> id del cargo IRL
     let licencias = leerGuardado("pt_licencia", {});      // rut -> true / false
+    let adicionalesIRL = leerGuardado("pt_irl_adic", {});  // rut -> [ids de otros cargos que también cumple]
     let ingresos = leerGuardado("pt_ingreso", {});        // rut -> fecha de ingreso escrita a mano
     let predIRL = leerGuardado("pt_irl_pred", {});        // cargo -> { pts:[...], hds:[...], otros:[...] }
 
@@ -1948,6 +1954,9 @@
           .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre, "es"))
           .map(([id, c]) => `<option value="${id}">${c.nombre}</option>`).join("");
 
+      document.getElementById("irlAdicionales").innerHTML = Object.entries(IRL_DATOS.cargos).filter(([id]) => id !== "conductor_livianos")
+        .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre, "es"))
+        .map(([id, c]) => `<label class="check-linea" data-id="${id}"><input type="checkbox" value="${id}" onchange="cambioAdicionalesIRL()"> <span>${c.nombre}</span></label>`).join("");
       document.getElementById("irlTipos").innerHTML = IRL_DATOS.tipos_induccion.map((t, i) =>
         `<label class="check-linea"><input type="radio" name="irlTipo" value="${i}" required> ${t}</label>`).join("");
 
@@ -1999,6 +2008,7 @@
       const cargo = cargosIRL[rut] || SUGERIR_IRL[cargos[rut]] || "";
       document.getElementById("irlCargo").value = cargo;
       campoIRL("irlLicencia").checked = !!licencias[rut];
+      marcarAdicionalesIRL(adicionalesIRL[rut] || []);
       cambioCargoIRL();
       pintarListaIRL();
       document.getElementById("irlDatos").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2006,7 +2016,41 @@
 
     function cambioCargoIRL() {
       const id = document.getElementById("irlCargo").value;
+      document.querySelectorAll("#irlAdicionales label").forEach(l => {
+        const esPrincipal = l.dataset.id === id;
+        l.style.display = esPrincipal ? "none" : "";
+        if (esPrincipal) l.querySelector("input").checked = false;
+      });
       aplicarPredeterminadosIRL(id);
+      sumarPredeterminadosAdicionales();
+      contarAdicionalesIRL();
+      pintarContenidoIRL();
+    }
+    // Otros cargos que también cumple el trabajador (IRL adicionales en el mismo PDF)
+    const adicionalesMarcados = () => [...document.querySelectorAll("#irlAdicionales input:checked")].map(c => c.value);
+    function marcarAdicionalesIRL(ids) {
+      document.querySelectorAll("#irlAdicionales input").forEach(c => c.checked = ids.includes(c.value));
+      if (ids.length) document.getElementById("irlCajaAdic").open = true;
+    }
+    function contarAdicionalesIRL() {
+      const n = adicionalesMarcados().length;
+      document.getElementById("irlCuentaAdic").textContent = n ? `(${n} marcado${n > 1 ? "s" : ""})` : "";
+    }
+    function sumarPredeterminadosAdicionales() {
+      for (const id of adicionalesMarcados()) {
+        const pred = predIRL[id];
+        if (!pred) continue;
+        LISTAS_IRL.forEach(([idCont, clave]) => {
+          document.querySelectorAll(`#${idCont} .irl-marcas input`).forEach(c => { if ((pred[clave] || []).includes(IRL_DATOS[clave][+c.value])) c.checked = true; });
+          contarMarcas(document.getElementById(idCont));
+        });
+      }
+    }
+    function cambioAdicionalesIRL() {
+      // Se recalculan las marcas: las del cargo principal + las de cada cargo adicional
+      aplicarPredeterminadosIRL(document.getElementById("irlCargo").value);
+      sumarPredeterminadosAdicionales();
+      contarAdicionalesIRL();
       pintarContenidoIRL();
     }
 
@@ -2049,7 +2093,8 @@
       predIRL[idCargo] = {};
       LISTAS_IRL.forEach(([idCont, clave]) => predIRL[idCargo][clave] = marcados(idCont, clave));
       guardar("pt_irl_pred", predIRL);
-      msj.textContent = `✅ Guardado: las próximas IRL de ${IRL_DATOS.cargos[idCargo].nombre} aparecerán con estas marcas.`;
+      msj.textContent = `✅ Guardado: las próximas IRL de ${IRL_DATOS.cargos[idCargo].nombre} aparecerán con estas marcas.` +
+        (adicionalesMarcados().length ? " Ojo: se guardaron todas las marcas, incluidas las de los otros cargos marcados; si no corresponde, desmárcalos y guarda de nuevo." : "");
     }
 
     /* ----- Ver el contenido de la IRL (para explicarlo) ----- */
@@ -2079,6 +2124,7 @@
       const id = document.getElementById("irlCargo").value;
       if (!id) { div.innerHTML = `<p class="ayuda" style="padding:8px">Elige el cargo para ver su IRL.</p>`; return; }
       let html = htmlBloques(IRL_DATOS.cargos[id].contenido);
+      for (const a of adicionalesMarcados()) html += `<h4>IRL ADICIONAL: ${IRL_DATOS.cargos[a].nombre.toUpperCase()}</h4>` + htmlBloques(IRL_DATOS.cargos[a].contenido);
       if (campoIRL("irlLicencia").checked) {
         html += `<h4>IRL COMPLEMENTARIA: CONDUCTOR DE VEHÍCULOS LIVIANOS</h4>` + htmlBloques(IRL_DATOS.cargos.conductor_livianos.contenido);
       }
@@ -2129,6 +2175,7 @@
       const rut = claveRut(r.rut);
       cargosIRL[rut] = r.cargoId; guardar("pt_cargoIRL", cargosIRL);
       licencias[rut] = r.licencia; guardar("pt_licencia", licencias);
+      adicionalesIRL[rut] = r.adicionales.map(a => a.id); guardar("pt_irl_adic", adicionalesIRL);
       if (r.ingreso) { ingresos[rut] = r.ingreso; guardar("pt_ingreso", ingresos); }
       guardar("pt_relator", { nombre: r.relator, cargo: r.cargoRel, obra: r.obra });
 
@@ -2139,9 +2186,9 @@
         pdfIRL = {
           bytes,
           nombreArchivo: `IRL_${limpio(r.cargoNombre)}_${limpio(r.nombre)}_${r.fecha}.pdf`,
-          asunto: `IRL – ${r.cargoNombre} – ${r.nombre} – ${r.fechaCL}`
+          asunto: `IRL – ${[r.cargoNombre, ...r.adicionales.map(a => a.nombre)].join(" + ")} – ${r.nombre} – ${r.fechaCL}`
         };
-        idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}`);
+        idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}${r.adicionales.length ? " · también: " + r.adicionales.map(a => a.nombre).join(", ") : ""}`);
         error.textContent = "";
         document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB`;
         document.getElementById("mensajeIRL").textContent = "";
@@ -2185,6 +2232,7 @@
         nombre: campoIRL("irlNombre").value.trim(), rut: campoIRL("irlRut").value.trim(),
         ingreso: campoIRL("irlIngreso").value, ingresoCL: fCL(campoIRL("irlIngreso").value),
         cargoId: id, cargoNombre: IRL_DATOS.cargos[id].nombre,
+        adicionales: adicionalesMarcados().filter(a => a !== id).map(a => ({ id: a, nombre: IRL_DATOS.cargos[a].nombre })),
         tipo: +document.querySelector("[name=irlTipo]:checked").value,
         licencia: campoIRL("irlLicencia").checked,
         relator: campoIRL("irlRelator").value.trim(), cargoRel: campoIRL("irlCargoRel").value.trim(),
@@ -2374,6 +2422,7 @@
       seccion("2.- Identificación de la persona trabajadora");
       await tabla([{ titulo: "", ancho: 0.3 }, { titulo: "", ancho: 0.7 }], [
         [{ negrita: "Nombre del trabajador" }, r.nombre], [{ negrita: "Cargo del trabajador" }, r.cargoNombre],
+        ...(r.adicionales.length ? [[{ negrita: "Otros cargos que cumple (IRL adicional)" }, r.adicionales.map(a => a.nombre).join(", ")]] : []),
         [{ negrita: "RUT" }, r.rut], [{ negrita: "Fecha de ingreso" }, r.ingresoCL || "—"],
         [{ negrita: "Nombre del relator" }, r.relator], [{ negrita: "Cargo del relator" }, r.cargoRel],
         [{ negrita: "Obra / Centro de trabajo" }, r.obra], [{ negrita: "Fecha de la inducción" }, r.fechaCL],
@@ -2395,6 +2444,18 @@
       seccion("Declaración de recepción de procedimientos");
       await declaracion(IRL_DATOS.declaracion_pts);
       await firmas();
+
+      for (const a of r.adicionales) {
+        nuevaPagina();
+        seccion(`IRL adicional: ${a.nombre}`);
+        parrafo("Cargo principal del trabajador:", r.cargoNombre);
+        parrafo("", "El trabajador también cumple las funciones de este cargo, por lo que se le informan sus riesgos, medidas preventivas y métodos de trabajo correctos. Esta IRL se entrega junto con la IRL principal y no la reemplaza.", { fuente: fI, color: GRIS, tam: 8 });
+        await contenido(IRL_DATOS.cargos[a.id].contenido);
+        hayEspacio(300);
+        seccion(`Declaración de recepción de la IRL adicional: ${a.nombre}`);
+        await declaracion(IRL_DATOS.declaracion_irl);
+        await firmas(`IRL adicional al cargo principal: ${r.cargoNombre}`);
+      }
 
       if (r.licencia) {
         nuevaPagina();
