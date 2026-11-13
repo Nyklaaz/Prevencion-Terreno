@@ -18,7 +18,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prevención en Terreno</title>
   <!-- Librería para crear el PDF, descargada desde unpkg (versión fija 1.17.1) -->
-  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <!-- App instalable: nombre, ícono y colores al agregarla a la pantalla de inicio -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1f2933">
+  <link rel="apple-touch-icon" href="icono-192.png">
+  <!-- Librería para crear el PDF: ahora va en un archivo propio (pdf-lib.min.js), así funciona sin internet -->
+  <script src="pdf-lib.min.js"></script>
+  <!-- Contenido de las IRL de cada cargo (archivo aparte, junto a este). "defer" = se carga sin frenar la app -->
+  <script src="irl-datos.js" defer></script>
 
   <!-- LOGO DE LA EMPRESA
        La imagen está "escrita como texto" (formato base64) para que la app sea
@@ -132,7 +139,35 @@
 
     .error { color: var(--mal); font-weight: 600; font-size: 14px; }
     /* El aviso principal flota abajo de la pantalla, para que se vea aunque la página se mueva */
-    #error:not(:empty) {
+    /* ===== Modo sin internet ===== */
+    .sin-red { margin-left: auto; background: #fec84b; color: #1f2933; font-size: 12px; font-weight: 700; padding: 4px 8px; border-radius: 6px; }
+    .estado-offline { font-size: 13px; color: #667085; text-align: center; margin: 8px 0 0; }
+
+    /* ===== Historial ===== */
+    .filtros { display: flex; gap: 8px; margin: 10px 0; }
+    .filtros button { flex: 1; padding: 10px 0; border: 2px solid var(--borde); border-radius: 8px; background: white; font-weight: 600; font-family: inherit; color: inherit; cursor: pointer; }
+    .filtros button.activo { border-color: var(--principal); background: #fff4ec; }
+    .registro { border: 1px solid #eaecf0; border-radius: 10px; padding: 12px; margin-bottom: 10px; background: white; }
+    .registro .tit { font-weight: 700; font-size: 14px; }
+    .registro .det { font-size: 13px; color: #667085; margin: 4px 0 10px; }
+    .registro .botones { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
+    .registro .botones button { padding: 10px 6px; font-size: 14px; }
+
+    /* ===== IRL ===== */
+    .irl-marcas { max-height: 280px; overflow-y: auto; border: 1px solid #eaecf0; border-radius: 10px; padding: 4px 10px; margin-top: 6px; }
+    .irl-marcas label { font-size: 14px; margin: 6px 0; align-items: flex-start; }
+    .irl-marcas input { margin-top: 2px; flex-shrink: 0; }
+    .irl-contenido { font-size: 13.5px; line-height: 1.45; border: 1px solid #eaecf0; border-radius: 10px; padding: 4px 12px; margin-top: 10px; max-height: 60vh; overflow-y: auto; }
+    .irl-contenido h4 { background: var(--principal); color: white; padding: 6px 8px; border-radius: 6px; font-size: 13px; margin: 14px 0 6px; }
+    .irl-contenido .sub { font-weight: 700; margin: 10px 0 4px; }
+    .irl-contenido .li { margin: 4px 0 4px 14px; text-indent: -10px; }
+    .irl-contenido table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+    .irl-contenido td { border: 1px solid #d0d5dd; padding: 4px; vertical-align: top; }
+    .irl-contenido tr:first-child td { background: #f2f4f7; font-weight: 700; }
+    .irl-contenido img { width: 56px; height: 56px; object-fit: contain; margin: 4px; }
+    .elegido-irl { background: #ecfdf3; border-radius: 8px; padding: 10px; font-size: 14px; margin-top: 8px; }
+
+    #error:not(:empty), #errorIRL:not(:empty) {
       position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; margin: 0;
       background: #fff5f5; border: 2px solid var(--mal); border-radius: 10px; padding: 12px 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,.18);
@@ -150,6 +185,7 @@
     <button class="volver" id="btnVolver" onclick="mostrar('menu')" style="visibility:hidden">←</button>
     <img id="logoCabecera" class="logo" alt="Logo empresa">
     <h1 id="titulo">Prevención en Terreno</h1>
+    <span id="sinRed" class="sin-red" style="display:none">Sin conexión</span>
   </header>
 
   <main>
@@ -159,10 +195,15 @@
         📋 Charla diaria + ART + Bloqueador
         <small>Formato oficial de la jornada, todo en uno</small>
       </button>
-      <button class="menu-btn" onclick="mostrar('odi')">
-        ⚠️ ODI / Derecho a Saber
-        <small>Obligación de informar los riesgos (opcional)</small>
+      <button class="menu-btn" onclick="mostrar('irl')">
+        📘 IRL – Información de Riesgos Laborales
+        <small>Inducción por cargo según el art. 15 del DS 44</small>
       </button>
+      <button class="menu-btn" onclick="mostrar('historial')">
+        🗂️ Historial
+        <small>Todos los PDF generados en este teléfono</small>
+      </button>
+      <p class="estado-offline" id="estadoOffline"></p>
     </section>
 
     <!-- ========== CHARLA + ART ========== -->
@@ -283,7 +324,104 @@
       </div>
     </section>
 
-    <section id="odi" class="pantalla"><div class="tarjeta">🚧 ODI / Derecho a Saber: lo construimos en el Paso 4.</div></section>
+    <!-- ========== HISTORIAL ========== -->
+    <section id="historial" class="pantalla">
+      <div class="tarjeta">
+        <p class="ayuda">Cada PDF que generas queda guardado aquí, en este teléfono. Puedes volver a compartirlo o guardarlo cuando tengas señal.</p>
+        <input type="search" id="buscaHist" placeholder="🔍 Buscar por fecha, departamento, cargo o trabajador" oninput="pintarHistorial()">
+        <div class="filtros" id="filtrosHist">
+          <button type="button" class="activo" data-f="todos" onclick="filtrarHist(this)">Todos</button>
+          <button type="button" data-f="charla" onclick="filtrarHist(this)">Charlas</button>
+          <button type="button" data-f="irl" onclick="filtrarHist(this)">IRL</button>
+        </div>
+        <p class="ayuda" id="resumenHist"></p>
+        <p class="mensaje" id="mensajeHist"></p>
+      </div>
+      <div id="listaHist"></div>
+    </section>
+
+    <!-- ========== IRL – INFORMACIÓN DE LOS RIESGOS LABORALES ========== -->
+    <section id="irl" class="pantalla">
+      <div class="tarjeta" id="irlSinDatos" style="display:none">
+        No se cargó el contenido de las IRL (archivo <b>irl-datos.js</b>). Abre la app con señal o revisa que ese archivo esté subido junto a la app.
+      </div>
+
+      <form id="formIRL" onsubmit="revisarIRL(event)" novalidate>
+        <div class="tarjeta">
+          <h2>Trabajador</h2>
+          <input type="search" id="irlBuscar" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarListaIRL()">
+          <div id="irlLista" class="lista-personal"></div>
+          <div id="irlDatos">
+            <p class="ayuda" style="margin-top:10px" id="irlAyudaNuevo">¿Trabajador nuevo? Escribe sus datos aquí: al generar la IRL queda agregado al listado.</p>
+            <label>Nombre completo</label><input type="text" name="irlNombre" required>
+            <div class="dos-col">
+              <div><label>RUT</label><input type="text" name="irlRut" required placeholder="12.345.678-9"></div>
+              <div><label>Fecha de ingreso</label><input type="date" name="irlIngreso"></div>
+            </div>
+            <label>Cargo (define qué IRL se entrega)</label>
+            <select name="irlCargo" id="irlCargo" required onchange="cambioCargoIRL()"></select>
+            <label class="check-linea"><input type="checkbox" name="irlLicencia" onchange="pintarContenidoIRL()"> Conduce vehículos livianos (agrega la IRL complementaria de conductor)</label>
+          </div>
+        </div>
+
+        <div class="tarjeta">
+          <h2>1. Tipo de inducción</h2>
+          <div id="irlTipos" class="pregunta"></div>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Relator y lugar</h2>
+          <div class="dos-col">
+            <div><label>Nombre del relator</label><input type="text" name="irlRelator" required></div>
+            <div><label>Cargo del relator</label><input type="text" name="irlCargoRel" required></div>
+          </div>
+          <label>Obra / Centro de trabajo</label>
+          <textarea name="irlObra" style="min-height:56px" required></textarea>
+          <label>Fecha de la inducción</label>
+          <input type="date" name="irlFecha" required>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Contenido de la IRL (secciones 3 a 11)</h2>
+          <p class="ayuda">Úsalo para explicar la IRL al trabajador. El PDF lleva este contenido completo.</p>
+          <button type="button" class="btn btn-secundario" onclick="verContenidoIRL(this)">📖 Ver contenido de la IRL</button>
+          <div id="irlContenido" class="irl-contenido" style="display:none"></div>
+          <label class="confirmar"><input type="checkbox" name="irlExplicado" required> Se explicó el contenido de la IRL al trabajador</label>
+        </div>
+
+        <div class="tarjeta">
+          <h2>12. Difusión de documentos</h2>
+          <p class="ayuda">Marca lo que corresponde al cargo. Con el botón de abajo quedan guardados como predeterminados: la próxima IRL de este cargo aparece ya marcada.</p>
+          <h3>12.1 Procedimientos de trabajo seguro (PTS)</h3><div id="irlPTS"></div>
+          <h3>12.2 Hojas de datos de seguridad (HDS)</h3><div id="irlHDS"></div>
+          <h3>12.3 Otros documentos</h3><div id="irlOtros"></div>
+          <button type="button" class="btn btn-secundario" style="margin-top:12px" onclick="guardarPredeterminadosIRL()">⭐ Guardar como predeterminados de este cargo</button>
+          <p class="mensaje" id="msjPredIRL"></p>
+        </div>
+
+        <div class="tarjeta">
+          <h2>Firmas</h2>
+          <p class="ayuda">Cada uno firma una vez; la firma se estampa en todas las declaraciones del PDF (IRL, difusión de PTS y, si aplica, la complementaria).</p>
+          <div id="firmaIRLTrab"></div>
+          <div id="firmaIRLRel"></div>
+        </div>
+
+        <p class="error" id="errorIRL"></p>
+        <button type="submit" class="btn btn-principal">Revisar y generar PDF de la IRL</button>
+      </form>
+
+      <div class="tarjeta" id="cajaEnvioIRL" style="display:none; margin-top:16px">
+        <h2>✅ IRL lista</h2>
+        <p class="ayuda" id="infoPDFIRL"></p>
+        <div class="acciones">
+          <button class="btn btn-principal" onclick="compartirIRL()">📤 Compartir PDF (correo, WhatsApp…)</button>
+          <button class="btn btn-secundario" onclick="guardarPDFIRL()">💾 Guardar PDF en el teléfono</button>
+          <button class="btn btn-secundario" onclick="copiarCorreoIRL(this)">📋 Copiar correo de destino</button>
+          <p class="mensaje" id="mensajeIRL"></p>
+          <button class="btn btn-secundario" onclick="location.reload()">Hacer otra IRL</button>
+        </div>
+      </div>
+    </section>
   </main>
 
   <script>
@@ -644,6 +782,16 @@
     }
     const claveRut = rut => String(rut).replace(/[^0-9kK]/g, "").toUpperCase();
 
+    // Convierte "2026-10-15", "15-10-2026" o "15/10/2026" a "2026-10-15" (vacío si no se entiende)
+    function fechaISO(valor) {
+      const t = String(valor ?? "").trim();
+      let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+      m = t.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+      return "";
+    }
+
     // Recibe las filas del Excel (una lista de listas) y saca nombre + RUT de cada trabajador.
     // Busca solo la fila de títulos, así funciona aunque el Excel tenga filas extra arriba.
     function parsearListado(filas) {
@@ -656,6 +804,7 @@
       const colNombre = titulos.findIndex(t => t.startsWith("nombre"));
       const colsApellido = titulos.map((t, i) => t.includes("apellido") ? i : -1).filter(i => i >= 0);
       if (colNombre < 0) throw new Error("no encontré la columna NOMBRE");
+      const colIngreso = titulos.findIndex(t => t.includes("ingreso"));   // opcional: fecha de ingreso
 
       // Nombres: desde la columna NOMBRE hasta antes de la siguiente columna con título
       // (en tu Excel el segundo nombre está en una columna sin título)
@@ -668,7 +817,8 @@
         if (!/\d/.test(rut)) continue;   // filas vacías o sin RUT se saltan
         const nombres = colsNombre.map(i => f[i]).filter(Boolean).join(" ");
         const apellidos = colsApellido.map(i => f[i]).filter(Boolean).join(" ");
-        lista.push({ nombre: tipoTitulo(`${nombres} ${apellidos}`.replace(/\s+/g, " ").trim()), rut: formatearRut(rut) });
+        lista.push({ nombre: tipoTitulo(`${nombres} ${apellidos}`.replace(/\s+/g, " ").trim()), rut: formatearRut(rut),
+                     ingreso: colIngreso >= 0 ? fechaISO(f[colIngreso]) : "" });
       }
       if (lista.length === 0) throw new Error("el archivo no tiene trabajadores con RUT");
 
@@ -694,7 +844,8 @@
         if (!window.XLSX) await cargarScript(URL_SHEETJS);
         const libro = XLSX.read(await archivo.arrayBuffer(), { type: "array" });
         const hoja = libro.Sheets[libro.SheetNames[0]];
-        const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: "" });
+        // dateNF: las fechas (como la de ingreso) salen como AAAA-MM-DD, sin confundir día y mes
+        const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: "", dateNF: "yyyy-mm-dd" });
         aplicarListado(parsearListado(filas));
         aviso.textContent = "";
       } catch (e) {
@@ -705,6 +856,11 @@
 
     function aplicarListado(datos) {
       datos.cargado = new Date().toLocaleDateString("es-CL");
+      // Los trabajadores agregados a mano (desde la IRL) que no vienen en el Excel nuevo, se mantienen
+      if (listado && listado.lista) {
+        const enExcel = new Set(datos.lista.map(p => claveRut(p.rut)));
+        listado.lista.filter(p => p.manual && !enExcel.has(claveRut(p.rut))).forEach(p => datos.lista.push(p));
+      }
       listado = datos;
       guardar("pt_listado", datos);
       mostrarListado();
@@ -896,6 +1052,26 @@
        AL ABRIR LA APP
        ===================================================================== */
     document.getElementById("logoCabecera").src = LOGO_EMPRESA;
+
+    /* ===== MODO SIN INTERNET =====
+       Registramos sw.js (el que guarda la app en el teléfono) y mostramos el estado */
+    function avisoRed() {
+      document.getElementById("sinRed").style.display = navigator.onLine ? "none" : "inline-block";
+    }
+    window.addEventListener("online", avisoRed);
+    window.addEventListener("offline", avisoRed);
+    avisoRed();
+
+    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      navigator.serviceWorker.register("sw.js")
+        .then(() => navigator.serviceWorker.ready)
+        .then(() => {
+          document.getElementById("estadoOffline").textContent = "✅ Lista para usar sin internet en este teléfono";
+          // Pedimos que el navegador no borre el historial por falta de espacio
+          navigator.storage?.persist?.().catch(() => {});
+        })
+        .catch(() => { document.getElementById("estadoOffline").textContent = "⚠️ El modo sin internet no se pudo activar en este navegador"; });
+    }
     activarFirmas();
     mostrarListado();
     actualizarAsistentes();
@@ -919,7 +1095,9 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", odi: "ODI / Derecho a Saber" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial" };
+      if (id === "irl") iniciarIRL();
+      if (id === "historial") pintarHistorial();
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
       window.scrollTo(0, 0);
@@ -1018,6 +1196,9 @@
           nombreArchivo: `Charla-ART_${r.fecha}_${r.arts.map(a => a.id).join("-")}_${rutaArchivo}.pdf`,
           asunto: `Charla Diaria + ART – ${r.arts.map(a => a.nombre).join(" / ")} – Ruta ${r.ruta} – ${r.fechaCL}`
         };
+        // Queda guardado en el historial del teléfono (si se vuelve a generar, se reemplaza el mismo registro)
+        idHistCharla = await guardarEnHistorial(idHistCharla, "charla", pdfListo, r.fecha,
+          `${r.arts[0].nombre} · ${r.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
         error.textContent = "";
         document.getElementById("infoPDF").textContent =
           `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes · se enviará a ${CORREO_DESTINO}`;
@@ -1420,6 +1601,530 @@
       CAMPOS_COMUNES.forEach(c => copia[c] = document.querySelector(`[name=${c}]`).value);
       guardar("pt_copiar", copia);
       location.reload();
+    }
+
+    /* =====================================================================
+       IRL – INFORMACIÓN DE LOS RIESGOS LABORALES (DS 44, art. 15)
+       El contenido de cada IRL viene del archivo irl-datos.js (IRL_DATOS),
+       generado desde los Word corregidos. Esta parte NO toca la charla.
+       ===================================================================== */
+    let irlIniciada = false;
+    let irlTrabajador = null;                            // {nombre, rut, ingreso} si viene del listado
+    let pdfIRL = null;                                    // { bytes, nombreArchivo, asunto }
+    let cargosIRL = leerGuardado("pt_cargoIRL", {});      // rut -> id del cargo IRL
+    let licencias = leerGuardado("pt_licencia", {});      // rut -> true / false
+    let ingresos = leerGuardado("pt_ingreso", {});        // rut -> fecha de ingreso escrita a mano
+    let predIRL = leerGuardado("pt_irl_pred", {});        // cargo -> { pts:[...], hds:[...], otros:[...] }
+
+    // Cargo de la charla -> cargo IRL que se propone la primera vez
+    const SUGERIR_IRL = { "Laboratorista": "laboratorista", "Mecánico": "mecanico", "Topógrafo / Alarife": "topografo",
+                          "Operador Maquinaria Pesada": "op_maquinaria", "Maestro / Jornal": "jornal", "Medio Ambiente": "coord_ambiental" };
+    const LISTAS_IRL = [["irlPTS", "pts"], ["irlHDS", "hds"], ["irlOtros", "otros_docs"]];
+    const campoIRL = n => document.querySelector(`[name=${n}]`);
+
+    function iniciarIRL() {
+      if (irlIniciada) return;
+      if (typeof IRL_DATOS === "undefined") {
+        document.getElementById("irlSinDatos").style.display = "block";
+        document.getElementById("formIRL").style.display = "none";
+        return;
+      }
+      irlIniciada = true;
+      document.getElementById("irlSinDatos").style.display = "none";
+      document.getElementById("formIRL").style.display = "block";
+
+      // Lista de cargos (el de conductor de livianos es complemento, no va aquí)
+      document.getElementById("irlCargo").innerHTML = `<option value="">Elige el cargo…</option>` +
+        Object.entries(IRL_DATOS.cargos).filter(([id]) => id !== "conductor_livianos")
+          .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre, "es"))
+          .map(([id, c]) => `<option value="${id}">${c.nombre}</option>`).join("");
+
+      document.getElementById("irlTipos").innerHTML = IRL_DATOS.tipos_induccion.map((t, i) =>
+        `<label class="check-linea"><input type="radio" name="irlTipo" value="${i}" required> ${t}</label>`).join("");
+
+      LISTAS_IRL.forEach(([id, clave]) => pintarMarcas(id, IRL_DATOS[clave]));
+
+      document.getElementById("firmaIRLTrab").innerHTML = htmlFirma("Firma del trabajador");
+      document.getElementById("firmaIRLRel").innerHTML = htmlFirma("Firma del relator");
+      activarFirmas();
+
+      const relator = leerGuardado("pt_relator", {});
+      const resp = leerGuardado("pt_responsables", {});
+      campoIRL("irlRelator").value = relator.nombre || resp.prevencionista || "";
+      campoIRL("irlCargoRel").value = relator.cargo || "Prevención de Riesgos";
+      campoIRL("irlObra").value = relator.obra || (listado && listado.obra) || "";
+      campoIRL("irlFecha").value = new Date().toLocaleDateString("sv-SE");
+
+      // Al corregir algo: quitar el rojo y el aviso
+      ["input", "change"].forEach(tipo => document.getElementById("formIRL").addEventListener(tipo, e => {
+        e.target.classList.remove("campo-falta");
+        e.target.closest(".pregunta")?.classList.remove("campo-falta");
+        const err = document.getElementById("errorIRL");
+        if (!err.textContent.startsWith("Generando")) err.textContent = "";
+      }));
+      pintarListaIRL();
+    }
+
+    /* ----- Elegir al trabajador ----- */
+    function pintarListaIRL() {
+      const cont = document.getElementById("irlLista");
+      // Sin listado: no mostramos buscador ni lista; se escriben los datos a mano
+      const hay = !!(listado && listado.lista && listado.lista.length);
+      cont.style.display = hay ? "" : "none";
+      document.getElementById("irlBuscar").style.display = hay ? "" : "none";
+      if (!hay) return;
+      const b = normalizar(document.getElementById("irlBuscar").value), br = claveRut(b);
+      const visibles = listado.lista.filter(p => !b || normalizar(p.nombre).includes(b) || (br.length > 2 && claveRut(p.rut).includes(br)));
+      const elegido = irlTrabajador ? claveRut(irlTrabajador.rut) : "";
+      cont.innerHTML = visibles.map(p => `<button type="button" class="persona ${claveRut(p.rut) === elegido ? "elegido" : ""}" onclick="elegirTrabajadorIRL('${claveRut(p.rut)}')">
+          <span>${p.nombre}</span><small>${p.rut}</small></button>`).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
+    }
+
+    function elegirTrabajadorIRL(rut) {
+      const p = listado.lista.find(x => claveRut(x.rut) === rut);
+      if (!p) return;
+      irlTrabajador = p;
+      campoIRL("irlNombre").value = p.nombre;
+      campoIRL("irlRut").value = p.rut;
+      campoIRL("irlIngreso").value = ingresos[rut] || p.ingreso || "";
+      const cargo = cargosIRL[rut] || SUGERIR_IRL[cargos[rut]] || "";
+      document.getElementById("irlCargo").value = cargo;
+      campoIRL("irlLicencia").checked = !!licencias[rut];
+      cambioCargoIRL();
+      pintarListaIRL();
+      document.getElementById("irlDatos").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function cambioCargoIRL() {
+      const id = document.getElementById("irlCargo").value;
+      aplicarPredeterminadosIRL(id);
+      pintarContenidoIRL();
+    }
+
+    /* ----- Listas para marcar (PTS, HDS, otros documentos) ----- */
+    function pintarMarcas(idCont, lista) {
+      const cont = document.getElementById(idCont);
+      cont.innerHTML = `<input type="search" placeholder="🔍 Buscar" class="irl-buscar">
+        <p class="ayuda irl-cuenta" style="margin:6px 0 0"></p>
+        <div class="irl-marcas">${lista.map((n, i) =>
+          `<label class="check-linea"><input type="checkbox" value="${i}"> <span>${n}</span></label>`).join("")}</div>`;
+      cont.querySelector(".irl-buscar").addEventListener("input", e => {
+        const b = normalizar(e.target.value);
+        cont.querySelectorAll(".irl-marcas label").forEach(l => l.style.display = !b || normalizar(l.textContent).includes(b) ? "" : "none");
+      });
+      cont.addEventListener("change", () => contarMarcas(cont));
+      contarMarcas(cont);
+    }
+    function contarMarcas(cont) {
+      cont.querySelector(".irl-cuenta").textContent = `${cont.querySelectorAll(".irl-marcas input:checked").length} marcado(s)`;
+    }
+    // Devuelve los nombres marcados de una lista
+    const marcados = (idCont, clave) => [...document.querySelectorAll(`#${idCont} .irl-marcas input:checked`)].map(c => IRL_DATOS[clave][+c.value]);
+
+    function aplicarPredeterminadosIRL(idCargo) {
+      const pred = predIRL[idCargo] || {};
+      LISTAS_IRL.forEach(([idCont, clave]) => {
+        const nombres = pred[clave] || [];
+        document.querySelectorAll(`#${idCont} .irl-marcas input`).forEach(c => c.checked = nombres.includes(IRL_DATOS[clave][+c.value]));
+        contarMarcas(document.getElementById(idCont));
+      });
+      document.getElementById("msjPredIRL").textContent = !idCargo ? "" : (predIRL[idCargo]
+        ? "Se cargaron los predeterminados de este cargo."
+        : "Este cargo aún no tiene predeterminados: marca los que le tocan y guárdalos con el botón.");
+    }
+
+    function guardarPredeterminadosIRL() {
+      const idCargo = document.getElementById("irlCargo").value;
+      const msj = document.getElementById("msjPredIRL");
+      if (!idCargo) { msj.textContent = "Primero elige el cargo."; return; }
+      predIRL[idCargo] = {};
+      LISTAS_IRL.forEach(([idCont, clave]) => predIRL[idCargo][clave] = marcados(idCont, clave));
+      guardar("pt_irl_pred", predIRL);
+      msj.textContent = `✅ Guardado: las próximas IRL de ${IRL_DATOS.cargos[idCargo].nombre} aparecerán con estas marcas.`;
+    }
+
+    /* ----- Ver el contenido de la IRL (para explicarlo) ----- */
+    function verContenidoIRL(boton) {
+      const div = document.getElementById("irlContenido");
+      const abrir = div.style.display === "none";
+      div.style.display = abrir ? "block" : "none";
+      boton.textContent = abrir ? "Ocultar contenido" : "📖 Ver contenido de la IRL";
+      if (abrir) pintarContenidoIRL();
+    }
+
+    function htmlBloques(bloques) {
+      return bloques.map(b => {
+        if (b.t === "h") return `<h4>${b.x}</h4>`;
+        if (b.t === "sub") return `<p class="sub">${b.x}</p>`;
+        if (b.t === "p") return `<p>${b.b ? `<b>${b.b}</b> ` : ""}${b.x}</p>`;
+        if (b.t === "li") return `<p class="li">• ${b.b ? `<b>${b.b}</b> ` : ""}${b.x}</p>`;
+        if (b.t === "img") return `<div>${b.ids.map(id => `<img src="${IRL_DATOS.imagenes[id]}" alt="EPP">`).join("")}</div>`;
+        if (b.t === "tabla") return `<table>${b.f.map(f => `<tr>${f.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+        return "";
+      }).join("");
+    }
+
+    function pintarContenidoIRL() {
+      const div = document.getElementById("irlContenido");
+      if (!div || div.style.display === "none" || typeof IRL_DATOS === "undefined") return;
+      const id = document.getElementById("irlCargo").value;
+      if (!id) { div.innerHTML = `<p class="ayuda" style="padding:8px">Elige el cargo para ver su IRL.</p>`; return; }
+      let html = htmlBloques(IRL_DATOS.cargos[id].contenido);
+      if (campoIRL("irlLicencia").checked) {
+        html += `<h4>IRL COMPLEMENTARIA: CONDUCTOR DE VEHÍCULOS LIVIANOS</h4>` + htmlBloques(IRL_DATOS.cargos.conductor_livianos.contenido);
+      }
+      div.innerHTML = html;
+    }
+
+    /* ----- Revisar y generar ----- */
+    async function revisarIRL(evento) {
+      evento.preventDefault();
+      const form = document.getElementById("formIRL");
+      const error = document.getElementById("errorIRL");
+      error.textContent = "";
+
+      const invalido = [...form.querySelectorAll("[required]")].find(c => !c.checkValidity());
+      if (invalido) {
+        (invalido.type === "radio" ? invalido.closest(".pregunta") : invalido).classList.add("campo-falta");
+        const titulo = invalido.closest(".tarjeta")?.querySelector("h2")?.textContent || "";
+        error.textContent = `Falta completar un campo${titulo ? " en " + titulo : ""}. Está marcado en rojo.`;
+        (invalido.type === "radio" ? invalido.closest(".pregunta") : invalido).scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const sinFirma = [...form.querySelectorAll("canvas.lienzo:not([data-firmado])")];
+      if (sinFirma.length) {
+        sinFirma.forEach(c => c.closest(".firma").classList.add("falta"));
+        error.textContent = `Faltan ${sinFirma.length} firma(s). Están marcadas en rojo.`;
+        sinFirma[0].scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!rutValido(campoIRL("irlRut").value)) {
+        campoIRL("irlRut").classList.add("campo-falta");
+        error.textContent = "El RUT no es válido (revisa el dígito verificador).";
+        campoIRL("irlRut").scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      if (!window.PDFLib) { error.textContent = "No se cargó la herramienta de PDF (¿sin internet al abrir la app?)."; return; }
+
+      campoIRL("irlRut").value = formatearRut(campoIRL("irlRut").value);
+      const r = recopilarIRL();
+      agregarAlListado(r);
+      // Recordamos lo de este trabajador y del relator para la próxima vez
+      const rut = claveRut(r.rut);
+      cargosIRL[rut] = r.cargoId; guardar("pt_cargoIRL", cargosIRL);
+      licencias[rut] = r.licencia; guardar("pt_licencia", licencias);
+      if (r.ingreso) { ingresos[rut] = r.ingreso; guardar("pt_ingreso", ingresos); }
+      guardar("pt_relator", { nombre: r.relator, cargo: r.cargoRel, obra: r.obra });
+
+      error.textContent = "Generando PDF de la IRL…";
+      try {
+        const bytes = await crearPDF_IRL(r);
+        const limpio = t => t.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_");
+        pdfIRL = {
+          bytes,
+          nombreArchivo: `IRL_${limpio(r.cargoNombre)}_${limpio(r.nombre)}_${r.fecha}.pdf`,
+          asunto: `IRL – ${r.cargoNombre} – ${r.nombre} – ${r.fechaCL}`
+        };
+        idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}`);
+        error.textContent = "";
+        document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB · se enviará a ${CORREO_DESTINO}`;
+        document.getElementById("mensajeIRL").textContent = "";
+        document.getElementById("cajaEnvioIRL").style.display = "block";
+        document.getElementById("cajaEnvioIRL").scrollIntoView({ behavior: "smooth" });
+      } catch (e) {
+        error.textContent = "No se pudo generar el PDF: " + e.message;
+      }
+    }
+
+    // RUT chileno: revisa el dígito verificador (módulo 11)
+    function rutValido(rut) {
+      const k = claveRut(rut);
+      if (k.length < 2) return false;
+      const cuerpo = k.slice(0, -1), dv = k.slice(-1);
+      let suma = 0, m = 2;
+      for (let i = cuerpo.length - 1; i >= 0; i--) { suma += +cuerpo[i] * m; m = m === 7 ? 2 : m + 1; }
+      const res = 11 - (suma % 11);
+      return dv === (res === 11 ? "0" : res === 10 ? "K" : String(res));
+    }
+
+    // Si el trabajador no está en el listado (es nuevo), lo agregamos para la charla y futuras IRL
+    function agregarAlListado(r) {
+      const k = claveRut(r.rut);
+      if (!listado) listado = { obra: r.obra, lista: [], cargado: new Date().toLocaleDateString("es-CL") };
+      if (listado.lista.some(p => claveRut(p.rut) === k)) return;
+      listado.lista.push({ nombre: r.nombre, rut: formatearRut(r.rut), ingreso: r.ingreso, manual: true });
+      guardar("pt_listado", listado);
+      mostrarListado();
+      pintarListaIRL();
+    }
+
+    function recopilarIRL() {
+      const fecha = campoIRL("irlFecha").value;
+      const fCL = f => f ? f.split("-").reverse().join("/") : "";
+      const id = document.getElementById("irlCargo").value;
+      return {
+        nombre: campoIRL("irlNombre").value.trim(), rut: campoIRL("irlRut").value.trim(),
+        ingreso: campoIRL("irlIngreso").value, ingresoCL: fCL(campoIRL("irlIngreso").value),
+        cargoId: id, cargoNombre: IRL_DATOS.cargos[id].nombre,
+        tipo: +document.querySelector("[name=irlTipo]:checked").value,
+        licencia: campoIRL("irlLicencia").checked,
+        relator: campoIRL("irlRelator").value.trim(), cargoRel: campoIRL("irlCargoRel").value.trim(),
+        obra: campoIRL("irlObra").value.trim(), fecha, fechaCL: fCL(fecha),
+        pts: marcados("irlPTS", "pts"), hds: marcados("irlHDS", "hds"), otros: marcados("irlOtros", "otros_docs"),
+        firmaT: document.querySelector("#firmaIRLTrab canvas").toDataURL("image/png"),
+        firmaR: document.querySelector("#firmaIRLRel canvas").toDataURL("image/png")
+      };
+    }
+
+    /* ----- PDF de la IRL completa ----- */
+    async function crearPDF_IRL(r) {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      doc.setTitle(`IRL ${r.cargoNombre} – ${r.nombre}`);
+      const fN = await doc.embedFont(StandardFonts.Helvetica);
+      const fB = await doc.embedFont(StandardFonts.HelveticaBold);
+      const fI = await doc.embedFont(StandardFonts.HelveticaOblique);
+      const logo = await doc.embedPng(LOGO_EMPRESA);
+      const cache = {};   // cada imagen se incrusta una sola vez, aunque se use varias veces
+      const imagen = async src => cache[src] ||= (src.startsWith("data:image/png") ? await doc.embedPng(src) : await doc.embedJpg(src));
+
+      const A = 595.28, H = 841.89, M = 36, ANCHO = A - 2 * M;
+      const NARANJO = rgb(0.91, 0.36, 0.02), NEGRO = rgb(0.12, 0.16, 0.2), GRIS = rgb(0.4, 0.44, 0.52);
+      const LINEA = rgb(0.72, 0.75, 0.8), FONDO = rgb(0.95, 0.96, 0.97);
+      let pag, y;
+
+      const limpiar = t => String(t ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\t/g, " ")
+        .replace(/[☐☒]/g, "").replace(/[^\n\x20-\x7E\xA0-\xFF–—•…]/g, "");
+
+      function partir(texto, fuente, tam, ancho) {
+        const lineas = [];
+        for (const parrafo of limpiar(texto).split("\n")) {
+          let linea = "";
+          for (let palabra of parrafo.split(/\s+/).filter(Boolean)) {
+            const prueba = linea ? linea + " " + palabra : palabra;
+            if (fuente.widthOfTextAtSize(prueba, tam) <= ancho) { linea = prueba; continue; }
+            if (linea) lineas.push(linea);
+            while (fuente.widthOfTextAtSize(palabra, tam) > ancho) {
+              let k = palabra.length;
+              while (k > 1 && fuente.widthOfTextAtSize(palabra.slice(0, k), tam) > ancho) k--;
+              lineas.push(palabra.slice(0, k)); palabra = palabra.slice(k);
+            }
+            linea = palabra;
+          }
+          lineas.push(linea);
+        }
+        return lineas;
+      }
+
+      function nuevaPagina() {
+        pag = doc.addPage([A, H]);
+        y = H - M;
+        pag.drawImage(logo, { x: M, y: y - 34, width: 34, height: 34 });
+        const t1 = "REGISTRO: INFORMACIÓN DE LOS RIESGOS LABORALES (IRL)";
+        pag.drawText(limpiar(t1), { x: (A - fB.widthOfTextAtSize(limpiar(t1), 10)) / 2, y: y - 14, size: 10, font: fB, color: NEGRO });
+        const t2 = `Cargo: ${r.cargoNombre}  ·  Trabajador: ${r.nombre}`;
+        const t2b = limpiar(t2).slice(0, 110);
+        pag.drawText(t2b, { x: (A - fN.widthOfTextAtSize(t2b, 7.5)) / 2, y: y - 26, size: 7.5, font: fN, color: GRIS });
+        const cod = "Código: CEX-RE-IRL-07";
+        pag.drawText(cod, { x: A - M - fN.widthOfTextAtSize(cod, 7), y: y - 10, size: 7, font: fN, color: GRIS });
+        y -= 40;
+        pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 1.2, color: NARANJO });
+        y -= 10;
+      }
+      function hayEspacio(alto) { if (y - alto < M + 30) nuevaPagina(); }
+
+      function seccion(titulo) {
+        hayEspacio(50);
+        y -= 4;
+        const lineas = partir(titulo.toUpperCase(), fB, 9, ANCHO - 12);
+        const alto = 6 + lineas.length * 11;
+        pag.drawRectangle({ x: M, y: y - alto, width: ANCHO, height: alto, color: NARANJO });
+        lineas.forEach((l, i) => pag.drawText(l, { x: M + 6, y: y - 11.5 - i * 11, size: 9, font: fB, color: rgb(1, 1, 1) }));
+        y -= alto + 6;
+      }
+
+      // Párrafo con una parte inicial en negrita (opcional) y viñeta (opcional)
+      function parrafo(negrita, texto, { tam = 8.5, sangria = 0, vineta = false, fuente = fN, color = NEGRO } = {}) {
+        const palabras = [];
+        limpiar(negrita).split(/\s+/).filter(Boolean).forEach(p => palabras.push([p, fB]));
+        limpiar(texto).split(/\s+/).filter(Boolean).forEach(p => palabras.push([p, fuente]));
+        const x0 = M + sangria + (vineta ? 10 : 0), ancho = ANCHO - sangria - (vineta ? 10 : 0), alto = tam * 1.35;
+        const lineas = []; let linea = [], w = 0;
+        for (const [p, f] of palabras) {
+          const wp = f.widthOfTextAtSize(p, tam), esp = linea.length ? f.widthOfTextAtSize(" ", tam) : 0;
+          if (linea.length && w + esp + wp > ancho) { lineas.push(linea); linea = []; w = 0; }
+          linea.push([p, f]); w += (linea.length > 1 ? f.widthOfTextAtSize(" ", tam) : 0) + wp;
+        }
+        if (linea.length) lineas.push(linea);
+        lineas.forEach((l, i) => {
+          hayEspacio(alto);
+          if (vineta && i === 0) pag.drawText("•", { x: M + sangria + 2, y: y - tam, size: tam, font: fN, color });
+          let x = x0;
+          l.forEach(([p, f]) => {
+            pag.drawText(p, { x, y: y - tam, size: tam, font: f, color });
+            x += f.widthOfTextAtSize(p + " ", tam);
+          });
+          y -= alto;
+        });
+        y -= 2;
+      }
+
+      async function tabla(columnas, filas, { tam = 7.5, altoFirma = 40, conTitulos = true } = {}) {
+        const pad = 3.5, al = tam * 1.25, anchos = columnas.map(c => c.ancho * ANCHO);
+        const medir = (celda, w) => {
+          if (celda && celda.imagen) return { ...celda, alto: altoFirma + 2 * pad };
+          const c = (celda !== null && typeof celda === "object") ? celda : { texto: celda };
+          const lb = c.negrita ? partir(c.negrita, fB, tam, w - 2 * pad) : [];
+          const ln = (c.texto ?? "") !== "" ? partir(String(c.texto), fN, tam, w - 2 * pad) : [];
+          return { ...c, lb, ln, alto: (lb.length + ln.length) * al + 2 * pad };
+        };
+        const fila = async (celdas, esTitulo) => {
+          const med = celdas.map((c, i) => medir(c, anchos[i]));
+          const alto = Math.max(15, ...med.map(m => m.alto));
+          if (y - alto < M + 30) { nuevaPagina(); if (!esTitulo && conTitulos) await fila(columnas.map(c => ({ negrita: c.titulo })), true); }
+          let x = M;
+          for (let i = 0; i < med.length; i++) {
+            const m = med[i], w = anchos[i];
+            pag.drawRectangle({ x, y: y - alto, width: w, height: alto, borderColor: LINEA, borderWidth: 0.6, ...(esTitulo ? { color: FONDO } : {}) });
+            if (m.imagen) {
+              const img = await imagen(m.imagen);
+              const s = Math.min((w - 2 * pad) / img.width, (alto - 2 * pad) / img.height);
+              pag.drawImage(img, { x: x + (w - img.width * s) / 2, y: y - alto + (alto - img.height * s) / 2, width: img.width * s, height: img.height * s });
+            } else {
+              let ty = y - pad - tam;
+              const esc = (l, f) => { const tx = columnas[i].centro ? x + (w - f.widthOfTextAtSize(l, tam)) / 2 : x + pad; pag.drawText(l, { x: tx, y: ty, size: tam, font: f, color: m.color || NEGRO }); ty -= al; };
+              m.lb.forEach(l => esc(l, fB)); m.ln.forEach(l => esc(l, fN));
+            }
+            x += w;
+          }
+          y -= alto;
+        };
+        if (conTitulos) await fila(columnas.map(c => ({ negrita: c.titulo })), true);
+        for (const f of filas) await fila(f, false);
+        y -= 8;
+      }
+
+      // Dibuja el contenido (secciones 3 a 11) tal como viene del Word
+      async function contenido(bloques) {
+        for (const b of bloques) {
+          if (b.t === "h") seccion(b.x);
+          else if (b.t === "sub") { y -= 2; parrafo(b.x, "", { tam: 8.5 }); }
+          else if (b.t === "p") parrafo(b.b || "", b.x);
+          else if (b.t === "li") parrafo(b.b || "", b.x, { vineta: true, sangria: 6 });
+          else if (b.t === "img") {
+            hayEspacio(60); let x = M;
+            for (const id of b.ids) { const img = await imagen(IRL_DATOS.imagenes[id]); const s = 50 / Math.max(img.width, img.height); pag.drawImage(img, { x, y: y - img.height * s, width: img.width * s, height: img.height * s }); x += 60; }
+            y -= 58;
+          } else if (b.t === "tabla" && b.f.length) {
+            const n = b.f[0].length;
+            const anchos = n === 4 ? [0.18, 0.2, 0.37, 0.25] : Array(n).fill(1 / n);
+            await tabla(b.f[0].map((t, i) => ({ titulo: t, ancho: anchos[i] })), b.f.slice(1));
+          }
+        }
+      }
+
+      async function firmas(textoExtra) {
+        hayEspacio(120);
+        if (textoExtra) parrafo(textoExtra, "", { tam: 8 });
+        await tabla([{ titulo: "Trabajador", ancho: 0.5, centro: true }, { titulo: "Relator", ancho: 0.5, centro: true }], [
+          [r.nombre, r.relator], [`RUT: ${r.rut}`, r.cargoRel], [{ imagen: r.firmaT }, { imagen: r.firmaR }], [`Fecha: ${r.fechaCL}`, `Fecha: ${r.fechaCL}`]
+        ], { altoFirma: 46 });
+      }
+
+      async function declaracion(bloques) {
+        for (const b of bloques) {
+          if (b.t === "li") parrafo("", (b.b ? b.b + " " : "") + b.x, { vineta: true, sangria: 6, tam: 8 });
+          else parrafo(b.b || "", b.x, { tam: 8 });
+        }
+      }
+
+      async function listaMarcada(titulo, nombres, total) {
+        y -= 2; parrafo(titulo, `(${nombres.length} de ${total})`, { tam: 8.5 });
+        if (!nombres.length) { parrafo("", "Ninguno marcado.", { fuente: fI, color: GRIS }); return; }
+        await tabla([{ titulo: "N°", ancho: 0.07, centro: true }, { titulo: "Documento difundido", ancho: 0.93 }],
+          nombres.map((n, i) => [String(i + 1), n]));
+      }
+
+      /* ---------- Armado del documento ---------- */
+      nuevaPagina();
+      seccion("1.- Tipo de inducción");
+      await tabla([{ titulo: "Tipo", ancho: 0.88 }, { titulo: "Marca", ancho: 0.12, centro: true }],
+        IRL_DATOS.tipos_induccion.map((t, i) => [t, i === r.tipo ? { negrita: "X" } : ""]));
+
+      seccion("2.- Identificación de la persona trabajadora");
+      await tabla([{ titulo: "", ancho: 0.3 }, { titulo: "", ancho: 0.7 }], [
+        [{ negrita: "Nombre del trabajador" }, r.nombre], [{ negrita: "Cargo del trabajador" }, r.cargoNombre],
+        [{ negrita: "RUT" }, r.rut], [{ negrita: "Fecha de ingreso" }, r.ingresoCL || "—"],
+        [{ negrita: "Nombre del relator" }, r.relator], [{ negrita: "Cargo del relator" }, r.cargoRel],
+        [{ negrita: "Obra / Centro de trabajo" }, r.obra], [{ negrita: "Fecha de la inducción" }, r.fechaCL],
+        [{ negrita: "Referencia legal" }, "Cumplimiento de la Obligación de Informar de los Riesgos Laborales según el Artículo 15 del DS N° 44 (2024)"]
+      ], { conTitulos: false });
+
+      await contenido(IRL_DATOS.cargos[r.cargoId].contenido);
+
+      hayEspacio(300);   // la declaración y sus firmas van en la misma hoja
+      seccion("Declaración de recepción de la IRL");
+      await declaracion(IRL_DATOS.declaracion_irl);
+      await firmas();
+
+      seccion("12.- Difusión de documentos");
+      await listaMarcada("12.1.- Procedimientos de trabajo seguro (PTS)", r.pts, IRL_DATOS.pts.length);
+      await listaMarcada("12.2.- Hojas de datos de seguridad de productos químicos (HDS)", r.hds, IRL_DATOS.hds.length);
+      await listaMarcada("12.3.- Otros documentos", r.otros, IRL_DATOS.otros_docs.length);
+      hayEspacio(260);
+      seccion("Declaración de recepción de procedimientos");
+      await declaracion(IRL_DATOS.declaracion_pts);
+      await firmas();
+
+      if (r.licencia) {
+        nuevaPagina();
+        seccion("IRL complementaria: Conductor de vehículos livianos");
+        parrafo("Complementa la IRL principal de:", r.cargoNombre);
+        parrafo("", "Esta IRL se aplica junto con la IRL principal del cargo y no la reemplaza. Los riesgos generales, emergencias, procedimientos, hojas de seguridad y el certificado están en la IRL principal.", { fuente: fI, color: GRIS, tam: 8 });
+        await contenido(IRL_DATOS.cargos.conductor_livianos.contenido);
+        hayEspacio(300);
+        seccion("Declaración de recepción de la IRL complementaria");
+        await declaracion(IRL_DATOS.declaracion_irl);
+        await firmas(`IRL principal a la que complementa: ${r.cargoNombre}`);
+      }
+
+      const hojas = doc.getPages();
+      const pie = limpiar("Información entregada conforme al Artículo 15 del D.S. N° 44 (2024). Generado con la app Prevención en Terreno.");
+      hojas.forEach((h, i) => {
+        h.drawText(pie, { x: M, y: 20, size: 6.5, font: fN, color: GRIS });
+        const t = `Página ${i + 1} de ${hojas.length}`;
+        h.drawText(t, { x: A - M - fN.widthOfTextAtSize(t, 7), y: 20, size: 7, font: fN, color: GRIS });
+      });
+      return await doc.save();
+    }
+
+    /* ----- Compartir / guardar (igual que en la charla) ----- */
+    async function compartirIRL() {
+      const msj = document.getElementById("mensajeIRL");
+      if (!pdfIRL) return;
+      const archivo = new File([pdfIRL.bytes], pdfIRL.nombreArchivo, { type: "application/pdf" });
+      const datos = { files: [archivo], title: pdfIRL.asunto, text: `${pdfIRL.asunto}\nPara: ${CORREO_DESTINO}` };
+      if (navigator.canShare && navigator.canShare(datos)) {
+        try { await navigator.share(datos); msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`; }
+        catch (e) { msj.textContent = e.name === "AbortError" ? "Envío cancelado." : `No se pudo compartir (${e.name}). Usa "Guardar PDF".`; }
+      } else {
+        guardarPDFIRL();
+        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas: adjúntalo a un correo para ${CORREO_DESTINO}.`;
+      }
+    }
+    function guardarPDFIRL() {
+      const msj = document.getElementById("mensajeIRL");
+      try {
+        const url = URL.createObjectURL(new Blob([pdfIRL.bytes], { type: "application/pdf" }));
+        const a = document.createElement("a"); a.href = url; a.download = pdfIRL.nombreArchivo;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        msj.textContent = `PDF guardado como ${pdfIRL.nombreArchivo} (carpeta Descargas).`;
+      } catch { msj.textContent = "No se pudo guardar el PDF."; }
+    }
+    async function copiarCorreoIRL(boton) {
+      try { await navigator.clipboard.writeText(CORREO_DESTINO); boton.textContent = `✅ Copiado: ${CORREO_DESTINO}`; }
+      catch { document.getElementById("mensajeIRL").textContent = `No se pudo copiar. Escribe a mano: ${CORREO_DESTINO}`; }
     }
   </script>
 </body>
