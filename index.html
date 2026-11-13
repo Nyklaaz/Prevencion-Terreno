@@ -292,7 +292,7 @@
         <!-- DEPARTAMENTO: lo primero. Cada departamento hace su propio registro -->
         <div class="tarjeta">
           <h2>Departamento</h2>
-          <p class="ayuda">Elige el departamento de esta charla. Cada departamento tiene su propio registro, PDF y correo.</p>
+          <p class="ayuda">Elige el departamento de esta charla. Cada departamento tiene su propio registro y PDF.</p>
           <div id="deptos" class="deptos"></div>
         </div>
 
@@ -394,7 +394,6 @@
           <button class="btn btn-principal" onclick="enviarCorreo()">📤 Compartir PDF (correo, WhatsApp…)</button>
           <p class="ayuda" style="margin:0">Se abre la lista de apps: elige Outlook, Gmail o WhatsApp. El PDF va adjunto.</p>
           <button class="btn btn-secundario" onclick="descargarPDF()">💾 Guardar PDF en el teléfono</button>
-          <button class="btn btn-secundario" onclick="copiarCorreo(this)">📋 Copiar correo de destino</button>
           <p class="mensaje" id="mensajeEnvio"></p>
           <button class="btn btn-secundario" onclick="nuevoConMismosDatos()">➕ Otro departamento, mismos datos</button>
           <p class="ayuda" style="margin:0">Repite fecha, hora, obra, ruta y tramo. Solo eliges el departamento, los trabajadores y firman.</p>
@@ -501,7 +500,6 @@
         <div class="acciones">
           <button class="btn btn-principal" onclick="compartirIRL()">📤 Compartir PDF (correo, WhatsApp…)</button>
           <button class="btn btn-secundario" onclick="guardarPDFIRL()">💾 Guardar PDF en el teléfono</button>
-          <button class="btn btn-secundario" onclick="copiarCorreoIRL(this)">📋 Copiar correo de destino</button>
           <p class="mensaje" id="mensajeIRL"></p>
           <button class="btn btn-secundario" onclick="location.reload()">Hacer otra IRL</button>
         </div>
@@ -562,6 +560,8 @@
             <div><label>Mes de inicio del contrato</label><input type="month" data-c="inicio"></div>
             <div><label>Horas al mes por trabajador</label><input type="number" min="1" step="0.5" data-c="horasMes" placeholder="168"></div>
           </div>
+          <label>Cómo se ven los puntos 4 al 10 en el PDF y el Word</label>
+          <select data-c="estiloHojas"><option value="excel">Igual a las hojas del Excel (como pantallazos)</option><option value="tablas">Tablas de la app</option></select>
           <h3>Antecedentes del contrato (punto 4)</h3>
           <div id="infDelContrato"></div>
           <button type="button" class="btn btn-secundario" onclick="agregarFila('infDelContrato')">+ Agregar tema</button>
@@ -743,10 +743,6 @@
   </main>
 
   <script>
-    /* =====================================================================
-       CONFIGURACIÓN: cambia aquí el correo de destino
-       ===================================================================== */
-    const CORREO_DESTINO = "jlobos@xpando.cl";
 
     /* =====================================================================
        CONTENIDO DEL FORMATO OFICIAL
@@ -1522,7 +1518,7 @@
           `${r.arts[0].nombre} · ${r.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
         error.textContent = "";
         document.getElementById("infoPDF").textContent =
-          `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes · se enviará a ${CORREO_DESTINO}`;
+          `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes`;
         document.getElementById("mensajeEnvio").textContent = "";
         document.getElementById("cajaEnvio").style.display = "block";
         document.getElementById("cajaEnvio").scrollIntoView({ behavior: "smooth" });
@@ -1828,15 +1824,6 @@
        ===================================================================== */
     const AVISO_VISTA_PREVIA = " Si estás en la vista previa de Claude esto está bloqueado: funciona en la app publicada.";
 
-    async function copiarCorreo(boton) {
-      const msj = document.getElementById("mensajeEnvio");
-      try {
-        await navigator.clipboard.writeText(CORREO_DESTINO);
-        boton.textContent = `✅ Copiado: ${CORREO_DESTINO}`;
-      } catch {
-        msj.textContent = `No se pudo copiar. Escribe a mano: ${CORREO_DESTINO}`;
-      }
-    }
 
     // IMPORTANTE: navigator.share() tiene que llamarse APENAS se toca el botón,
     // sin esperar otra cosa antes ("await"), o el celular lo bloquea.
@@ -1847,12 +1834,12 @@
       const archivo = new File([pdfListo.bytes], pdfListo.nombreArchivo, { type: "application/pdf" });
 
       // Mandamos el PDF + un texto corto (así funcionaba bien con Outlook en las primeras versiones)
-      const datos = { files: [archivo], title: pdfListo.asunto, text: `${pdfListo.asunto}\nPara: ${CORREO_DESTINO}` };
+      const datos = { files: [archivo], title: pdfListo.asunto, text: pdfListo.asunto };
 
       if (navigator.canShare && navigator.canShare(datos)) {
         try {
           await navigator.share(datos);
-          msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`;
+          msj.textContent = "Listo: PDF compartido.";
         } catch (e) {
           if (e.name === "AbortError") msj.textContent = "Envío cancelado.";
           else msj.textContent = `No se pudo compartir (${e.name}). Usa "Guardar PDF" y adjúntalo a mano.` + AVISO_VISTA_PREVIA;
@@ -1860,7 +1847,7 @@
       } else {
         // Este navegador no puede compartir archivos: guardamos el PDF para adjuntarlo a mano
         descargarPDF();
-        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas: adjúntalo a un correo para ${CORREO_DESTINO}.`;
+        msj.textContent = "Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas.";
       }
     }
 
@@ -2156,7 +2143,7 @@
         };
         idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}`);
         error.textContent = "";
-        document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB · se enviará a ${CORREO_DESTINO}`;
+        document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB`;
         document.getElementById("mensajeIRL").textContent = "";
         document.getElementById("cajaEnvioIRL").style.display = "block";
         document.getElementById("cajaEnvioIRL").scrollIntoView({ behavior: "smooth" });
@@ -2436,13 +2423,13 @@
       const msj = document.getElementById("mensajeIRL");
       if (!pdfIRL) return;
       const archivo = new File([pdfIRL.bytes], pdfIRL.nombreArchivo, { type: "application/pdf" });
-      const datos = { files: [archivo], title: pdfIRL.asunto, text: `${pdfIRL.asunto}\nPara: ${CORREO_DESTINO}` };
+      const datos = { files: [archivo], title: pdfIRL.asunto, text: pdfIRL.asunto };
       if (navigator.canShare && navigator.canShare(datos)) {
-        try { await navigator.share(datos); msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`; }
+        try { await navigator.share(datos); msj.textContent = "Listo: PDF compartido."; }
         catch (e) { msj.textContent = e.name === "AbortError" ? "Envío cancelado." : `No se pudo compartir (${e.name}). Usa "Guardar PDF".`; }
       } else {
         guardarPDFIRL();
-        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas: adjúntalo a un correo para ${CORREO_DESTINO}.`;
+        msj.textContent = "Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas.";
       }
     }
     function guardarPDFIRL() {
@@ -2454,10 +2441,6 @@
         setTimeout(() => URL.revokeObjectURL(url), 60000);
         msj.textContent = `PDF guardado como ${pdfIRL.nombreArchivo} (carpeta Descargas).`;
       } catch { msj.textContent = "No se pudo guardar el PDF."; }
-    }
-    async function copiarCorreoIRL(boton) {
-      try { await navigator.clipboard.writeText(CORREO_DESTINO); boton.textContent = `✅ Copiado: ${CORREO_DESTINO}`; }
-      catch { document.getElementById("mensajeIRL").textContent = `No se pudo copiar. Escribe a mano: ${CORREO_DESTINO}`; }
     }
 
     /* =====================================================================
@@ -2545,9 +2528,9 @@
       const r = regsMemoria[id], msj = document.getElementById("mensajeHist");
       if (!r) return;
       const archivo = new File([r.pdf], r.nombreArchivo, { type: "application/pdf" });
-      const datos = { files: [archivo], title: r.asunto, text: `${r.asunto}\nPara: ${CORREO_DESTINO}` };
+      const datos = { files: [archivo], title: r.asunto, text: r.asunto };
       if (navigator.canShare && navigator.canShare(datos)) {
-        try { await navigator.share(datos); msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`; }
+        try { await navigator.share(datos); msj.textContent = "Listo: PDF compartido."; }
         catch (e) { msj.textContent = e.name === "AbortError" ? "Envío cancelado." : `No se pudo compartir (${e.name}). Usa "Guardar".`; }
       } else {
         guardarHist(id);
@@ -2839,7 +2822,7 @@
         idHistCheck = await guardarEnHistorial(idHistCheck, "check", pdfCheck, r.campos.fecha,
           `${r.nombre}${quien ? " · " + quien : ""} · ${r.malas ? r.malas + " observación(es)" : "sin observaciones"}`);
         error.textContent = "";
-        document.getElementById("infoPDFCheck").textContent = `${pdfCheck.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB · se enviará a ${CORREO_DESTINO}`;
+        document.getElementById("infoPDFCheck").textContent = `${pdfCheck.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB`;
         document.getElementById("mensajeCheck").textContent = "";
         document.getElementById("cajaEnvioCheck").style.display = "block";
         document.getElementById("cajaEnvioCheck").scrollIntoView({ behavior: "smooth" });
@@ -3088,13 +3071,13 @@
       const msj = document.getElementById("mensajeCheck");
       if (!pdfCheck) return;
       const archivo = new File([pdfCheck.bytes], pdfCheck.nombreArchivo, { type: "application/pdf" });
-      const datos = { files: [archivo], title: pdfCheck.asunto, text: `${pdfCheck.asunto}\nPara: ${CORREO_DESTINO}` };
+      const datos = { files: [archivo], title: pdfCheck.asunto, text: pdfCheck.asunto };
       if (navigator.canShare && navigator.canShare(datos)) {
-        try { await navigator.share(datos); msj.textContent = `Listo. Destinatario: ${CORREO_DESTINO}`; }
+        try { await navigator.share(datos); msj.textContent = "Listo: PDF compartido."; }
         catch (e) { msj.textContent = e.name === "AbortError" ? "Envío cancelado." : `No se pudo compartir (${e.name}). Usa "Guardar PDF".`; }
       } else {
         guardarPDFCheck();
-        msj.textContent = `Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas: adjúntalo a un correo para ${CORREO_DESTINO}.`;
+        msj.textContent = "Este navegador no puede adjuntar el PDF solo. Se guardó en Descargas.";
       }
     }
     function guardarPDFCheck() {
@@ -3241,7 +3224,7 @@
     }
 
     function pintarContrato() {
-      const c = { empresa: "Constructora Expando SpA", rutEmpresa: "77.749.613-1", tipoEmpresa: "Prestador de Servicios", docsMes: DOCS_MES.join("\n"), ...infContrato };
+      const c = { empresa: "Constructora Expando SpA", rutEmpresa: "77.749.613-1", tipoEmpresa: "Prestador de Servicios", docsMes: DOCS_MES.join("\n"), estiloHojas: "excel", ...infContrato };
       document.querySelectorAll("#formInforme [data-c]").forEach(el => { el.value = c[el.dataset.c] ?? ""; if (el.tagName === "TEXTAREA") autoAltura(el); });
       pintarFilas("infDelContrato", c.delContrato || DEL_CONTRATO.map(tema => ({ tema })));
       pintarFilas("infAccidentes", infListas.accidentes || []);
@@ -3929,70 +3912,92 @@
         y -= 4;
       });
 
-      /* ===== 4 ===== */
-      nuevaPagina();
-      titulo(4, PUNTOS[3]);
-      await tabla([{ ancho: 0.18 }, { ancho: 0.42 }, { ancho: 0.12 }, { ancho: 0.28 }], [
-        [{ negrita: "Mes informado" }, nombreMes(k), { negrita: "Fecha" }, fechaInf],
-        [{ negrita: "Contrato" }, C.contrato, { negrita: "Código SAFI" }, C.safi],
-        [{ negrita: "Servicio" }, sn(C.servicio), { negrita: "Región" }, sn(C.region)],
-        [{ negrita: "Experto" }, C.experto, { negrita: "RUT" }, sn(C.rutExperto)]], { conTitulos: false });
-      parrafo("DEL CONTRATO", { fuente: fB, tam: 9 });
-      await tabla([{ titulo: "Tema", ancho: 0.4 }, { titulo: "(Si / No / No aplica)", ancho: 0.15, centro: true }, { titulo: "Documento", ancho: 0.2 }, { titulo: "N°", ancho: 0.1, centro: true }, { titulo: "Fecha", ancho: 0.15, centro: true }],
-        (C.delContrato || []).filter(r => r.tema).map(r => [r.tema, r.estado, r.doc, r.num, r.fecha]));
-      parrafo("DEL MES", { fuente: fB, tam: 9 });
-      await tabla([{ titulo: "Tema", ancho: 0.4 }, { titulo: "Se adjunta (Si/No)", ancho: 0.15, centro: true }, { titulo: "Observación (indicar razón en caso que no)", ancho: 0.45 }], [
-        ...(m.delMes || []).map(r => [r.tema, r.adjunta, r.obs]),
-        [{ negrita: "Visita de Mutualidad" }, "", m.visita || ""],
-        [{ negrita: "Hechos relevantes" }, "", (m.hechos || []).filter(h => h.texto).length ? (m.hechos.filter(h => h.texto).map(h => h.texto).join(" / ")) : "No se registran hechos relevantes"]]);
-      await firmaResidente();
+      /* ===== Puntos 4 a 10: "igual al Excel" (imágenes) o tablas de la app ===== */
+      const estiloExcel = (C.estiloHojas || "excel") === "excel";
+      const hojasXL = estiloExcel ? await hojasExcelInforme(k) : null;
+      // Pone una hoja-imagen bajo su título; "juntar" la deja en la misma página si cabe
+      async function hojaImagen(n, texto, hoja, tam, juntar) {
+        const img = await doc.embedPng(hoja.src);
+        const [aw] = tam, anchoUtil = aw - 2 * M;
+        const sMax = anchoUtil / img.width;
+        if (!(juntar && pag && A === aw && y - (img.height * sMax) - 40 > M + 24)) nuevaPagina(tam); else y -= 14;
+        titulo(n, texto);
+        const s = Math.min(sMax, (y - M - 24) / img.height);
+        pag.drawImage(img, { x: M + (ANCHO - img.width * s) / 2, y: y - img.height * s, width: img.width * s, height: img.height * s });
+        y -= img.height * s + 10;
+      }
+      if (estiloExcel) {
+        await hojaImagen(4, PUNTOS[3], hojasXL[4], VERT);
+        await hojaImagen(5, PUNTOS[4], hojasXL[5], HORIZ);
+        await hojaImagen(6, PUNTOS[5], hojasXL[6], HORIZ);
+        await hojaImagen(7, PUNTOS[6], hojasXL[7], VERT);
+        await hojaImagen(8, PUNTOS[7], hojasXL[8], VERT, true);
+      } else {
+        /* ===== 4 ===== */
+        nuevaPagina();
+        titulo(4, PUNTOS[3]);
+        await tabla([{ ancho: 0.18 }, { ancho: 0.42 }, { ancho: 0.12 }, { ancho: 0.28 }], [
+          [{ negrita: "Mes informado" }, nombreMes(k), { negrita: "Fecha" }, fechaInf],
+          [{ negrita: "Contrato" }, C.contrato, { negrita: "Código SAFI" }, C.safi],
+          [{ negrita: "Servicio" }, sn(C.servicio), { negrita: "Región" }, sn(C.region)],
+          [{ negrita: "Experto" }, C.experto, { negrita: "RUT" }, sn(C.rutExperto)]], { conTitulos: false });
+        parrafo("DEL CONTRATO", { fuente: fB, tam: 9 });
+        await tabla([{ titulo: "Tema", ancho: 0.4 }, { titulo: "(Si / No / No aplica)", ancho: 0.15, centro: true }, { titulo: "Documento", ancho: 0.2 }, { titulo: "N°", ancho: 0.1, centro: true }, { titulo: "Fecha", ancho: 0.15, centro: true }],
+          (C.delContrato || []).filter(r => r.tema).map(r => [r.tema, r.estado, r.doc, r.num, r.fecha]));
+        parrafo("DEL MES", { fuente: fB, tam: 9 });
+        await tabla([{ titulo: "Tema", ancho: 0.4 }, { titulo: "Se adjunta (Si/No)", ancho: 0.15, centro: true }, { titulo: "Observación (indicar razón en caso que no)", ancho: 0.45 }], [
+          ...(m.delMes || []).map(r => [r.tema, r.adjunta, r.obs]),
+          [{ negrita: "Visita de Mutualidad" }, "", m.visita || ""],
+          [{ negrita: "Hechos relevantes" }, "", (m.hechos || []).filter(h => h.texto).length ? (m.hechos.filter(h => h.texto).map(h => h.texto).join(" / ")) : "No se registran hechos relevantes"]]);
+        await firmaResidente();
 
-      /* ===== 5: estadística (hoja horizontal) ===== */
-      const est = estadistica(k);
-      nuevaPagina(HORIZ);
-      titulo(5, PUNTOS[4]);
-      parrafo(`Estadística acumulada del contrato al mes de ${nombreMes(k)}`, { fuente: fB, tam: 9 });
-      await tabla([{ ancho: 0.22 }, { ancho: 0.1, centro: true }, { ancho: 0.04 }, { ancho: 0.22 }, { ancho: 0.1, centro: true }, { ancho: 0.32 }], [
-        [{ negrita: "Tasa de accidentabilidad" }, String(est.tasaAcc).replace(".", ","), "", { negrita: "Tasa de siniestralidad" }, String(est.tasaSin).replace(".", ","), { texto: `Promedio de trabajadores: ${est.prom.toFixed(1).replace(".", ",")}`, color: GRIS }],
-        [{ negrita: "Índice de frecuencia" }, String(est.frecuencia).replace(".", ","), "", { negrita: "Índice de gravedad" }, String(est.gravedad).replace(".", ","), { texto: `Horas hombre acumuladas: ${est.hh.toLocaleString("es-CL")}`, color: GRIS }]], { conTitulos: false, tam: 8.5 });
-      const cols = [["Mes", 0.085], ["RUT", 0.08], ["Nombre empresa", 0.11], ["Tipo", 0.085], ["Fem.", 0.045], ["Masc.", 0.045], ["Total", 0.045], ["Leves ATP", 0.05], ["Leves CTP", 0.05], ["Graves", 0.045], ["Fatales", 0.045], ["Días perd. mes", 0.055], ["Arrastre mes ant.", 0.06], ["Acum. N° acc.", 0.055], ["Acum. días perd.", 0.055], ["HH exposición", 0.09]];
-      const num = v => String(+v.toFixed ? +(+v).toFixed(2) : v).replace(".", ",");
-      await tabla(cols.map(([t, w], i) => ({ titulo: t, ancho: w, centro: i > 3 })), [
-        ...est.filas.map(f => [nombreMes(f.mes), C.rutEmpresa, C.empresa, C.tipoEmpresa, num(f.dotF), num(f.dotM), num(f.total), f.atp, f.ctp, f.graves, f.fatales, f.diasMes, f.arrastre, f.accAcum, f.diasAcum, f.hh.toLocaleString("es-CL")].map(String)),
-        [{ negrita: "Total acumulado" }, "", "", "", "", "", "", ...["atp", "ctp", "graves", "fatales", "diasMes", "arrastre"].map(c => ({ negrita: String(est.totales[c]) })), { negrita: String(est.accidentes) }, { negrita: String(est.dias) }, { negrita: est.hh.toLocaleString("es-CL") }]
-      ], { tam: 7 });
-      parrafo("Tasa de accidentabilidad = accidentes con tiempo perdido / promedio de trabajadores × 100 · Tasa de siniestralidad = días perdidos / promedio de trabajadores × 100 · Índice de frecuencia = accidentes con tiempo perdido × 1.000.000 / HH · Índice de gravedad = días perdidos × 1.000.000 / HH. No incluye accidentes de trayecto ni leves sin tiempo perdido.", { tam: 7, color: GRIS, interlinea: 1.3 });
-      await firmaResidente();
+        /* ===== 5: estadística (hoja horizontal) ===== */
+        const est = estadistica(k);
+        nuevaPagina(HORIZ);
+        titulo(5, PUNTOS[4]);
+        parrafo(`Estadística acumulada del contrato al mes de ${nombreMes(k)}`, { fuente: fB, tam: 9 });
+        await tabla([{ ancho: 0.22 }, { ancho: 0.1, centro: true }, { ancho: 0.04 }, { ancho: 0.22 }, { ancho: 0.1, centro: true }, { ancho: 0.32 }], [
+          [{ negrita: "Tasa de accidentabilidad" }, String(est.tasaAcc).replace(".", ","), "", { negrita: "Tasa de siniestralidad" }, String(est.tasaSin).replace(".", ","), { texto: `Promedio de trabajadores: ${est.prom.toFixed(1).replace(".", ",")}`, color: GRIS }],
+          [{ negrita: "Índice de frecuencia" }, String(est.frecuencia).replace(".", ","), "", { negrita: "Índice de gravedad" }, String(est.gravedad).replace(".", ","), { texto: `Horas hombre acumuladas: ${est.hh.toLocaleString("es-CL")}`, color: GRIS }]], { conTitulos: false, tam: 8.5 });
+        const cols = [["Mes", 0.085], ["RUT", 0.08], ["Nombre empresa", 0.11], ["Tipo", 0.085], ["Fem.", 0.045], ["Masc.", 0.045], ["Total", 0.045], ["Leves ATP", 0.05], ["Leves CTP", 0.05], ["Graves", 0.045], ["Fatales", 0.045], ["Días perd. mes", 0.055], ["Arrastre mes ant.", 0.06], ["Acum. N° acc.", 0.055], ["Acum. días perd.", 0.055], ["HH exposición", 0.09]];
+        const num = v => String(+v.toFixed ? +(+v).toFixed(2) : v).replace(".", ",");
+        await tabla(cols.map(([t, w], i) => ({ titulo: t, ancho: w, centro: i > 3 })), [
+          ...est.filas.map(f => [nombreMes(f.mes), C.rutEmpresa, C.empresa, C.tipoEmpresa, num(f.dotF), num(f.dotM), num(f.total), f.atp, f.ctp, f.graves, f.fatales, f.diasMes, f.arrastre, f.accAcum, f.diasAcum, f.hh.toLocaleString("es-CL")].map(String)),
+          [{ negrita: "Total acumulado" }, "", "", "", "", "", "", ...["atp", "ctp", "graves", "fatales", "diasMes", "arrastre"].map(c => ({ negrita: String(est.totales[c]) })), { negrita: String(est.accidentes) }, { negrita: String(est.dias) }, { negrita: est.hh.toLocaleString("es-CL") }]
+        ], { tam: 7 });
+        parrafo("Tasa de accidentabilidad = accidentes con tiempo perdido / promedio de trabajadores × 100 · Tasa de siniestralidad = días perdidos / promedio de trabajadores × 100 · Índice de frecuencia = accidentes con tiempo perdido × 1.000.000 / HH · Índice de gravedad = días perdidos × 1.000.000 / HH. No incluye accidentes de trayecto ni leves sin tiempo perdido.", { tam: 7, color: GRIS, interlinea: 1.3 });
+        await firmaResidente();
 
-      /* ===== 6: nómina (horizontal) ===== */
-      nuevaPagina(HORIZ);
-      titulo(6, PUNTOS[5]);
-      const accMes = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
-      if (!accMes.length) parrafo(`No se registran trabajadores accidentados en el contrato durante ${nombreMes(k)}.`, { fuente: fB, tam: 9 });
-      const tipoEmp = { "Contratista": "C", "Subcontratista": "S", "Prestador de Servicios": "P" }[C.tipoEmpresa] || "";
-      await tabla([["N°", 0.03], ["Nombre", 0.1], ["Cargo", 0.07], ["RUT", 0.065], ["Sexo", 0.03], ["Empresa", 0.075], ["Tipo emp.", 0.035], ["Fecha", 0.055], ["Categoría", 0.07], ["Tipo accidente", 0.06], ["Breve descripción", 0.12], ["Parte del cuerpo", 0.06], ["Días perd.", 0.035], ["Medidas de corrección", 0.115], ["Mutualidad", 0.045], ["Región", 0.035]].map(([t, w], i) => ({ titulo: t, ancho: w, centro: [0, 4, 6, 7, 12].includes(i) })),
-        accMes.length ? accMes.map((a, i) => [String(i + 1), a.nombre, a.cargo, a.rut, a.sexo, C.empresa, tipoEmp, fechaCLde(a.fecha), a.categoria, a.tipo, a.descripcion, a.parte,
-          String(conTiempoPerdido(a) || a.tipo === "De trayecto" ? mesesContrato(k).reduce((s, mk) => s + diasEnMes(a, mk, k), 0) : 0), a.medidas, sn(C.mutualidad), sn(C.region)])
-          : [["", { texto: "Sin registros", color: GRIS }, "", "", "", "", "", "", "", "", "", "", "", "", "", ""]], { tam: 6.5 });
-      parrafo(`Observaciones: ${accMes.length ? `se registra(n) ${accMes.length} trabajador(es) accidentado(s) en el mes.` : "No se registran trabajadores accidentados."}`, { tam: 8 });
-      await firmaResidente();
+        /* ===== 6: nómina (horizontal) ===== */
+        nuevaPagina(HORIZ);
+        titulo(6, PUNTOS[5]);
+        const accMes = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
+        if (!accMes.length) parrafo(`No se registran trabajadores accidentados en el contrato durante ${nombreMes(k)}.`, { fuente: fB, tam: 9 });
+        const tipoEmp = { "Contratista": "C", "Subcontratista": "S", "Prestador de Servicios": "P" }[C.tipoEmpresa] || "";
+        await tabla([["N°", 0.03], ["Nombre", 0.1], ["Cargo", 0.07], ["RUT", 0.065], ["Sexo", 0.03], ["Empresa", 0.075], ["Tipo emp.", 0.035], ["Fecha", 0.055], ["Categoría", 0.07], ["Tipo accidente", 0.06], ["Breve descripción", 0.12], ["Parte del cuerpo", 0.06], ["Días perd.", 0.035], ["Medidas de corrección", 0.115], ["Mutualidad", 0.045], ["Región", 0.035]].map(([t, w], i) => ({ titulo: t, ancho: w, centro: [0, 4, 6, 7, 12].includes(i) })),
+          accMes.length ? accMes.map((a, i) => [String(i + 1), a.nombre, a.cargo, a.rut, a.sexo, C.empresa, tipoEmp, fechaCLde(a.fecha), a.categoria, a.tipo, a.descripcion, a.parte,
+            String(conTiempoPerdido(a) || a.tipo === "De trayecto" ? mesesContrato(k).reduce((s, mk) => s + diasEnMes(a, mk, k), 0) : 0), a.medidas, sn(C.mutualidad), sn(C.region)])
+            : [["", { texto: "Sin registros", color: GRIS }, "", "", "", "", "", "", "", "", "", "", "", "", "", ""]], { tam: 6.5 });
+        parrafo(`Observaciones: ${accMes.length ? `se registra(n) ${accMes.length} trabajador(es) accidentado(s) en el mes.` : "No se registran trabajadores accidentados."}`, { tam: 8 });
+        await firmaResidente();
 
-      /* ===== 7: multas ===== */
-      nuevaPagina();
-      titulo(7, PUNTOS[6]);
-      const multas = (m.multas || []).filter(x => x.obra || x.utm || x.inst);
-      if (!multas.length) parrafo(`No se registran multas en el contrato durante ${nombreMes(k)}.`, { fuente: fB, tam: 9 });
-      await tabla([{ titulo: "Multas obras", ancho: 0.34 }, { titulo: "Mes", ancho: 0.14, centro: true }, { titulo: "Valor UTM", ancho: 0.12, centro: true }, { titulo: "Institución", ancho: 0.22 }, { titulo: "Tipo", ancho: 0.18 }],
-        multas.length ? multas.map(x => [x.obra, nombreMes(k), x.utm, x.inst, x.tipo]) : [[`Durante el mes no se registran multas – ${nombreMes(k)}`, "", "", "", ""]]);
-      await firmaResidente();
+        /* ===== 7: multas ===== */
+        nuevaPagina();
+        titulo(7, PUNTOS[6]);
+        const multas = (m.multas || []).filter(x => x.obra || x.utm || x.inst);
+        if (!multas.length) parrafo(`No se registran multas en el contrato durante ${nombreMes(k)}.`, { fuente: fB, tam: 9 });
+        await tabla([{ titulo: "Multas obras", ancho: 0.34 }, { titulo: "Mes", ancho: 0.14, centro: true }, { titulo: "Valor UTM", ancho: 0.12, centro: true }, { titulo: "Institución", ancho: 0.22 }, { titulo: "Tipo", ancho: 0.18 }],
+          multas.length ? multas.map(x => [x.obra, nombreMes(k), x.utm, x.inst, x.tipo]) : [[`Durante el mes no se registran multas – ${nombreMes(k)}`, "", "", "", ""]]);
+        await firmaResidente();
 
-      /* ===== 8: hechos relevantes ===== */
-      y -= 10;
-      titulo(8, PUNTOS[7]);
-      const hechos = (m.hechos || []).filter(h => h.texto);
-      await tabla([{ titulo: "N°", ancho: 0.07, centro: true }, { titulo: "Hechos relevantes", ancho: 0.73 }, { titulo: "Mes", ancho: 0.2, centro: true }],
-        hechos.length ? hechos.map((h, i) => [String(i + 1), h.texto, nombreMes(k)]) : [["", `No se registran hechos relevantes durante ${nombreMes(k)}.`, nombreMes(k)]]);
-      await firmaResidente();
+        /* ===== 8: hechos relevantes ===== */
+        y -= 10;
+        titulo(8, PUNTOS[7]);
+        const hechos = (m.hechos || []).filter(h => h.texto);
+        await tabla([{ titulo: "N°", ancho: 0.07, centro: true }, { titulo: "Hechos relevantes", ancho: 0.73 }, { titulo: "Mes", ancho: 0.2, centro: true }],
+          hechos.length ? hechos.map((h, i) => [String(i + 1), h.texto, nombreMes(k)]) : [["", `No se registran hechos relevantes durante ${nombreMes(k)}.`, nombreMes(k)]]);
+        await firmaResidente();
+      }
 
       /* ===== Anexos: agregar PDF o imagen ===== */
       async function agregarArchivo(titulo, mime, bytes) {
@@ -4015,23 +4020,33 @@
       }
       const anexos = await anexosDelMes(k);
 
-      /* ===== 9: acta CPHS ===== */
-      nuevaPagina();
-      titulo(9, PUNTOS[8]);
-      const actasFile = anexos.filter(a => a.ubicacion === "cphs");
-      if (!actasFile.length) parrafo(C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido.", { fuente: fB, tam: 9 });
-      else parrafo("Se adjunta el acta del comité paritario en las páginas siguientes.", { tam: 9 });
-      for (const a of actasFile) await agregarArchivo(a.titulo, a.mime, a.pdf);
-      if (actasFile.length) nuevaPagina();
+      if (estiloExcel) {
+        const actasFile = anexos.filter(a => a.ubicacion === "cphs");
+        if (actasFile.length) {
+          nuevaPagina(); titulo(9, PUNTOS[8]);
+          parrafo("Se adjunta el acta del comité paritario en las páginas siguientes.", { tam: 9 });
+          for (const a of actasFile) await agregarArchivo(a.titulo, a.mime, a.pdf);
+        } else await hojaImagen(9, PUNTOS[8], hojasXL[9], VERT);
+        await hojaImagen(10, PUNTOS[9], hojasXL[10], HORIZ);
+      } else {
+        /* ===== 9: acta CPHS ===== */
+        nuevaPagina();
+        titulo(9, PUNTOS[8]);
+        const actasFile = anexos.filter(a => a.ubicacion === "cphs");
+        if (!actasFile.length) parrafo(C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido.", { fuente: fB, tam: 9 });
+        else parrafo("Se adjunta el acta del comité paritario en las páginas siguientes.", { tam: 9 });
+        for (const a of actasFile) await agregarArchivo(a.titulo, a.mime, a.pdf);
+        if (actasFile.length) nuevaPagina();
 
-      /* ===== 10: resumen de actas ===== */
-      const actas = (infListas.actas || []).filter(a => (a.fecha || "").slice(0, 7) <= k && (a.num || a.fecha));
-      if (!actasFile.length) y -= 10;
-      titulo(10, PUNTOS[9]);
-      await tabla([["Reunión ord. N°", 0.08], ["Empresa", 0.14], ["Obra", 0.26], ["Código obra", 0.08], ["Fecha reunión", 0.1], ["Aprobación acta anterior", 0.11], ["Revisión acuerdos anteriores", 0.12], ["Fecha próxima reunión", 0.11]].map(([t, w], i) => ({ titulo: t, ancho: w, centro: i !== 1 && i !== 2 })),
-        actas.length ? actas.map(a => [a.num, C.empresa, C.contrato, C.safi, fechaCLde(a.fecha), a.aprob, a.revision, fechaCLde(a.proxima)])
-                     : [[{ texto: `${C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido"} – ${nombreMes(k)}`, color: GRIS }, "", "", "", "-", "-", "-", "-"]], { tam: 6.8 });
-      await firmaResidente();
+        /* ===== 10: resumen de actas ===== */
+        const actas = (infListas.actas || []).filter(a => (a.fecha || "").slice(0, 7) <= k && (a.num || a.fecha));
+        if (!actasFile.length) y -= 10;
+        titulo(10, PUNTOS[9]);
+        await tabla([["Reunión ord. N°", 0.08], ["Empresa", 0.14], ["Obra", 0.26], ["Código obra", 0.08], ["Fecha reunión", 0.1], ["Aprobación acta anterior", 0.11], ["Revisión acuerdos anteriores", 0.12], ["Fecha próxima reunión", 0.11]].map(([t, w], i) => ({ titulo: t, ancho: w, centro: i !== 1 && i !== 2 })),
+          actas.length ? actas.map(a => [a.num, C.empresa, C.contrato, C.safi, fechaCLde(a.fecha), a.aprob, a.revision, fechaCLde(a.proxima)])
+                       : [[{ texto: `${C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido"} – ${nombreMes(k)}`, color: GRIS }, "", "", "", "-", "-", "-", "-"]], { tam: 6.8 });
+        await firmaResidente();
+      }
 
       /* ===== 11: anexos ===== */
       const deHist = [];
@@ -4095,6 +4110,270 @@
       } catch (e) { document.getElementById("errorInforme").textContent = "No se pudo armar el IFOS: " + e.message; }
     }
 
+
+
+    /* =====================================================================
+       HOJAS "IGUAL AL EXCEL": dibuja los puntos 4 a 10 como imágenes con el mismo
+       formato de las hojas del Excel del informe mensual (como los pantallazos del Word).
+       ===================================================================== */
+    const FUENTE_XL = "Calibri, Carlito, Arial, sans-serif";
+    async function cargarImagen(src) {
+      if (!src) return null;
+      const img = new Image();
+      await new Promise(ok => { img.onload = ok; img.onerror = ok; img.src = src; });
+      return img.naturalWidth ? img : null;
+    }
+    // Lienzo de una hoja: se dibuja en grande y al final se recorta a lo usado
+    function nuevaHojaXL(ancho) {
+      const E = 2, c = document.createElement("canvas");
+      c.width = ancho * E; c.height = 2600 * E;
+      const ctx = c.getContext("2d");
+      ctx.scale(E, E); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, ancho, 2600);
+      ctx.textBaseline = "middle";
+      const lineas = (t, w, tam, b) => {
+        ctx.font = `${b ? "bold " : ""}${tam}px ${FUENTE_XL}`;
+        const res = [];
+        for (const par of String(t ?? "").split("\n")) {
+          let l = "";
+          for (const p of par.split(/\s+/).filter(Boolean)) {
+            const pr = l ? l + " " + p : p;
+            if (ctx.measureText(pr).width <= w || !l) l = pr; else { res.push(l); l = p; }
+          }
+          res.push(l);
+        }
+        return res;
+      };
+      const H = {
+        ancho, ctx,
+        altoTexto: (t, w, tam = 11, b = false) => lineas(t, w - 8, tam, b).length * tam * 1.22 + 6,
+        // Celda: borde fino negro, texto envuelto y centrado vertical
+        caja(x, y, w, h, o = {}) {
+          const { t = "", b = false, al = "left", tam = 11, fondo, borde = true, color = "#000", grueso } = (typeof o === "object" ? o : { t: o });
+          if (fondo) { ctx.fillStyle = fondo; ctx.fillRect(x, y, w, h); }
+          if (borde) { ctx.strokeStyle = "#000"; ctx.lineWidth = grueso ? 1.6 : 0.8; ctx.strokeRect(x + 0.5, y + 0.5, w, h); }
+          const ls = lineas(t, w - 8, tam, b), lh = tam * 1.22;
+          ctx.fillStyle = color; ctx.font = `${b ? "bold " : ""}${tam}px ${FUENTE_XL}`;
+          ctx.textAlign = al === "center" ? "center" : al === "right" ? "right" : "left";
+          const tx = al === "center" ? x + w / 2 : al === "right" ? x + w - 4 : x + 4;
+          let ty = y + h / 2 - (ls.length - 1) * lh / 2;
+          ls.forEach(l => { ctx.fillText(l, tx, ty); ty += lh; });
+        },
+        texto(x, y, t, { b = false, tam = 11, al = "left" } = {}) {
+          ctx.fillStyle = "#000"; ctx.font = `${b ? "bold " : ""}${tam}px ${FUENTE_XL}`; ctx.textAlign = al; ctx.fillText(t, x, y);
+        },
+        // Fila de tabla: celdas texto o { t, b, al, span, fondo }; devuelve la nueva y
+        fila(x, y, anchos, celdas, { min = 19, tam = 10.5 } = {}) {
+          const cs = []; let i = 0;
+          for (const c of celdas) {
+            const o = (c !== null && typeof c === "object") ? c : { t: c };
+            const span = o.span || 1, w = anchos.slice(i, i + span).reduce((s, a) => s + a, 0);
+            cs.push({ ...o, x: x + anchos.slice(0, i).reduce((s, a) => s + a, 0), w }); i += span;
+          }
+          const h = Math.max(min, ...cs.map(c => H.altoTexto(c.t, c.w, c.tam || tam, c.b)));
+          cs.forEach(c => H.caja(c.x, y, c.w, h, { tam, ...c }));
+          return y + h;
+        },
+        imagen(img, x, y, w, h) {
+          if (!img) return;
+          const s = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+          ctx.drawImage(img, x + (w - img.naturalWidth * s) / 2, y + (h - img.naturalHeight * s) / 2, img.naturalWidth * s, img.naturalHeight * s);
+        },
+        terminar(alto) {
+          const r = document.createElement("canvas");
+          r.width = c.width; r.height = Math.ceil((alto + 10) * E);
+          r.getContext("2d").drawImage(c, 0, 0);
+          return { src: r.toDataURL("image/png"), ancho: r.width, alto: r.height };
+        }
+      };
+      return H;
+    }
+    const escalarAnchos = (pesos, total) => { const s = pesos.reduce((a, b) => a + b, 0); return pesos.map(p => p * total / s); };
+
+    async function hojasExcelInforme(k) {
+      const C = { empresa: "Constructora Expando SpA", ...infContrato }, m = infMeses[k], est = estadistica(k);
+      const logo = await cargarImagen(LOGO_EMPRESA), firma = await cargarImagen(infFirmas.residente);
+      const fechaInf = fechaCLde(m.fecha) || new Date().toLocaleDateString("es-CL");
+      const mesN = mk => MESES[+mk.slice(5) - 1];
+      const meses = mesesContrato(k);
+      const hojas = {};
+
+      // Encabezado de las hojas 2 a 7: logo | título | código
+      function encabezado(H, titulo, codigo = true) {
+        const W = H.ancho - 20;
+        H.caja(10, 10, 130, 62, {}); H.imagen(logo, 14, 13, 122, 56);
+        H.caja(140, 10, W - 130 - (codigo ? 110 : 0), 62, { t: titulo, b: true, al: "center", tam: 15 });
+        if (codigo) {
+          H.caja(W - 100, 10, 110, 62, {});
+          ["CEX-RE-SG-06", "REV-00", fechaInf].forEach((t, i) => { H.caja(W - 100, 10 + i * 20.7, 110, 20.7, { t, tam: 9 }); });
+        }
+        return 72;
+      }
+      // Bloque de firma del residente (como en el Excel)
+      function bloqueFirma(H, y) {
+        const x = 70, w1 = 340, w2 = 300;
+        H.caja(x, y, w1, 28, { t: "Firma del/ Profesional Residente", b: true, tam: 10.5 });
+        H.caja(x + w1, y, w2, 28, { t: C.residente || "", al: "center", tam: 10.5 });
+        H.caja(x, y + 28, w1, 62, {}); H.texto(x + 4, y + 82, "Nombre", { b: true, tam: 10.5 });
+        H.caja(x + w1, y + 28, w2, 62, {}); H.imagen(firma, x + w1 + 8, y + 31, w2 - 16, 56);
+        return y + 90;
+      }
+      const relleno = (H, x, y, anchos, n, min = 18) => { for (let i = 0; i < n; i++) y = H.fila(x, y, anchos, anchos.map(() => ""), { min }); return y; };
+
+      /* ----- Punto 4: Informe de Seguridad e Higiene Industrial ----- */
+      {
+        const H = nuevaHojaXL(1000), x = 10, W = 980;
+        let y = 10;
+        const xi = 160, Wi = W + x - xi;
+        H.caja(xi, y, Wi, 26, { t: "Informe de Seguridad e Higiene Industrial", b: true, al: "center", tam: 13 }); y += 26;
+        const info = [[["Mes Informado", true], [MESES[+k.slice(5) - 1], false, "center"], ["Fecha", true], [fechaInf, false, "right"]],
+                      [["Contrato:", true], [C.contrato || "", false, "left", 3]],
+                      [["Servicio", true], [C.servicio || ""], ["Región", true], [C.region || ""]],
+                      [["Nombre Experto", true], [C.experto || ""], ["Rut", true], [C.rutExperto || "", false, "right"]]];
+        const aInfo = [110, 370, 150, Wi - 630];
+        for (const f of info) y = H.fila(xi, y, aInfo, f.map(([t, b, al, span]) => ({ t, b, al: al || "left", span: span || 1 })), { min: 22, tam: 10.5 });
+        H.caja(x, 10, xi - x, y - 10, {}); H.imagen(logo, x + 8, 14, xi - x - 16, y - 18);
+        y += 4; H.texto(x + 2, y + 9, "DEL CONTRATO", { b: true, tam: 11 }); y += 18;
+        const aC = escalarAnchos([300, 120, 150, 140, 120], W);
+        H.caja(x, y, aC[0], 34, { t: "Tema", b: true, al: "center" }); H.caja(x + aC[0], y, aC[1], 34, { t: "(Si/No/No Aplica)", b: true, al: "center", tam: 10 });
+        const xv = x + aC[0] + aC[1];
+        H.caja(xv, y, aC[2] + aC[3] + aC[4], 17, { t: "Verificación", b: true, al: "center", tam: 10 });
+        H.caja(xv, y + 17, aC[2], 17, { t: "Documento", b: true, al: "center", tam: 10 }); H.caja(xv + aC[2], y + 17, aC[3], 17, { t: "N°", b: true, al: "center", tam: 10 }); H.caja(xv + aC[2] + aC[3], y + 17, aC[4], 17, { t: "Fecha", b: true, al: "center", tam: 10 });
+        y += 34;
+        for (const r of (C.delContrato || []).filter(r => r.tema)) y = H.fila(x, y, aC, [r.tema, { t: r.estado, al: "center" }, { t: r.doc, al: "center" }, { t: r.num, al: "center" }, { t: r.fecha, al: "center" }], { min: 20 });
+        y += 4; H.texto(x + 2, y + 9, "DEL MES", { b: true, tam: 11 }); y += 18;
+        const aM = escalarAnchos([300, 120, 560], W);
+        y = H.fila(x, y, aM, [{ t: "Tema", b: true, al: "center" }, { t: "Se Adjunta\n( Si/No)", b: true, al: "center", tam: 10 }, { t: "Observación (Indicar Razón en caso que no)", b: true, al: "center" }], { min: 30 });
+        for (const r of m.delMes || []) y = H.fila(x, y, aM, [r.tema, { t: r.adjunta, al: "center" }, String(r.obs || "").toUpperCase()], { min: 20 });
+        y = H.fila(x, y, aM, ["Visita de Mutualidad", { t: m.visita ? "SI" : "", al: "center" }, m.visita || ""], { min: 20 });
+        const hechos = (m.hechos || []).filter(h => h.texto);
+        y = H.fila(x, y, aM, [{ t: "Hecho Relevantes : " + (hechos.length ? hechos.map(h => h.texto).join(" / ") : "No se registran hechos relevantes"), span: 3 }], { min: 20 });
+        y = relleno(H, x, y, [W], 2);
+        y += 18;
+        H.imagen(firma, 640, y, 260, 80);
+        H.texto(770, y + 92, "Firma del Profesional Residente", { b: true, tam: 10.5, al: "center" });
+        H.texto(770, y + 108, "Nombre: " + (C.residente || ""), { b: true, tam: 10.5, al: "center" });
+        hojas[4] = H.terminar(y + 116);
+      }
+
+      /* ----- Punto 5: Análisis estadístico mensual ----- */
+      {
+        const H = nuevaHojaXL(1400), x = 10, W = 1380;
+        let y = encabezado(H, "ANALISIS ESTADISTICO MENSUAL") + 22;
+        y = bloqueFirma(H, y) + 26;
+        const n = v => String(+(+v || 0).toFixed(2)).replace(".", ",");
+        H.texto(130, y + 10, "ESTADISTICA ACUMULADA DEL CONTRATO AL MES DE", { tam: 10.5 }); H.caja(460, y, 110, 20, { t: nombreMes(k), al: "center", tam: 10.5 });
+        y += 20;
+        H.texto(450, y + 10, "Tasa de accidentabilidad", { tam: 10.5, al: "right" }); H.caja(460, y, 110, 20, { t: n(est.tasaAcc), al: "center", tam: 10.5 });
+        H.texto(830, y + 10, "Tasa de Siniestralidad", { tam: 10.5, al: "right" }); H.caja(840, y, 110, 20, { t: n(est.tasaSin), al: "center", tam: 10.5 });
+        y += 20;
+        H.texto(450, y + 10, "Indice de frecuencia", { tam: 10.5, al: "right" }); H.caja(460, y, 110, 20, { t: n(est.frecuencia), al: "center", tam: 10.5 });
+        H.texto(830, y + 10, "Indice de Gravedad", { tam: 10.5, al: "right" }); H.caja(840, y, 110, 20, { t: n(est.gravedad), al: "center", tam: 10.5 });
+        y += 40;
+        const a = escalarAnchos([85, 90, 150, 140, 52, 58, 48, 52, 52, 48, 48, 52, 62, 58, 58, 80], W), T = est.totales;
+        const sx = i => x + a.slice(0, i).reduce((s, v) => s + v, 0);
+        // Fila "Total Acumulado"
+        H.caja(sx(3), y, a[3], 18, { t: "Total Acumulado", b: true, tam: 10 });
+        [T.dotF, T.dotM, T.total, T.atp, T.ctp, T.graves, T.fatales, T.diasMes, T.arrastre, est.accidentes, est.dias, est.hh].forEach((v, i) => H.caja(sx(4 + i), y, a[4 + i], 18, { t: (i === 11 ? (+v).toLocaleString("es-CL") : n(v)), al: "center", tam: 10 }));
+        y += 18;
+        // Encabezado en dos niveles
+        const h1 = 18, h2 = 40;
+        [["Mes\nCorrelativo", 0], ["RUT", 1], ["Nombre Empresa", 2], ["TIPO (CONTRATISTA, SUBCONTRATISTA, ASESORÍA, PRESTADOR DE SERVICIO)", 3]].forEach(([t, i]) => H.caja(sx(i), y, a[i], h1 + h2, { t, al: "center", tam: 9.5 }));
+        [["DOTACION MES", 4, 3], ["ACCIDENTES DEL MES", 7, 4], ["DIAS PERDIDOS", 11, 2], ["ACUMULADO", 13, 2]].forEach(([t, i, sp]) => H.caja(sx(i), y, a.slice(i, i + sp).reduce((s, v) => s + v, 0), h1, { t, al: "center", tam: 9.5 }));
+        ["FEMENINO", "MASCULINO", "TOTAL", "LEVES ATP", "LEVES CTP", "GRAVES", "FATALES", "DEL MES", "ARRASTRE DEL MES ANTERIOR", "N° DE ACCIDENTES", "N° DIAS PERDIDOS"].forEach((t, j) => H.caja(sx(4 + j), y + h1, a[4 + j], h2, { t, al: "center", tam: 8.5 }));
+        H.caja(sx(15), y, a[15], h1 + h2, { t: "HORAS HOMBRE EXPOSICIÓN AL RIESGO", al: "center", tam: 9 });
+        y += h1 + h2;
+        for (const f of est.filas) y = H.fila(x, y, a, [mesN(f.mes), C.rutEmpresa, C.empresa, C.tipoEmpresa, ...[f.dotF, f.dotM, f.total, f.atp, f.ctp, f.graves, f.fatales, f.diasMes, f.arrastre, f.accAcum, f.diasAcum].map(v => ({ t: n(v), al: "right" })), { t: (+f.hh).toLocaleString("es-CL"), al: "right" }], { min: 17, tam: 10 });
+        y = relleno(H, x, y, a, Math.max(2, 10 - est.filas.length), 17);
+        hojas[5] = H.terminar(y);
+      }
+
+      /* ----- Punto 6: Nómina de trabajadores accidentados ----- */
+      {
+        const H = nuevaHojaXL(1400), x = 10, W = 1380;
+        let y = encabezado(H, "NOMINA DE TRABAJADORES ACCIDENTADOS EN CONTRATO", false) + 22;
+        y = bloqueFirma(H, y) + 24;
+        H.texto(700, y + 8, "TIPO EMPRESA CONTRATISTA ( C ), SUBCONTRATISTA ( S ) AIF ( A ) PRESTADOR DE SERVICIO ( P )", { b: true, tam: 10, al: "center" }); y += 18;
+        const a = escalarAnchos([50, 120, 85, 85, 45, 85, 60, 70, 60, 60, 60, 120, 70, 50, 100, 70, 70, 70], W);
+        const cab = ["N° Correlativo", "Nombre", "Cargo", "Rut", "Sexo (M/F)", "Nombre empresa", "Tipo de empresa", "Rut Empresa", "Fecha Accidente", "Categoria Accidente", "Tipo de Accidente", "Breve descripción", "Parte del cuerpo dañada", "Dias perdidos", "Medidas de correción por accidente", "Mutualidad", "Región", "Servicio"];
+        y = H.fila(x, y, a, cab.map(t => ({ t, b: true, al: "center", tam: 9.5 })), { min: 36, tam: 9.5 });
+        const tipoEmp = { "Contratista": "C", "Subcontratista": "S", "Prestador de Servicios": "P" }[C.tipoEmpresa] || "";
+        let n = 0;
+        for (const mk of meses) {
+          const acc = infListas.accidentes.filter(z => String(z.fecha).startsWith(mk));
+          if (!acc.length) { y = H.fila(x, y, a, [{ t: `Durante el mes no se registran accidentes de trabajo - ${mesN(mk)}`, span: 12, al: "center" }, ...Array(6).fill({ t: "-", al: "center" })], { min: 17, tam: 10 }); continue; }
+          for (const z of acc) {
+            const dias = meses.reduce((s, mm) => s + diasEnMes(z, mm, k), 0);
+            y = H.fila(x, y, a, [{ t: String(++n), al: "center" }, z.nombre, z.cargo, z.rut, { t: z.sexo, al: "center" }, C.empresa, { t: tipoEmp, al: "center" }, C.rutEmpresa, { t: fechaCLde(z.fecha), al: "center" }, z.categoria, z.tipo, z.descripcion, z.parte, { t: String(dias), al: "center" }, z.medidas, C.mutualidad, C.region, C.servicio], { min: 17, tam: 9.5 });
+          }
+        }
+        y = relleno(H, x, y, a, Math.max(2, 9 - meses.length), 17);
+        const accMes = infListas.accidentes.filter(z => String(z.fecha).startsWith(k)).length;
+        y += 4; H.caja(x, y, W - 60, 80, { t: "", grueso: true });
+        H.texto(x + 4, y + 10, `Observaciones:  ${accMes ? `Se registra(n) ${accMes} trabajador(es) accidentado(s) en el mes` : "No se registran Trabajadores Accidentados"}`, { tam: 10 });
+        hojas[6] = H.terminar(y + 82);
+      }
+
+      /* ----- Punto 7: Resumen de multas ----- */
+      {
+        const H = nuevaHojaXL(1000), x = 10, W = 980;
+        let y = encabezado(H, "RESUMEN DE MULTAS", false) + 22;
+        y = bloqueFirma(H, y) + 30;
+        const a = escalarAnchos([170, 130, 100, 220, 360], W);
+        y = H.fila(x, y, a, ["Multas Obras", "Mes", "Valor UTM", "Institución", "Tipo"].map(t => ({ t, b: true })), { min: 18, tam: 10 });
+        let hay = 0;
+        for (const mk of meses) {
+          const ms = ((infMeses[mk] || {}).multas || []).filter(z => z.obra || z.utm || z.inst);
+          if (!ms.length) { y = H.fila(x, y, a, [{ t: `Durante el mes no se registran multas - ${mesN(mk)}`, span: 5, al: "center" }], { min: 17, tam: 10 }); continue; }
+          for (const z of ms) { hay++; y = H.fila(x, y, a, [z.obra, mesN(mk), z.utm, z.inst, z.tipo], { min: 17, tam: 10 }); }
+        }
+        y = relleno(H, x, y, a, 4, 17);
+        y += 6; H.caja(x, y, 600, 80, { grueso: true }); H.texto(x + 4, y + 10, `Observaciones:  ${hay ? `Se registra(n) ${hay} multa(s)` : "No se registran Multas"}`, { tam: 10 });
+        hojas[7] = H.terminar(y + 82);
+      }
+
+      /* ----- Punto 8: Hechos relevantes ----- */
+      {
+        const H = nuevaHojaXL(1000), x = 10, W = 980;
+        let y = encabezado(H, "HECHOS RELEVANTES EN HIGIENE Y SEGURIDAD OBRA", false) + 22;
+        y = bloqueFirma(H, y) + 30;
+        const a = escalarAnchos([170, 470, 340], W);
+        y = H.fila(x, y, a, [{ t: "N°", b: true, al: "center" }, { t: "HECHOS RELEVANTES", b: true, al: "center" }, { t: "MES", b: true }], { min: 28, tam: 10.5 });
+        const hechos = (m.hechos || []).filter(h => h.texto);
+        if (hechos.length) hechos.forEach((h, i) => { y = H.fila(x, y, a, [{ t: String(i + 1), al: "right" }, { t: h.texto, al: "center" }, mesN(k)], { min: 18, tam: 10.5 }); });
+        else y = H.fila(x, y, a, ["", { t: "No se registran hechos relevantes", al: "center" }, mesN(k)], { min: 18, tam: 10.5 });
+        y = relleno(H, x, y, a, Math.max(2, 8 - hechos.length), 18);
+        hojas[8] = H.terminar(y);
+      }
+
+      /* ----- Punto 9: Acta CPHS (solo si no se subió el acta) ----- */
+      {
+        const H = nuevaHojaXL(1000), x = 10, W = 980;
+        let y = encabezado(H, "ACTA COMITÉ PARITARIO HIGIENE Y SEGURIDAD", false) + 10;
+        y = H.fila(x, y, [W], [{ t: "Sesión del comité paritario de higiene y seguridad en conformidad a lo establecido en el D.S. N° 54, de 1969, Reglamento para la constitución y funcionamiento de comités paritarios de higiene y seguridad", al: "center" }], { min: 34, tam: 10 });
+        const a = escalarAnchos([110, 260, 120, 160, 120, 210], W);
+        y = H.fila(x, y, a, ["Empresa", C.empresa, "Reunión Ord. N°", "", "Reunión Extraord. N°", ""], { min: 18, tam: 10 });
+        y = H.fila(x, y, a, ["Obra", { t: C.contrato, span: 3 }, "Código de obra", C.safi], { min: 18, tam: 10 });
+        y = H.fila(x, y, [W], [{ t: "1. ASISTENCIA", b: true, al: "center" }], { min: 18, tam: 10.5 });
+        y = H.fila(x, y, [W], [{ t: C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido.", al: "center" }], { min: 30, tam: 10.5 });
+        y = relleno(H, x, y, escalarAnchos([300, 200, 220, 260], W), 4);
+        hojas[9] = H.terminar(y);
+      }
+
+      /* ----- Punto 10: Resumen de actas ----- */
+      {
+        const H = nuevaHojaXL(1400), x = 10, W = 1380;
+        let y = encabezado(H, "RESUMEN DE ACTAS DE COMITÉ PARITARIO", false) + 22;
+        y = bloqueFirma(H, y) + 30;
+        const a = escalarAnchos([110, 200, 400, 110, 120, 150, 170, 140], W);
+        y = H.fila(x, y, a, ["REUNION ORD. N°", "EMPRESA", "OBRA", "CODIGO OBRA", "FECHA REUNION", "APROBACION ACTA REUNION ANTERIOR", "REVISION DE ACUERDOS Y COMPROMISOS ANTERIORES", "FECHA DE PROXIMA REUNION"].map(t => ({ t, b: true, al: "center", tam: 9.5 })), { min: 34 });
+        const actas = (infListas.actas || []).filter(z => (z.fecha || "").slice(0, 7) <= k && (z.num || z.fecha));
+        if (actas.length) actas.forEach(z => { y = H.fila(x, y, a, [{ t: z.num, al: "center" }, C.empresa, C.contrato, { t: C.safi, al: "center" }, { t: fechaCLde(z.fecha), al: "center" }, { t: z.aprob, al: "center" }, { t: z.revision, al: "center" }, { t: fechaCLde(z.proxima), al: "center" }], { min: 18, tam: 10 }); });
+        else y = H.fila(x, y, a, [{ t: `${C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido"} - ${mesN(k)}`, span: 4, al: "center" }, { t: "-", al: "center" }, { t: "-", al: "center" }, { t: "-", al: "center" }, { t: "-", al: "center" }], { min: 18, tam: 10 });
+        y = relleno(H, x, y, a, Math.max(2, 6 - actas.length), 18);
+        hojas[10] = H.terminar(y);
+      }
+      return hojas;
+    }
 
     /* =====================================================================
        CARPETA DEL MES: informe PDF + Word + Excel del informe + IFOS + registros + anexos
@@ -4337,45 +4616,63 @@
       cuerpo.push(titulo(`3. ${PUNTOS[2]}`), p(`Se informa que, durante el mes de ${nombreMes(k)}, se desarrollaron las siguientes actividades. La actividad del Experto en Prevención de Riesgos se enmarca en lo estipulado en la Ley 16.744 y las bases administrativas del contrato.`, { justo: true, tam: 10 }));
       [...(m.actividades || []).map(a => a.texto).filter(Boolean), ...(m.cierre ? [m.cierre] : [])].forEach((t, i) => cuerpo.push(p("", { sangria: 500, colgante: 360, justo: true, xml: run(`${i + 1}.\t`, { b: true, tam: 10 }) + run(t, { tam: 10 }) })));
       cuerpo.push(salto);
-      // 4
-      cuerpo.push(titulo(`4. ${PUNTOS[3]}`),
-        tabla([18, 42, 14, 26], [[{ n: "Mes informado" }, nombreMes(k), { n: "Fecha" }, fechaInf], [{ n: "Contrato" }, C.contrato, { n: "Código SAFI" }, C.safi], [{ n: "Servicio" }, C.servicio, { n: "Región" }, C.region], [{ n: "Experto" }, C.experto, { n: "RUT" }, C.rutExperto]], { cabecera: false }),
-        p("DEL CONTRATO", { b: true, tam: 9 }),
-        tabla([40, 15, 20, 10, 15], [["Tema", "(Si / No / No aplica)", "Documento", "N°", "Fecha"], ...(C.delContrato || []).filter(r => r.tema).map(r => [r.tema, { t: r.estado, centro: true }, r.doc, r.num, r.fecha])]),
-        p("DEL MES", { b: true, tam: 9 }),
-        tabla([40, 15, 45], [["Tema", "Se adjunta (Si/No)", "Observación (indicar razón en caso que no)"], ...(m.delMes || []).map(r => [r.tema, { t: r.adjunta, centro: true }, r.obs]),
-          [{ n: "Visita de Mutualidad" }, "", m.visita], [{ n: "Hechos relevantes" }, "", (m.hechos || []).filter(h => h.texto).map(h => h.texto).join(" / ") || "No se registran hechos relevantes"]]),
-        firmaRes(), seccion(false));
-      // 5 y 6 en hoja horizontal
-      const n = v => String(+(+v).toFixed(2)).replace(".", ",");
-      cuerpo.push(titulo(`5. ${PUNTOS[4]}`), p(`Estadística acumulada del contrato al mes de ${nombreMes(k)}`, { b: true, tam: 9 }),
-        tabla([25, 12, 25, 12, 26], [[{ n: "Tasa de accidentabilidad" }, { t: n(est.tasaAcc), centro: true }, { n: "Tasa de siniestralidad" }, { t: n(est.tasaSin), centro: true }, `Promedio de trabajadores: ${n(est.prom)}`],
-          [{ n: "Índice de frecuencia" }, { t: n(est.frecuencia), centro: true }, { n: "Índice de gravedad" }, { t: n(est.gravedad), centro: true }, `Horas hombre acumuladas: ${est.hh.toLocaleString("es-CL")}`]], { cabecera: false, horiz: true }),
-        tabla([8.5, 8, 11, 8.5, 4.5, 4.5, 4.5, 5, 5, 4.5, 4.5, 5.5, 6, 5.5, 5.5, 9], [["Mes", "RUT", "Nombre empresa", "Tipo", "Fem.", "Masc.", "Total", "Leves ATP", "Leves CTP", "Graves", "Fatales", "Días perd. mes", "Arrastre mes ant.", "Acum. N° acc.", "Acum. días perd.", "HH exposición"],
-          ...est.filas.map(f => [nombreMes(f.mes), C.rutEmpresa, C.empresa, C.tipoEmpresa, ...[n(f.dotF), n(f.dotM), n(f.total), f.atp, f.ctp, f.graves, f.fatales, f.diasMes, f.arrastre, f.accAcum, f.diasAcum, f.hh.toLocaleString("es-CL")].map(v => ({ t: String(v), centro: true }))]),
-          [{ n: "Total acumulado" }, "", "", "", "", "", "", ...[est.totales.atp, est.totales.ctp, est.totales.graves, est.totales.fatales, est.totales.diasMes, est.totales.arrastre, est.accidentes, est.dias, est.hh.toLocaleString("es-CL")].map(v => ({ n: String(v), centro: true }))]], { tam: 7, horiz: true }),
-        firmaRes(), salto);
-      const accMes = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
-      cuerpo.push(titulo(`6. ${PUNTOS[5]}`), p(accMes.length ? `Se registra(n) ${accMes.length} trabajador(es) accidentado(s) en el mes.` : `No se registran trabajadores accidentados en el contrato durante ${nombreMes(k)}.`, { b: true, tam: 9 }),
-        tabla([3, 11, 7, 7, 3.5, 8, 4, 6, 7, 6, 12, 6, 4, 11.5, 4], [["N°", "Nombre", "Cargo", "RUT", "Sexo", "Empresa", "Tipo emp.", "Fecha", "Categoría", "Tipo", "Breve descripción", "Parte del cuerpo", "Días perd.", "Medidas de corrección", "Mutualidad"],
-          ...(accMes.length ? accMes.map((a, i) => [String(i + 1), a.nombre, a.cargo, a.rut, a.sexo, C.empresa, ({ "Contratista": "C", "Subcontratista": "S", "Prestador de Servicios": "P" }[C.tipoEmpresa] || ""), fechaCLde(a.fecha), a.categoria, a.tipo, a.descripcion, a.parte, String(mesesContrato(k).reduce((s, mk) => s + diasEnMes(a, mk, k), 0)), a.medidas, C.mutualidad])
-            : [["", "Sin registros", "", "", "", "", "", "", "", "", "", "", "", "", ""]])], { tam: 7, horiz: true }),
-        firmaRes(), seccion(true));
-      // 7 a 10
-      const multas = (m.multas || []).filter(z => z.obra || z.utm || z.inst), hechos = (m.hechos || []).filter(h => h.texto);
-      const actas = (infListas.actas || []).filter(a => (a.fecha || "").slice(0, 7) <= k && (a.num || a.fecha));
-      cuerpo.push(titulo(`7. ${PUNTOS[6]}`), tabla([34, 14, 12, 22, 18], [["Multas obras", "Mes", "Valor UTM", "Institución", "Tipo"], ...(multas.length ? multas.map(z => [z.obra, nombreMes(k), z.utm, z.inst, z.tipo]) : [[`Durante el mes no se registran multas – ${nombreMes(k)}`, "", "", "", ""]])]), firmaRes(),
-        titulo(`8. ${PUNTOS[7]}`), tabla([7, 73, 20], [["N°", "Hechos relevantes", "Mes"], ...(hechos.length ? hechos.map((h, i) => [String(i + 1), h.texto, nombreMes(k)]) : [["", `No se registran hechos relevantes durante ${nombreMes(k)}.`, nombreMes(k)]])]), firmaRes(), salto,
-        titulo(`9. ${PUNTOS[8]}`));
       const anexos = await anexosDelMes(k);
-      const actasArch = anexos.filter(a => a.ubicacion === "cphs");
-      if (!actasArch.length) cuerpo.push(p(C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido.", { b: true, tam: 9 }));
-      for (const a of actasArch) {
-        if (a.mime === "application/pdf") cuerpo.push(p(`${a.titulo}: se adjunta en la carpeta "Anexos" (${a.nombreArchivo}).`, { tam: 9 }));
-        else { const md = await medio(a.pdf, a.mime); cuerpo.push(p(a.titulo, { b: true, tam: 10 }), p("", { centro: true, xml: dibujo(md, 16) })); }
+      if ((C.estiloHojas || "excel") === "excel") {
+        const hx = await hojasExcelInforme(k);
+        const img = async (num, t, hoja, cm) => { const md = await medio(hoja.src); cuerpo.push(titulo(`${num}. ${t}`), p("", { centro: true, xml: dibujo(md, cm) })); };
+        await img(4, PUNTOS[3], hx[4], 15.5); cuerpo.push(seccion(false));
+        await img(5, PUNTOS[4], hx[5], 25); cuerpo.push(salto);
+        await img(6, PUNTOS[5], hx[6], 25); cuerpo.push(seccion(true));
+        await img(7, PUNTOS[6], hx[7], 16); await img(8, PUNTOS[7], hx[8], 16); cuerpo.push(salto);
+        const actasArch = anexos.filter(a => a.ubicacion === "cphs");
+        if (actasArch.length) {
+          cuerpo.push(titulo(`9. ${PUNTOS[8]}`));
+          for (const a of actasArch) {
+            if (a.mime === "application/pdf") cuerpo.push(p(`${a.titulo}: se adjunta en la carpeta "Anexos" (${a.nombreArchivo}).`, { tam: 9 }));
+            else { const md = await medio(a.pdf, a.mime); cuerpo.push(p(a.titulo, { b: true, tam: 10 }), p("", { centro: true, xml: dibujo(md, 16) })); }
+          }
+        } else await img(9, PUNTOS[8], hx[9], 16);
+        await img(10, PUNTOS[9], hx[10], 17);
+      } else {
+        // 4
+        cuerpo.push(titulo(`4. ${PUNTOS[3]}`),
+          tabla([18, 42, 14, 26], [[{ n: "Mes informado" }, nombreMes(k), { n: "Fecha" }, fechaInf], [{ n: "Contrato" }, C.contrato, { n: "Código SAFI" }, C.safi], [{ n: "Servicio" }, C.servicio, { n: "Región" }, C.region], [{ n: "Experto" }, C.experto, { n: "RUT" }, C.rutExperto]], { cabecera: false }),
+          p("DEL CONTRATO", { b: true, tam: 9 }),
+          tabla([40, 15, 20, 10, 15], [["Tema", "(Si / No / No aplica)", "Documento", "N°", "Fecha"], ...(C.delContrato || []).filter(r => r.tema).map(r => [r.tema, { t: r.estado, centro: true }, r.doc, r.num, r.fecha])]),
+          p("DEL MES", { b: true, tam: 9 }),
+          tabla([40, 15, 45], [["Tema", "Se adjunta (Si/No)", "Observación (indicar razón en caso que no)"], ...(m.delMes || []).map(r => [r.tema, { t: r.adjunta, centro: true }, r.obs]),
+            [{ n: "Visita de Mutualidad" }, "", m.visita], [{ n: "Hechos relevantes" }, "", (m.hechos || []).filter(h => h.texto).map(h => h.texto).join(" / ") || "No se registran hechos relevantes"]]),
+          firmaRes(), seccion(false));
+        // 5 y 6 en hoja horizontal
+        const n = v => String(+(+v).toFixed(2)).replace(".", ",");
+        cuerpo.push(titulo(`5. ${PUNTOS[4]}`), p(`Estadística acumulada del contrato al mes de ${nombreMes(k)}`, { b: true, tam: 9 }),
+          tabla([25, 12, 25, 12, 26], [[{ n: "Tasa de accidentabilidad" }, { t: n(est.tasaAcc), centro: true }, { n: "Tasa de siniestralidad" }, { t: n(est.tasaSin), centro: true }, `Promedio de trabajadores: ${n(est.prom)}`],
+            [{ n: "Índice de frecuencia" }, { t: n(est.frecuencia), centro: true }, { n: "Índice de gravedad" }, { t: n(est.gravedad), centro: true }, `Horas hombre acumuladas: ${est.hh.toLocaleString("es-CL")}`]], { cabecera: false, horiz: true }),
+          tabla([8.5, 8, 11, 8.5, 4.5, 4.5, 4.5, 5, 5, 4.5, 4.5, 5.5, 6, 5.5, 5.5, 9], [["Mes", "RUT", "Nombre empresa", "Tipo", "Fem.", "Masc.", "Total", "Leves ATP", "Leves CTP", "Graves", "Fatales", "Días perd. mes", "Arrastre mes ant.", "Acum. N° acc.", "Acum. días perd.", "HH exposición"],
+            ...est.filas.map(f => [nombreMes(f.mes), C.rutEmpresa, C.empresa, C.tipoEmpresa, ...[n(f.dotF), n(f.dotM), n(f.total), f.atp, f.ctp, f.graves, f.fatales, f.diasMes, f.arrastre, f.accAcum, f.diasAcum, f.hh.toLocaleString("es-CL")].map(v => ({ t: String(v), centro: true }))]),
+            [{ n: "Total acumulado" }, "", "", "", "", "", "", ...[est.totales.atp, est.totales.ctp, est.totales.graves, est.totales.fatales, est.totales.diasMes, est.totales.arrastre, est.accidentes, est.dias, est.hh.toLocaleString("es-CL")].map(v => ({ n: String(v), centro: true }))]], { tam: 7, horiz: true }),
+          firmaRes(), salto);
+        const accMes = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
+        cuerpo.push(titulo(`6. ${PUNTOS[5]}`), p(accMes.length ? `Se registra(n) ${accMes.length} trabajador(es) accidentado(s) en el mes.` : `No se registran trabajadores accidentados en el contrato durante ${nombreMes(k)}.`, { b: true, tam: 9 }),
+          tabla([3, 11, 7, 7, 3.5, 8, 4, 6, 7, 6, 12, 6, 4, 11.5, 4], [["N°", "Nombre", "Cargo", "RUT", "Sexo", "Empresa", "Tipo emp.", "Fecha", "Categoría", "Tipo", "Breve descripción", "Parte del cuerpo", "Días perd.", "Medidas de corrección", "Mutualidad"],
+            ...(accMes.length ? accMes.map((a, i) => [String(i + 1), a.nombre, a.cargo, a.rut, a.sexo, C.empresa, ({ "Contratista": "C", "Subcontratista": "S", "Prestador de Servicios": "P" }[C.tipoEmpresa] || ""), fechaCLde(a.fecha), a.categoria, a.tipo, a.descripcion, a.parte, String(mesesContrato(k).reduce((s, mk) => s + diasEnMes(a, mk, k), 0)), a.medidas, C.mutualidad])
+              : [["", "Sin registros", "", "", "", "", "", "", "", "", "", "", "", "", ""]])], { tam: 7, horiz: true }),
+          firmaRes(), seccion(true));
+        // 7 a 10
+        const multas = (m.multas || []).filter(z => z.obra || z.utm || z.inst), hechos = (m.hechos || []).filter(h => h.texto);
+        const actas = (infListas.actas || []).filter(a => (a.fecha || "").slice(0, 7) <= k && (a.num || a.fecha));
+        cuerpo.push(titulo(`7. ${PUNTOS[6]}`), tabla([34, 14, 12, 22, 18], [["Multas obras", "Mes", "Valor UTM", "Institución", "Tipo"], ...(multas.length ? multas.map(z => [z.obra, nombreMes(k), z.utm, z.inst, z.tipo]) : [[`Durante el mes no se registran multas – ${nombreMes(k)}`, "", "", "", ""]])]), firmaRes(),
+          titulo(`8. ${PUNTOS[7]}`), tabla([7, 73, 20], [["N°", "Hechos relevantes", "Mes"], ...(hechos.length ? hechos.map((h, i) => [String(i + 1), h.texto, nombreMes(k)]) : [["", `No se registran hechos relevantes durante ${nombreMes(k)}.`, nombreMes(k)]])]), firmaRes(), salto,
+          titulo(`9. ${PUNTOS[8]}`));
+        const actasArch = anexos.filter(a => a.ubicacion === "cphs");
+        if (!actasArch.length) cuerpo.push(p(C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido.", { b: true, tam: 9 }));
+        for (const a of actasArch) {
+          if (a.mime === "application/pdf") cuerpo.push(p(`${a.titulo}: se adjunta en la carpeta "Anexos" (${a.nombreArchivo}).`, { tam: 9 }));
+          else { const md = await medio(a.pdf, a.mime); cuerpo.push(p(a.titulo, { b: true, tam: 10 }), p("", { centro: true, xml: dibujo(md, 16) })); }
+        }
+        cuerpo.push(titulo(`10. ${PUNTOS[9]}`), tabla([8, 14, 26, 8, 10, 11, 12, 11], [["Reunión ord. N°", "Empresa", "Obra", "Código obra", "Fecha reunión", "Aprobación acta anterior", "Revisión acuerdos anteriores", "Fecha próxima reunión"],
+          ...(actas.length ? actas.map(a => [a.num, C.empresa, C.contrato, C.safi, fechaCLde(a.fecha), a.aprob, a.revision, fechaCLde(a.proxima)]) : [[`${C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido"} – ${nombreMes(k)}`, "", "", "", "-", "-", "-", "-"]])], { tam: 7 }), firmaRes());
       }
-      cuerpo.push(titulo(`10. ${PUNTOS[9]}`), tabla([8, 14, 26, 8, 10, 11, 12, 11], [["Reunión ord. N°", "Empresa", "Obra", "Código obra", "Fecha reunión", "Aprobación acta anterior", "Revisión acuerdos anteriores", "Fecha próxima reunión"],
-        ...(actas.length ? actas.map(a => [a.num, C.empresa, C.contrato, C.safi, fechaCLde(a.fecha), a.aprob, a.revision, fechaCLde(a.proxima)]) : [[`${C.cphsEstado || "A la fecha el comité paritario de faena no ha sido constituido"} – ${nombreMes(k)}`, "", "", "", "-", "-", "-", "-"]])], { tam: 7 }), firmaRes());
       // Anexos: las fotos van dentro; los PDF quedan en la carpeta Anexos
       const otros = anexos.filter(a => a.ubicacion !== "cphs");
       const deHist = [];
