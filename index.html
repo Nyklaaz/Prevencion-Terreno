@@ -308,6 +308,7 @@
     .rojo { color: var(--mal) !important; font-weight: 700; } .verde { color: var(--ok) !important; font-weight: 600; }
     .aviso-programa { display: block; width: 100%; text-align: left; background: #fff8e6; border: 1px solid #f5d37a; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-family: inherit; font-size: 14px; color: inherit; cursor: pointer; }
     .aviso-programa span { display: block; margin-top: 3px; }
+    .aviso-respaldo { background: #fdecee; border-color: #e8a3ad; }
     .hal { padding: 14px; border-left: 5px solid #f5b400; }
     .hal.vencido { border-left-color: var(--mal); } .hal.cerrado { border-left-color: var(--ok); background: #f8fdf9; }
     .hal .tit { font-weight: 700; margin: 6px 0 4px; } .hal .det { font-size: 14px; color: #3d4652; margin-top: 3px; }
@@ -377,6 +378,7 @@
         <button class="btn btn-principal" onclick="mostrar('empresa')">Configurar mi empresa</button>
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
+      <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
       <button type="button" class="aviso-programa" id="avisoPrograma" style="display:none" onclick="mostrar('calendario')"></button>
       <button class="menu-btn" onclick="mostrar('charla')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span class="menu-txt" id="menuCharla">Charla diaria + ART + Bloqueador<small>Formato oficial de la jornada, todo en uno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -549,6 +551,8 @@
           <summary>📦 Pasar los registros del mes al PC (para el informe mensual)</summary>
           <p class="ayuda">Arma un solo PDF con todas las charlas, IRL y check list del mes. Mándatelo por correo o WhatsApp y en el PC cárgalo en "Informe mensual".</p>
           <div class="dos-col"><input type="month" id="expMes"><button type="button" class="btn btn-principal" onclick="exportarRegistrosMes()">Exportar</button></div>
+          <p class="ayuda" style="margin-top:12px">Respaldo: baja un zip con todos los PDF del mes elegido, ordenados en carpetas. Este equipo guarda el mes actual y el anterior; lo más antiguo que ya respaldaste se borra solo.</p>
+          <button type="button" class="btn btn-secundario" onclick="respaldarMesElegido()">💾 Descargar respaldo (zip) del mes</button>
         </details>
         <details class="exportar">
           <summary>🔎 Verificar un documento</summary>
@@ -1827,7 +1831,7 @@
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
-      if (id === "menu") avisoProgramaMenu();
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); }
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -3920,6 +3924,76 @@
         return regs.filter(r => String(r.fecha || "").startsWith(k)).sort((a, b) => String(a.fecha).localeCompare(String(b.fecha)) || a.creado - b.creado);
       } catch { return []; }
     }
+
+    /* ----- RESPALDO MENSUAL -----
+       El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
+       hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
+       pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe" };
+    const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
+    const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
+    function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
+    const yaRespaldado = (r, hechos) => !!hechos[mesDeRegistro(r)] && (r.creado || 0) <= hechos[mesDeRegistro(r)];
+    async function todosLosRegistros() { try { return await operacionBD("readonly", s => s.getAll()); } catch { return []; } }
+    // Meses ya terminados con algún PDF que todavía no se ha bajado en un zip (del más antiguo al más nuevo)
+    async function mesesPorRespaldar() {
+      const hechos = leerGuardado("pt_respaldoMes", {}), actual = mesHoy();
+      return [...new Set((await todosLosRegistros()).filter(r => !yaRespaldado(r, hechos)).map(mesDeRegistro))].filter(k => k < actual).sort();
+    }
+    // Baja el zip con todos los PDF del mes k. Solo si la persona confirma que lo guardó, el mes queda respaldado.
+    async function descargarRespaldoMes(k) {
+      const momento = Date.now();
+      const regs = (await todosLosRegistros()).filter(r => mesDeRegistro(r) === k);
+      if (!regs.length) { alert(`No hay registros de ${nombreMes(k)} en este equipo.`); return false; }
+      const usados = new Set();
+      const archivos = regs.map(r => {
+        const carpeta = CARPETA_RESPALDO[r.tipo] || "Otros";
+        const base = nombreSeguro(String(r.nombreArchivo || "registro").replace(/\.pdf$/i, "")) || "registro";
+        let nombre = `${carpeta}/${base}.pdf`;
+        for (let i = 2; usados.has(nombre.toLowerCase()); i++) nombre = `${carpeta}/${base} (${i}).pdf`;
+        usados.add(nombre.toLowerCase());
+        return { nombre, datos: new Uint8Array(r.pdf) };
+      });
+      const nombreZip = `Respaldo_Prevencion_${k}.zip`;
+      descargarArchivo(armarZip(archivos), nombreZip, "application/zip");
+      if (!confirm(`Se descargó ${nombreZip} con ${regs.length} PDF de ${nombreMes(k)}.\n\n¿Quedó guardado (en el PC o en tu correo)?\n\nSi tocas Aceptar, este mes queda respaldado y sus PDF se borrarán de este equipo cuando termine el mes siguiente.`)) return false;
+      const hechos = leerGuardado("pt_respaldoMes", {});
+      hechos[k] = momento;
+      guardar("pt_respaldoMes", hechos);
+      return true;
+    }
+    // Borra los PDF ya respaldados de los meses anteriores al mes pasado. Devuelve cuántos borró.
+    async function limpiarMesesRespaldados() {
+      const hechos = leerGuardado("pt_respaldoMes", {}), limite = mesAnteriorDe(mesHoy());
+      const borrar = (await todosLosRegistros()).filter(r => mesDeRegistro(r) < limite && yaRespaldado(r, hechos));
+      for (const r of borrar) { try { await operacionBD("readwrite", s => s.delete(r.id)); } catch {} }
+      return borrar.length;
+    }
+    // Aviso rojo en el menú mientras haya un mes terminado sin respaldo
+    async function avisoRespaldoMenu() {
+      const caja = document.getElementById("avisoRespaldo");
+      if (!caja) return;
+      const meses = await mesesPorRespaldar();
+      if (!meses.length) { caja.style.display = "none"; return; }
+      caja.dataset.mes = meses[0];
+      caja.innerHTML = `<b>💾 Descarga el respaldo de ${html(nombreMes(meses[0]))}</b>
+        <span>Toca aquí para bajar el zip con sus PDF y guárdalo en el PC o en tu correo. Sin respaldo, esos documentos solo están en este equipo.</span>
+        ${meses.length > 1 ? `<span class="rojo">Hay ${meses.length} meses sin respaldar.</span>` : ""}`;
+      caja.style.display = "block";
+    }
+    async function respaldarDesdeAviso() {
+      const k = document.getElementById("avisoRespaldo").dataset.mes;
+      if (k && await descargarRespaldoMes(k)) await limpiarMesesRespaldados();
+      avisoRespaldoMenu();
+    }
+    async function respaldarMesElegido() {
+      const k = document.getElementById("expMes").value;
+      if (!k) { document.getElementById("mensajeHist").textContent = "Elige el mes a respaldar."; return; }
+      if (await descargarRespaldoMes(k)) { await limpiarMesesRespaldados(); pintarHistorial(); }
+    }
+    // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y aviso
+    setTimeout(() => limpiarMesesRespaldados().then(avisoRespaldoMenu), 0);
+
     async function pintarResumenMes() {
       const k = infMesActual;
       if (!k) return;
@@ -4115,7 +4189,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }

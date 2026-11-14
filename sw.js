@@ -10,7 +10,7 @@
    en el mismo sitio no se borran entre ellas.
    ===================================================================== */
 const BASE = "prevencion:" + self.registration.scope + ":";
-const VERSION = BASE + "2026-11-14e";
+const VERSION = BASE + "2026-11-14f";
 const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
 const ESPERA_RED = 4000;   // con señal mala, a los 4 segundos usamos la copia guardada
