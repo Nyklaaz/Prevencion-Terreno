@@ -309,6 +309,13 @@
     .aviso-programa { display: block; width: 100%; text-align: left; background: #fff8e6; border: 1px solid #f5d37a; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-family: inherit; font-size: 14px; color: inherit; cursor: pointer; }
     .aviso-programa span { display: block; margin-top: 3px; }
     .aviso-respaldo { background: #fdecee; border-color: #e8a3ad; }
+    div.aviso-programa { cursor: default; }
+    .epp-item { border-top: 1px solid #eaecf0; padding: 10px 0; }
+    .epp-item:first-child { border-top: none; }
+    .epp-detalle { display: flex; gap: 8px; align-items: center; margin: 6px 0 0 28px; flex-wrap: wrap; }
+    .epp-item:not(:has(.epp-sel:checked)) .epp-detalle { display: none; }   /* cantidad y recambio solo del elemento marcado */
+    .epp-detalle input[type=number], .epp-detalle .epp-talla { width: 76px; padding: 10px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; }
+    .epp-detalle .epp-otro { flex: 1; min-width: 140px; width: auto; }
     .hal { padding: 14px; border-left: 5px solid #f5b400; }
     .hal.vencido { border-left-color: var(--mal); } .hal.cerrado { border-left-color: var(--ok); background: #f8fdf9; }
     .hal .tit { font-weight: 700; margin: 6px 0 4px; } .hal .det { font-size: 14px; color: #3d4652; margin-top: 3px; }
@@ -379,12 +386,20 @@
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
+      <div class="aviso-programa aviso-respaldo" id="avisoEPP" style="display:none">
+        <b>🦺 Respaldo semanal de EPP</b><span id="avisoEPPTexto"></span>
+        <div class="dos-col" style="margin-top:8px"><button type="button" class="btn btn-principal" style="margin:0" onclick="enviarParcialEPP()">Mandar hoja parcial</button>
+          <button type="button" class="btn btn-secundario" style="margin:0" onclick="descartarAvisoEPP()">Ahora no</button></div>
+      </div>
       <button type="button" class="aviso-programa" id="avisoPrograma" style="display:none" onclick="mostrar('calendario')"></button>
       <button class="menu-btn" onclick="mostrar('charla')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span class="menu-txt" id="menuCharla">Charla diaria + ART + Bloqueador<small>Formato oficial de la jornada, todo en uno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('irl')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg></span><span class="menu-txt">IRL – Información de Riesgos Laborales<small>Inducción por cargo según el art. 15 del DS 44</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('epp')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 0 1 16 0z"/><path d="M12 7v3M3 15h18v2H3z"/></svg></span><span class="menu-txt">Entrega de EPP<small>Hoja de cargos con firma del trabajador y de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('chequeo')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -1016,6 +1031,40 @@
           <button class="btn btn-secundario" onclick="otroCheck(false)">Elegir otro tipo de check list</button>
         </div>
       </div>
+    </section>
+
+    <!-- ========== ENTREGA DE EPP (Hoja de cargos) ========== -->
+    <section id="epp" class="pantalla">
+      <form id="formEPP" onsubmit="registrarEntregaEPP(event)" novalidate>
+        <div class="tarjeta">
+          <h2>Trabajador</h2>
+          <input type="search" id="eppBuscar" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarListaEPP()">
+          <div id="eppLista" class="lista-personal"></div>
+          <p class="ayuda" style="margin-top:10px">¿No está en el listado? Escribe sus datos aquí: al registrar la entrega queda agregado.</p>
+          <label>Nombre completo</label><input type="text" id="eppNombre" required>
+          <div class="dos-col">
+            <div><label>RUT</label><input type="text" id="eppRut" required placeholder="12.345.678-9" onchange="this.value = formatearRut(this.value); pintarListaEPP(); pintarFichaEPP()"></div>
+            <div><label>Especialidad (cargo)</label><input type="text" id="eppCargo" list="eppCargos"><datalist id="eppCargos"></datalist></div>
+          </div>
+          <label>Obra</label><input type="text" id="eppObra">
+        </div>
+        <div class="tarjeta">
+          <h2>Elementos entregados</h2>
+          <p class="ayuda">Marca lo que se entrega. "Recambio" si reemplaza uno gastado, roto o perdido.</p>
+          <div id="eppElementos"></div>
+          <label>Fecha de entrega</label><input type="date" id="eppFecha" required>
+        </div>
+        <div class="tarjeta">
+          <h2>Firmas</h2>
+          <div id="eppFirmaTrab"></div>
+          <label>Nombre del prevencionista</label><input type="text" id="eppPrevNombre" required>
+          <div id="eppFirmaPrev"></div>
+          <p class="error" id="errorEPP"></p>
+          <button type="submit" class="btn btn-principal">Registrar entrega</button>
+          <p class="mensaje" id="msjEPP"></p>
+        </div>
+      </form>
+      <div class="tarjeta" id="eppFicha" style="display:none"></div>
     </section>
 
     <!-- ========== SEGUIMIENTO DE HALLAZGOS ========== -->
@@ -1822,7 +1871,7 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP" };
       if (id === "irl") iniciarIRL();
       if (id === "historial") pintarHistorial();
       if (id === "chequeo") iniciarCheck();
@@ -1831,7 +1880,8 @@
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
-      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); }
+      if (id === "epp") iniciarEPP();
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); }
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -3929,7 +3979,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -3938,10 +3988,13 @@
     // Meses ya terminados con algún PDF que todavía no se ha bajado en un zip (del más antiguo al más nuevo)
     async function mesesPorRespaldar() {
       const hechos = leerGuardado("pt_respaldoMes", {}), actual = mesHoy();
-      return [...new Set((await todosLosRegistros()).filter(r => !yaRespaldado(r, hechos)).map(mesDeRegistro))].filter(k => k < actual).sort();
+      const meses = (await todosLosRegistros()).filter(r => !yaRespaldado(r, hechos)).map(mesDeRegistro).concat(await mesesEPPPorRespaldar(hechos));
+      return [...new Set(meses)].filter(k => k < actual).sort();
     }
     // Baja el zip con todos los PDF del mes k. Solo si la persona confirma que lo guardó, el mes queda respaldado.
     async function descargarRespaldoMes(k) {
+      // Primero las Hojas de cargos EPP del mes (van al Historial y al zip); el momento del respaldo se toma DESPUÉS
+      try { await generarHojasEPPMes(k); } catch (e) { alert("No se pudieron armar las hojas de EPP del mes: " + e.message); return false; }
       const momento = Date.now();
       const regs = (await todosLosRegistros()).filter(r => mesDeRegistro(r) === k);
       if (!regs.length) { alert(`No hay registros de ${nombreMes(k)} en este equipo.`); return false; }
@@ -3995,8 +4048,328 @@
       if (!k) { document.getElementById("mensajeHist").textContent = "Elige el mes a respaldar."; return; }
       if (await descargarRespaldoMes(k)) { await limpiarMesesRespaldados(); pintarHistorial(); }
     }
-    // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y aviso
-    setTimeout(() => limpiarMesesRespaldados().then(avisoRespaldoMenu), 0);
+    // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y avisos
+    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); }, 0);
+
+    /* =====================================================================
+       ENTREGA DE EPP (Hoja de cargos)
+       Cada entrega se guarda en este equipo con la firma del trabajador y la del prevencionista,
+       y NO se borra sola. Al cerrar el mes se arma una Hoja de cargos por trabajador (va al zip).
+       ===================================================================== */
+    const ELEMENTOS_EPP = ["Zapatos de seguridad", "Casco de seguridad", "Protector auditivo", "Guantes cabritilla", "Lentes de seguridad", "Gorro legionario"];
+    function abrirBDEPP() {
+      return new Promise((ok, falla) => {
+        const p = indexedDB.open("prevencion-epp" + ESPACIO_DATOS, 1);
+        p.onupgradeneeded = () => p.result.createObjectStore("entregas", { keyPath: "id", autoIncrement: true });
+        p.onsuccess = () => ok(p.result);
+        p.onerror = () => falla(p.error);
+      });
+    }
+    async function bdEPP(modo, accion) {
+      const bd = await abrirBDEPP();
+      return new Promise((ok, falla) => {
+        const tx = bd.transaction("entregas", modo);
+        const pedido = accion(tx.objectStore("entregas"));
+        tx.oncomplete = () => { ok(pedido.result); bd.close(); };
+        tx.onerror = () => { falla(tx.error); bd.close(); };
+      });
+    }
+    const guardarEntregaEPP = e => bdEPP("readwrite", s => s.put(e));
+    const borrarEntregaEPP = id => bdEPP("readwrite", s => s.delete(id));
+    async function entregasEPP() {
+      try { return (await bdEPP("readonly", s => s.getAll())).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.creado - b.creado); } catch { return []; }
+    }
+    // Una entrega que viene de un respaldo solo se acepta si tiene la forma que genera la app
+    function entregaEPPValida(e) {
+      return !!e && typeof e === "object" && typeof e.nombre === "string" && typeof e.rut === "string" && /^[0-9K]{2,10}$/.test(e.rut)
+        && /^\d{4}-\d{2}-\d{2}$/.test(e.fecha || "") && Array.isArray(e.items) && e.items.length > 0
+        && e.items.every(i => i && typeof i.desc === "string" && Number.isFinite(+i.cant))
+        && esFotoSegura(e.firmaTrab) && esFotoSegura(e.firmaPrev) && Number.isFinite(+e.creado);
+    }
+    const limpiarEntregaEPP = e => ({
+      rut: e.rut, nombre: e.nombre, rutTxt: String(e.rutTxt || formatearRut(e.rut)), cargo: String(e.cargo || ""), obra: String(e.obra || ""),
+      fecha: e.fecha, items: e.items.map(i => ({ desc: i.desc, cant: Math.max(1, Math.round(+i.cant) || 1), recambio: !!i.recambio })),
+      firmaTrab: e.firmaTrab, prevNombre: String(e.prevNombre || ""), firmaPrev: e.firmaPrev, creado: +e.creado
+    });
+
+    /* ----- Pantalla ----- */
+    let eppIniciada = false;
+    function htmlElementosEPP() {
+      const fila = (i, nombre, extra) => `<div class="epp-item" data-i="${i}">
+          <label class="check-linea" style="margin-top:0"><input type="checkbox" class="epp-sel"> ${esc(nombre)}</label>
+          <div class="epp-detalle">${extra}<input type="number" class="epp-cant" min="1" value="1" aria-label="Cantidad">
+            <label class="check-linea" style="margin:0"><input type="checkbox" class="epp-recambio"> Recambio</label></div>
+        </div>`;
+      return ELEMENTOS_EPP.map((n, i) => fila(i, n, i === 0 ? `<input type="text" class="epp-talla" inputmode="numeric" placeholder="N°" aria-label="Número de zapato">` : "")).join("")
+        + fila("otro", "Otro", `<input type="text" class="epp-otro" placeholder="¿Qué elemento?" aria-label="Otro elemento">`);
+    }
+    function iniciarEPP() {
+      if (!eppIniciada) {
+        eppIniciada = true;
+        document.getElementById("eppElementos").innerHTML = htmlElementosEPP();
+        document.getElementById("eppFirmaTrab").innerHTML = htmlFirma("Firma del trabajador");
+        document.getElementById("eppFirmaPrev").innerHTML = htmlFirma("Firma Prevención de Riesgos");
+        activarFirmas();
+        ["input", "change"].forEach(t => document.getElementById("formEPP").addEventListener(t, ev => {
+          ev.target.classList.remove("campo-falta");
+          if (!document.getElementById("errorEPP").textContent.startsWith("Guardando")) document.getElementById("errorEPP").textContent = "";
+        }));
+      }
+      document.getElementById("eppCargos").innerHTML = todosLosCargos().map(c => `<option value="${esc(c)}">`).join("");
+      const campo = id => document.getElementById(id);
+      if (!campo("eppObra").value) campo("eppObra").value = leerGuardado("pt_epp_obra", "") || (listado && listado.obra) || "";
+      if (!campo("eppPrevNombre").value) campo("eppPrevNombre").value = leerGuardado("pt_epp_prev", "") || leerGuardado("pt_relator", {}).nombre || "";
+      if (!campo("eppFecha").value) campo("eppFecha").value = hoyISO();
+      pintarListaEPP(); pintarFichaEPP();
+    }
+    function pintarListaEPP() {
+      const cont = document.getElementById("eppLista"), hay = !!(listado && listado.lista && listado.lista.length);
+      cont.style.display = hay ? "" : "none";
+      document.getElementById("eppBuscar").style.display = hay ? "" : "none";
+      if (!hay) return;
+      const b = normalizar(document.getElementById("eppBuscar").value), br = claveRut(b);
+      const elegido = claveRut(document.getElementById("eppRut").value);
+      const visibles = listado.lista.filter(p => !b || normalizar(p.nombre).includes(b) || (br.length > 2 && claveRut(p.rut).includes(br)));
+      cont.innerHTML = visibles.map(p => `<button type="button" class="persona ${claveRut(p.rut) === elegido ? "elegido" : ""}" onclick="elegirTrabajadorEPP('${claveRut(p.rut)}')">
+          <span>${esc(p.nombre)}</span><small>${esc(p.rut)}</small></button>`).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
+    }
+    function elegirTrabajadorEPP(rut) {
+      const p = (listado?.lista || []).find(x => claveRut(x.rut) === rut);
+      if (!p) return;
+      document.getElementById("eppNombre").value = p.nombre;
+      document.getElementById("eppRut").value = formatearRut(p.rut);
+      document.getElementById("eppCargo").value = cargosDe(rut)[0] || "";
+      const talla = document.querySelector("#eppElementos .epp-talla");
+      if (talla) talla.value = leerGuardado("pt_epp_talla", {})[rut] || "";
+      pintarListaEPP(); pintarFichaEPP();
+    }
+    async function registrarEntregaEPP(evento) {
+      evento.preventDefault();
+      const error = document.getElementById("errorEPP"), msj = document.getElementById("msjEPP"), campo = id => document.getElementById(id);
+      msj.textContent = "";
+      const falla = (texto, el) => { error.textContent = texto; if (el) { if (el.tagName !== "CANVAS") el.classList.add("campo-falta"); el.scrollIntoView({ behavior: "smooth", block: "center" }); } };
+      const nombre = campo("eppNombre").value.trim();
+      campo("eppRut").value = formatearRut(campo("eppRut").value);
+      const rutTxt = campo("eppRut").value;
+      if (!nombre) return falla("Falta el nombre del trabajador.", campo("eppNombre"));
+      if (!rutValido(rutTxt)) return falla("El RUT no es válido: revísalo.", campo("eppRut"));
+      const items = [];
+      for (const d of document.querySelectorAll("#eppElementos .epp-item")) {
+        if (!d.querySelector(".epp-sel").checked) continue;
+        const i = d.dataset.i, talla = d.querySelector(".epp-talla")?.value.trim(), otro = d.querySelector(".epp-otro")?.value.trim();
+        if (i === "otro" && !otro) return falla('Escribe qué elemento es "Otro".', d.querySelector(".epp-otro"));
+        items.push({ desc: i === "otro" ? otro : ELEMENTOS_EPP[+i] + (talla ? ` N° ${talla}` : ""),
+                     cant: Math.max(1, Math.round(+d.querySelector(".epp-cant").value) || 1), recambio: d.querySelector(".epp-recambio").checked });
+      }
+      if (!items.length) return falla("Marca al menos un elemento entregado.", campo("eppElementos"));
+      const fecha = campo("eppFecha").value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return falla("Falta la fecha de entrega.", campo("eppFecha"));
+      const cT = document.querySelector("#eppFirmaTrab canvas"), cP = document.querySelector("#eppFirmaPrev canvas");
+      if (!cT.dataset.firmado) { cT.closest(".firma").classList.add("falta"); return falla("Falta la firma del trabajador.", cT); }
+      const prevNombre = campo("eppPrevNombre").value.trim();
+      if (!prevNombre) return falla("Falta el nombre del prevencionista.", campo("eppPrevNombre"));
+      if (!cP.dataset.firmado) { cP.closest(".firma").classList.add("falta"); return falla("Falta la firma de Prevención de Riesgos.", cP); }
+      const rut = claveRut(rutTxt), cargo = campo("eppCargo").value.trim(), obra = campo("eppObra").value.trim();
+      error.textContent = "Guardando la entrega…";
+      try {
+        await guardarEntregaEPP({ rut, nombre, rutTxt, cargo, obra, fecha, items, firmaTrab: cT.toDataURL("image/png"), prevNombre, firmaPrev: cP.toDataURL("image/png"), creado: Date.now() });
+      } catch (e) { return falla("No se pudo guardar la entrega: " + e.message); }
+      error.textContent = "";
+      // Recordamos obra, prevencionista y N° de zapato; si el trabajador es nuevo, queda en el listado
+      guardar("pt_epp_obra", obra); guardar("pt_epp_prev", prevNombre);
+      const zap = document.querySelector('#eppElementos [data-i="0"]');
+      if (zap.querySelector(".epp-sel").checked && zap.querySelector(".epp-talla").value.trim()) {
+        const tallas = leerGuardado("pt_epp_talla", {}); tallas[rut] = zap.querySelector(".epp-talla").value.trim(); guardar("pt_epp_talla", tallas);
+      }
+      agregarAlListado({ nombre, rut: rutTxt, obra });
+      // Para la próxima entrega: se limpian elementos y firmas (las dos se firman en cada entrega)
+      document.querySelectorAll("#eppElementos .epp-sel, #eppElementos .epp-recambio").forEach(x => x.checked = false);
+      document.querySelectorAll("#eppElementos .epp-cant").forEach(x => x.value = 1);
+      document.querySelector("#eppElementos .epp-otro").value = "";
+      document.querySelectorAll("#formEPP .firma .btn-limpiar").forEach(limpiarFirma);
+      document.querySelectorAll("#formEPP .campo-falta, #formEPP .falta").forEach(x => x.classList.remove("campo-falta", "falta"));
+      msj.textContent = `✅ Entrega registrada: ${items.map(i => i.desc).join(", ")} para ${nombre}. Queda en su Hoja de cargos de ${nombreMes(fecha.slice(0, 7))}.`;
+      pintarListaEPP(); pintarFichaEPP();
+    }
+    async function pintarFichaEPP() {
+      const caja = document.getElementById("eppFicha"), rut = claveRut(document.getElementById("eppRut").value);
+      if (rut.length < 2) { caja.style.display = "none"; return; }
+      const suyas = (await entregasEPP()).filter(e => e.rut === rut);
+      const nombre = document.getElementById("eppNombre").value.trim() || suyas[0]?.nombre || "";
+      caja.style.display = "block";
+      caja.innerHTML = `<h2>Ficha de EPP – ${esc(nombre)}</h2>` + (suyas.length
+        ? `<p class="ayuda">${suyas.length} entrega(s) registradas en este equipo.</p>
+           <div class="dos-col"><button type="button" class="btn btn-secundario" onclick="hojaEPP('mes')">📄 Hoja del mes</button>
+             <button type="button" class="btn btn-secundario" onclick="hojaEPP('completa')">📚 Hoja completa</button></div>
+           <p class="mensaje" id="msjHojaEPP"></p>
+           ${suyas.slice().reverse().map(e => `<div class="registro"><div class="tit">${esc(fechaCLde(e.fecha))}</div>
+             <div class="det">${e.items.map(i => `${esc(i.cant)} × ${esc(i.desc)}${i.recambio ? " (recambio)" : ""}`).join("<br>")}<br>Entregó: ${esc(e.prevNombre)}</div>
+             <div class="botones" style="grid-template-columns:1fr"><button type="button" class="btn btn-quitar" onclick="quitarEntregaEPP(${+e.id}, this)">Quitar entrega</button></div></div>`).join("")}`
+        : `<p class="ayuda">Todavía no tiene entregas de EPP registradas en este equipo.</p>`);
+    }
+    async function quitarEntregaEPP(id, boton) {
+      if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar entrega"; }, 4000); return; }
+      try { await borrarEntregaEPP(id); } catch {}
+      pintarFichaEPP();
+    }
+
+    /* ----- PDF: Hoja de cargos (formato Expando "Hoja de cargos – Elementos de Protección Personal") ----- */
+    const textoPDF = t => String(t ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, " ").replace(/[^\x20-\x7E\xA0-\xFF–—•…]/g, "").trim();
+    async function crearPDF_HojaCargos(trab, entregas, subtitulo) {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      doc.setTitle(textoPDF(`Hoja de cargos EPP – ${trab.nombre}`));
+      const fN = await doc.embedFont(StandardFonts.Helvetica), fB = await doc.embedFont(StandardFonts.HelveticaBold);
+      const logo = await doc.embedPng(LOGO_EMPRESA);
+      const cache = {}, firma = async src => cache[src] ||= await doc.embedPng(src);
+      const A = 595.28, H = 841.89, M = 36, ANCHO = A - 2 * M;
+      const ROJO = rgb(0.72, 0.06, 0.16), NEGRO = rgb(0.12, 0.16, 0.2), GRIS = rgb(0.4, 0.44, 0.52), LINEA = rgb(0.72, 0.75, 0.8), FONDO = rgb(0.95, 0.96, 0.97);
+      const COLS = [["DESCRIPCIÓN ELEMENTO", 132], ["FECHA", 50], ["RECAMBIO", 46], ["CANTIDAD", 46], ["NOMBRE", 87], ["FIRMA TRABAJADOR", 81], ["FIRMA PREVENCIÓN", 81.28]];
+      const FILAS_POR_PAG = 19, ALTO_FILA = 26;
+      const filas = entregas.flatMap(e => e.items.map(i => ({ ...i, fecha: e.fecha, nombre: e.nombre, firmaTrab: e.firmaTrab, firmaPrev: e.firmaPrev })));
+      const paginas = Math.max(1, Math.ceil(filas.length / FILAS_POR_PAG));
+      const texto = (pag, t, x, y, tam, f = fN, color = NEGRO) => pag.drawText(textoPDF(t), { x, y, size: tam, font: f, color });
+      const cortar = (t, f, tam, ancho) => { t = textoPDF(t); while (t && f.widthOfTextAtSize(t, tam) > ancho) t = t.slice(0, -1); return t; };
+      for (let p = 0; p < paginas; p++) {
+        const pag = doc.addPage([A, H]);
+        let y = H - M;
+        pag.drawImage(logo, { x: M, y: y - 40, width: 40, height: 40 });
+        const t1 = "HOJA DE CARGOS", t2 = "Elementos de Protección Personal";
+        texto(pag, t1, (A - fB.widthOfTextAtSize(t1, 13)) / 2, y - 16, 13, fB);
+        texto(pag, t2, (A - fN.widthOfTextAtSize(textoPDF(t2), 9.5)) / 2, y - 30, 9.5);
+        const emp = cortar(EMPRESA.nombre || "", fB, 8, 150), rutE = EMPRESA.rut ? "RUT " + EMPRESA.rut : "";
+        texto(pag, emp, A - M - fB.widthOfTextAtSize(emp, 8), y - 10, 8, fB);
+        texto(pag, rutE, A - M - fN.widthOfTextAtSize(rutE, 7.5), y - 21, 7.5, fN, GRIS);
+        const sub = cortar(subtitulo || "", fN, 7.5, 150);
+        texto(pag, sub, A - M - fN.widthOfTextAtSize(sub, 7.5), y - 32, 7.5, fN, GRIS);
+        y -= 48;
+        pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 2, color: ROJO });
+        y -= 8;
+        // Datos del trabajador (como el encabezado del Excel)
+        const dato = (et, val, x, w) => {
+          pag.drawRectangle({ x, y: y - 22, width: w, height: 22, borderColor: LINEA, borderWidth: 0.8 });
+          texto(pag, et, x + 4, y - 8, 6.5, fB, GRIS);
+          texto(pag, cortar(val, fN, 9, w - 8), x + 4, y - 18, 9);
+        };
+        dato("OBRA", trab.obra, M, ANCHO); y -= 22;
+        dato("NOMBRE TRABAJADOR", trab.nombre, M, ANCHO * 0.62); dato("RUT", trab.rutTxt, M + ANCHO * 0.62, ANCHO * 0.38); y -= 22;
+        dato("ESPECIALIDAD", trab.cargo, M, ANCHO); y -= 38;
+        const decl = `Declaro haber recibido gratuitamente por parte de ${EMPRESA.nombre || "la empresa"}, los siguientes Elementos de Protección Personal (EPP). Será de mi responsabilidad su custodia y conservación.`;
+        let linea = "";
+        for (const pal of textoPDF(decl).split(" ")) {
+          if (fN.widthOfTextAtSize((linea + " " + pal).trim(), 8.5) > ANCHO) { texto(pag, linea, M, y, 8.5); y -= 11; linea = pal; }
+          else linea = (linea + " " + pal).trim();
+        }
+        texto(pag, linea, M, y, 8.5); y -= 16;
+        // Tabla: encabezado y 19 filas por página
+        let x = M;
+        pag.drawRectangle({ x: M, y: y - 18, width: ANCHO, height: 18, color: FONDO, borderColor: LINEA, borderWidth: 0.8 });
+        for (const [et, w] of COLS) { texto(pag, et, x + (w - fB.widthOfTextAtSize(textoPDF(et), 6.5)) / 2, y - 12, 6.5, fB); x += w; }
+        y -= 18;
+        for (let i = 0; i < FILAS_POR_PAG; i++) {
+          const f = filas[p * FILAS_POR_PAG + i];
+          x = M;
+          for (const [, w] of COLS) { pag.drawRectangle({ x, y: y - ALTO_FILA, width: w, height: ALTO_FILA, borderColor: LINEA, borderWidth: 0.6 }); x += w; }
+          if (f) {
+            const celdas = [f.desc, fechaCLde(f.fecha), f.recambio ? "SÍ" : "NO", String(f.cant), f.nombre];
+            x = M;
+            celdas.forEach((c, j) => {
+              const w = COLS[j][1], t = cortar(c, fN, 7.5, w - 6), cx = j === 0 || j === 4 ? x + 3 : x + (w - fN.widthOfTextAtSize(t, 7.5)) / 2;
+              texto(pag, t, cx, y - ALTO_FILA / 2 - 2.5, 7.5);
+              x += w;
+            });
+            for (const [src, j] of [[f.firmaTrab, 5], [f.firmaPrev, 6]]) {
+              if (!esFotoSegura(src) || !src.startsWith("data:image/png")) continue;
+              const img = await firma(src), w = COLS[j][1] - 6, h = ALTO_FILA - 4, k = Math.min(w / img.width, h / img.height);
+              const x0 = M + COLS.slice(0, j).reduce((s, c) => s + c[1], 0);
+              pag.drawImage(img, { x: x0 + (COLS[j][1] - img.width * k) / 2, y: y - ALTO_FILA + (ALTO_FILA - img.height * k) / 2, width: img.width * k, height: img.height * k });
+            }
+          }
+          y -= ALTO_FILA;
+        }
+        const pie = `Página ${p + 1} de ${paginas} · Generado con Prevención en Terreno`;
+        texto(pag, pie, (A - fN.widthOfTextAtSize(textoPDF(pie), 7)) / 2, M - 10, 7, fN, GRIS);
+      }
+      return await doc.save();
+    }
+    // Comparte (o descarga) un PDF hecho a pedido; no queda en el Historial
+    async function compartirPDFEPP(bytes, nombreArchivo, titulo, msj) {
+      const datos = { files: [new File([bytes], nombreArchivo, { type: "application/pdf" })], title: titulo, text: titulo };
+      if (navigator.canShare && navigator.canShare(datos)) {
+        try { await navigator.share(datos); if (msj) msj.textContent = "Listo: PDF compartido."; return true; }
+        catch (e) { if (e.name === "AbortError") { if (msj) msj.textContent = "Envío cancelado."; return false; } }
+      }
+      descargarArchivo(bytes, nombreArchivo, "application/pdf");
+      if (msj) msj.textContent = `Se guardó ${nombreArchivo} en Descargas.`;
+      return true;
+    }
+    const nombreArchivoEPP = (nombre, que) => `EPP_HojaCargos_${String(nombre).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_")}_${que}.pdf`;
+    const trabajadorDe = lista => { const u = lista[lista.length - 1]; return { nombre: u.nombre, rutTxt: u.rutTxt || formatearRut(u.rut), cargo: u.cargo, obra: u.obra }; };
+    async function hojaEPP(que) {
+      const msj = document.getElementById("msjHojaEPP"), rut = claveRut(document.getElementById("eppRut").value), mes = hoyISO().slice(0, 7);
+      const lista = (await entregasEPP()).filter(e => e.rut === rut && (que === "completa" || e.fecha.startsWith(mes)));
+      if (!lista.length) { msj.textContent = que === "mes" ? `No tiene entregas en ${nombreMes(mes)}.` : "No tiene entregas registradas."; return; }
+      msj.textContent = "Armando la hoja de cargos…";
+      try {
+        const sub = que === "mes" ? `${nombreMes(mes)} (al ${fechaCLde(hoyISO())})` : "Historial completo";
+        const bytes = await crearPDF_HojaCargos(trabajadorDe(lista), lista, sub);
+        await compartirPDFEPP(bytes, nombreArchivoEPP(lista[0].nombre, que === "mes" ? mes : "completa"), `Hoja de cargos EPP – ${lista[0].nombre}`, msj);
+      } catch (e) { msj.textContent = "No se pudo armar la hoja: " + e.message; }
+    }
+
+    /* ----- Cierre de mes: una Hoja de cargos por trabajador, al Historial (con folio) y al zip ----- */
+    async function generarHojasEPPMes(k) {
+      const delMes = (await entregasEPP()).filter(e => e.fecha.startsWith(k));
+      if (!delMes.length) return 0;
+      const porRut = {};
+      delMes.forEach(e => (porRut[e.rut] ||= []).push(e));
+      const hist = (await todosLosRegistros()).filter(r => r.tipo === "epp" && mesDeRegistro(r) === k);
+      const fin = isoD(new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12));
+      for (const lista of Object.values(porRut)) {
+        const trab = trabajadorDe(lista), clave = `${trab.nombre} · RUT ${trab.rutTxt}`;
+        const previo = hist.find(r => String(r.detalle || "").startsWith(clave + " ·"));   // si se vuelve a generar, se reemplaza
+        const pdf = { bytes: await crearPDF_HojaCargos(trab, lista, nombreMes(k)), nombreArchivo: nombreArchivoEPP(trab.nombre, k), asunto: `Hoja de cargos EPP – ${trab.nombre} – ${nombreMes(k)}` };
+        await guardarEnHistorial(previo ? previo.id : null, "epp", pdf, fin, `${clave} · ${lista.length} entrega(s)`);
+      }
+      return Object.keys(porRut).length;
+    }
+    // Meses con entregas de EPP que no han ido a un zip (para el aviso de respaldo)
+    async function mesesEPPPorRespaldar(hechos) {
+      return (await entregasEPP()).filter(e => { const k = e.fecha.slice(0, 7); return !(hechos[k] && e.creado <= hechos[k]); }).map(e => e.fecha.slice(0, 7));
+    }
+
+    /* ----- Aviso semanal: entregas de semanas anteriores que no han salido del equipo ----- */
+    const inicioSemana = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d; };
+    async function pendientesEPPSemana() {
+      const enviado = +leerGuardado("pt_epp_enviado", 0) || 0, lunes = inicioSemana().getTime();
+      return (await entregasEPP()).filter(e => e.creado > enviado && e.creado < lunes);
+    }
+    async function avisoEPPSemanal() {
+      const caja = document.getElementById("avisoEPP");
+      if (!caja) return;
+      const pend = await pendientesEPPSemana();
+      if (!pend.length || leerGuardado("pt_epp_avisoDescartado", "") === isoD(inicioSemana())) { caja.style.display = "none"; return; }
+      document.getElementById("avisoEPPTexto").textContent = `Tienes ${pend.length} entrega(s) de EPP de semanas anteriores que solo están en este equipo. Mándate la hoja parcial al correo o WhatsApp.`;
+      caja.style.display = "block";
+    }
+    async function enviarParcialEPP() {
+      // Van TODAS las entregas que no han salido del equipo (también las de esta semana), porque después quedan marcadas como enviadas
+      const marca = Date.now(), enviado = +leerGuardado("pt_epp_enviado", 0) || 0;
+      const pend = (await entregasEPP()).filter(e => e.creado > enviado && e.creado <= marca);
+      if (!pend.length) return avisoEPPSemanal();
+      try {
+        const total = await PDFLib.PDFDocument.create(), porRut = {};
+        pend.forEach(e => (porRut[e.rut] ||= []).push(e));
+        for (const lista of Object.values(porRut)) {
+          const d = await PDFLib.PDFDocument.load(await crearPDF_HojaCargos(trabajadorDe(lista), lista, `Copia parcial al ${fechaCLde(hoyISO())}`));
+          (await total.copyPages(d, d.getPageIndices())).forEach(pg => total.addPage(pg));
+        }
+        total.setTitle(`Hojas de cargos EPP – copia parcial ${hoyISO()}`);
+        if (await compartirPDFEPP(await total.save(), `EPP_Parcial_${hoyISO()}.pdf`, "Hojas de cargos EPP (copia parcial)", null)) guardar("pt_epp_enviado", marca);
+      } catch (e) { alert("No se pudo armar la hoja parcial: " + e.message); }
+      await avisoEPPSemanal();
+    }
+    function descartarAvisoEPP() { guardar("pt_epp_avisoDescartado", isoD(inicioSemana())); avisoEPPSemanal(); }
 
     async function pintarResumenMes() {
       const k = infMesActual;
@@ -4193,7 +4566,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -4211,6 +4584,8 @@
           const claves = await bdFotos("readonly", s => s.getAllKeys()), valores = await bdFotos("readonly", s => s.getAll());
           if (claves.length) datos.fotosHallazgos = claves.map((c, i) => [c, valores[i]]);
         } catch {}
+        const epp = await entregasEPP();   // entregas de EPP con sus firmas (sin el número interno)
+        if (epp.length) datos.entregasEPP = epp.map(({ id, ...resto }) => resto);
         const hoy = new Date().toLocaleDateString("sv-SE");
         descargarArchivo(textoABytes(JSON.stringify(datos)), `Respaldo_Prevencion_${hoy}.json`, "application/json");
         guardar("pt_inf_ultimoRespaldo", Date.now());
@@ -4231,6 +4606,12 @@
         Object.entries(d.almacen || {}).forEach(([c, v]) => { if (CLAVES_RESPALDO.includes(c) && typeof v === "string") try { localStorage.setItem(c, v); } catch {} });
         if (d.paqueteIRL) { try { await bdPaquete("readwrite", s => s.put(d.paqueteIRL, "irl")); } catch {} }
         for (const [c, v] of Array.isArray(d.fotosHallazgos) ? d.fotosHallazgos : []) { if (typeof c === "string" && esFotoSegura(v)) try { await bdFotos("readwrite", s => s.put(v, c)); } catch {} }
+        // Entregas de EPP: solo las que tienen la forma correcta, sin duplicar las que ya están
+        const eppYa = new Set((await entregasEPP()).map(e => `${e.rut}|${e.creado}`));
+        for (const e of Array.isArray(d.entregasEPP) ? d.entregasEPP : []) {
+          if (!entregaEPPValida(e) || eppYa.has(`${e.rut}|${+e.creado}`)) continue;
+          try { await guardarEntregaEPP(limpiarEntregaEPP(e)); } catch {}
+        }
         const existentes = await operacionBD("readonly", s => s.getAll());
         const ya = new Set(existentes.map(r => `${r.tipo}|${r.nombreArchivo}|${r.creado}`));
         let n = 0;
