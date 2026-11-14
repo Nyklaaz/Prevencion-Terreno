@@ -330,6 +330,12 @@
     .ed-barra { position: sticky; bottom: 0; background: #fff8e6; border: 1px solid #f5d37a; border-radius: 8px; padding: 10px; margin-top: 12px; z-index: 5; }
     .asistente > div > b, .asistente > b { display: block; font-size: 13.5px; margin-top: 8px; }
     .asistente ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13.5px; }
+    .cal-resumen { margin: 6px 0; } .cal-barra { height: 6px; background: #e6e9ee; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+    .cal-barra span { display: block; height: 100%; background: var(--ok); }
+    .cal-detalle { display: block; color: #56606b; font-weight: 400; }
+    .cargo-fila { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--borde); }
+    .cargo-fila span { flex: 1; font-size: 14px; } .cargo-fila small { display: block; color: #6b7480; }
+    .cargo-fila select { width: 52%; margin: 0; }
     .inf-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
     .inf-dato { background: #f6f7f9; border-radius: 8px; padding: 8px 10px; }
     .inf-dato b { display: block; font-size: 18px; color: var(--oscuro); }
@@ -474,6 +480,12 @@
           <div id="conListado" style="display:none">
             <input type="search" id="buscador" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarListado()">
             <div id="listaPersonal" class="lista-personal"></div>
+            <div id="agregarTodos" style="margin-top:8px"></div>
+            <details class="exportar" id="cargosPersonal" ontoggle="if (this.open) pintarCargosPersonal()">
+              <summary>🏷️ Cargos del personal <span id="cargosResumen"></span></summary>
+              <p class="ayuda">Deja el cargo de cada trabajador una sola vez. Así, al elegir los departamentos, el botón 👥 los agrega a todos y cada uno cae en su ART. Si tu Excel del personal trae una columna "Cargo", se llena sola.</p>
+              <div id="listaCargos"></div>
+            </details>
             <p class="ayuda" style="margin-top:6px">
               <span id="infoListado"></span> ·
               <label class="enlace" style="display:inline; font-weight:400">Cambiar listado<input type="file" accept=".xls,.xlsx,.csv" onchange="cargarListado(this)" hidden></label>
@@ -827,6 +839,7 @@
           <button type="button" class="cal-nav" onclick="moverMesCal(1)" aria-label="Mes siguiente">▶</button>
         </div>
         <div class="cal-semana"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <p class="ayuda cal-resumen" id="calResumenMes"></p>
         <div id="calGrilla" class="cal-grilla"></div>
         <p class="ayuda cal-leyenda"><span class="pt hecho"></span> Realizado (registro o ✔) · <span class="pt pend"></span> Programado · <span class="pt atr"></span> Atrasado</p>
         <button type="button" class="btn btn-secundario" onclick="irHoyCal()">Ir a hoy</button>
@@ -857,10 +870,15 @@
         </details>
         <details class="exportar">
           <summary>📥 Cargar el programa desde Excel</summary>
-          <p class="ayuda">Sirve una planilla con columnas <b>Actividad</b> y <b>Fecha</b> (opcional: Tipo, Responsable), o el formato carta Gantt: una columna <b>Actividad</b> y los meses (Ene, Feb, Mar…) marcados con X.</p>
+          <p class="ayuda">Sirve una planilla con columnas <b>Actividad</b> y <b>Fecha</b> (opcional: Tipo, Responsable), o una carta Gantt con los meses marcados (1, X, CV, D): meses con nombre (Ene, Feb…, o Ene-2027) o numerados 1, 2, 3… hasta el término del contrato.</p>
           <label class="btn btn-secundario" style="margin:0">Elegir archivo Excel
             <input type="file" accept=".xls,.xlsx,.csv" onchange="importarProgramaExcel(this)" hidden>
           </label>
+          <div id="progInicioCaja" class="ed-barra" style="display:none; position:static">
+            <p class="ayuda" id="progInicioTxt" style="margin:0 0 6px"></p>
+            <div class="dos-col"><input type="month" id="progInicio" aria-label="Mes 1 del programa">
+              <button type="button" class="btn btn-principal" style="margin:0" onclick="confirmarInicioPrograma()">Cargar programa</button></div>
+          </div>
           <p class="mensaje" id="msjImpProg"></p>
         </details>
         <div id="progLista"></div>
@@ -1235,14 +1253,18 @@
     // Lista de los departamentos elegidos, en el orden en que aparecen en pantalla
     const deptosElegidos = () => [...document.querySelectorAll(".art-depto")].map(b => b.dataset.id);
 
-    // Tocar un departamento: carga su ART. Solo puede haber UNO por registro,
-    // así que si había otro elegido, se reemplaza.
+    // Tocar un departamento: agrega su ART. Se pueden elegir varios: al generar,
+    // sale UN PDF POR DEPARTAMENTO, cada uno con su ART y solo sus trabajadores.
+    // Tocarlo de nuevo lo quita.
     function tocarDepto(id) {
       const boton = document.querySelector(`.depto[data-id="${id}"]`);
-      if (document.querySelector(`.art-depto[data-id="${id}"]`)) return;   // ya estaba elegido
-      document.querySelectorAll(".art-depto").forEach(b => b.remove());
-      document.querySelectorAll(".depto").forEach(b => b.classList.remove("activo"));
-      document.getElementById("ayudaART").textContent = "Revisa la ART y ajusta solo si hoy hay algo distinto.";
+      const ya = document.querySelector(`.art-depto[data-id="${id}"]`);
+      if (ya) {
+        if (!confirm(`¿Quitar la ART de ${buscarDepto(id).nombre} de este registro?`)) return;
+        ya.remove(); boton.classList.remove("activo");
+        refrescarDeptosTrabajadores(); pintarListado();
+        return;
+      }
       {
         const d = buscarDepto(id);
         const div = document.createElement("div");
@@ -1256,13 +1278,58 @@
         const contenedor = div.querySelector(".etapas");
         d.etapas.forEach(e => agregarEtapa(contenedor, e));   // cargamos sus etapas
         boton.classList.add("activo");
-        // Trabajadores que ya estaban agregados pero sin cargo: les proponemos el de este departamento
-        document.querySelectorAll(".trabajador").forEach(t => {
+        // Si es el único departamento: los trabajadores sin cargo reciben el de este departamento
+        if (deptosElegidos().length === 1) document.querySelectorAll(".trabajador").forEach(t => {
           const lista = t.querySelector(".t-cargo-lista");
           if (!lista.value) { lista.value = d.cargo; t.querySelector(".t-cargo").value = d.cargo; }
         });
       }
-      pintarListado();   // los trabajadores de ese departamento suben al principio de la lista
+      const n = deptosElegidos().length;
+      document.getElementById("ayudaART").textContent = n > 1
+        ? `Elegiste ${n} departamentos: saldrá un PDF por cada uno, con su ART y solo sus trabajadores. Toca un departamento de nuevo para quitarlo.`
+        : "Revisa la ART y ajusta solo si hoy hay algo distinto. Puedes elegir más departamentos: sale un PDF por cada uno.";
+      refrescarDeptosTrabajadores();
+      pintarListado();   // los trabajadores de esos departamentos suben al principio de la lista
+    }
+
+    // Departamento de un trabajador: el que se eligió en su bloque, o el de su cargo, o el recordado
+    function deptoDeCargo(cargo) {
+      const c = normalizar(cargo);
+      if (!c) return null;
+      return DEPARTAMENTOS.find(d => normalizar(d.cargo) === c)
+        || DEPARTAMENTOS.find(d => String(d.cargo).split("/").some(p => { const w = normalizar(p).split(/\s+/)[0]; return w.length >= 4 && c.split(/\s+/)[0].startsWith(w.slice(0, 6)); }));
+    }
+    // Con 2 o más departamentos, cada trabajador muestra "ART de:" para saber en qué PDF va
+    function refrescarDeptosTrabajadores() {
+      const elegidos = deptosElegidos(), varios = elegidos.length > 1;
+      document.querySelectorAll(".trabajador").forEach(t => {
+        const caja = t.querySelector(".t-depto-caja"), sel = t.querySelector(".t-depto");
+        caja.style.display = varios ? "block" : "none";
+        sel.required = varios;
+        if (!varios) return;
+        const rut = claveRut(t.querySelector(".t-rut").value);
+        const actual = sel.value;
+        const porCargo = deptoDeCargo(t.querySelector(".t-cargo").value)?.id;
+        sel.innerHTML = `<option value="">¿En qué ART va?</option>` + elegidos.map(id => `<option value="${id}">${esc(buscarDepto(id).icono || "")} ${esc(buscarDepto(id).nombre)}</option>`).join("");
+        sel.value = [actual, porCargo, deptosPorRut[rut]].find(x => x && elegidos.includes(x)) || "";
+      });
+      pintarBotonTodos();
+    }
+    // Botón para agregar de una vez a todos los del listado que son de los departamentos elegidos
+    function pintarBotonTodos() {
+      const caja = document.getElementById("agregarTodos");
+      if (!caja) return;
+      const elegidos = deptosElegidos();
+      const faltan = (listado?.lista || []).filter(p => elegidos.includes(deptosPorRut[claveRut(p.rut)]) && !document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`));
+      caja.innerHTML = faltan.length
+        ? `<button type="button" class="btn btn-secundario" onclick="agregarTodosDeptos()">👥 Agregar a los ${faltan.length} de ${elegidos.map(id => esc(buscarDepto(id).nombre)).join(", ")}</button>` : "";
+    }
+    function agregarTodosDeptos() {
+      const elegidos = deptosElegidos();
+      (listado?.lista || []).filter(p => elegidos.includes(deptosPorRut[claveRut(p.rut)]) && !document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`))
+        .forEach(p => agregarTrabajador(p));
+      pintarListado();
+      document.getElementById("tituloAsistentes").scrollIntoView({ behavior: "smooth" });
     }
 
     // El cuadro de texto crece según lo que tenga escrito
@@ -1356,6 +1423,7 @@
       const colsApellido = titulos.map((t, i) => t.includes("apellido") ? i : -1).filter(i => i >= 0);
       if (colNombre < 0) throw new Error("no encontré la columna NOMBRE");
       const colIngreso = titulos.findIndex(t => t.includes("ingreso"));   // opcional: fecha de ingreso
+      const colCargo = titulos.findIndex(t => /^(cargo|funcion|especialidad|oficio)/.test(t));   // opcional
 
       // Nombres: desde la columna NOMBRE hasta antes de la siguiente columna con título
       // (en tu Excel el segundo nombre está en una columna sin título)
@@ -1369,7 +1437,7 @@
         const nombres = colsNombre.map(i => f[i]).filter(Boolean).join(" ");
         const apellidos = colsApellido.map(i => f[i]).filter(Boolean).join(" ");
         lista.push({ nombre: tipoTitulo(`${nombres} ${apellidos}`.replace(/\s+/g, " ").trim()), rut: formatearRut(rut),
-                     ingreso: colIngreso >= 0 ? fechaISO(f[colIngreso]) : "" });
+                     ingreso: colIngreso >= 0 ? fechaISO(f[colIngreso]) : "", cargo: colCargo >= 0 ? String(f[colCargo] ?? "").trim() : "" });
       }
       if (lista.length === 0) throw new Error("el archivo no tiene trabajadores con RUT");
 
@@ -1412,6 +1480,15 @@
         const enExcel = new Set(datos.lista.map(p => claveRut(p.rut)));
         listado.lista.filter(p => p.manual && !enExcel.has(claveRut(p.rut))).forEach(p => datos.lista.push(p));
       }
+      // Cargo que viene en el Excel: lo usamos para el departamento de cada uno
+      let conCargo = 0;
+      for (const p of datos.lista) {
+        if (!p.cargo) continue;
+        const rut = claveRut(p.rut), d = deptoDeCargo(p.cargo);
+        if (d) { deptosPorRut[rut] = d.id; cargos[rut] = d.cargo; conCargo++; }
+        else if (!cargos[rut]) cargos[rut] = tipoTitulo(p.cargo);
+      }
+      if (conCargo) { guardar("pt_deptos", deptosPorRut); guardar("pt_cargos", cargos); }
       listado = datos;
       guardar("pt_listado", datos);
       mostrarListado();
@@ -1423,9 +1500,31 @@
       document.getElementById("conListado").style.display = hay ? "block" : "none";
       if (!hay) return;
       document.getElementById("infoListado").textContent = `${listado.lista.length} trabajadores · cargado el ${listado.cargado}`;
+      resumenCargos();
       const campoObra = document.querySelector("[name=obra]");
       if (!campoObra.value && listado.obra) campoObra.value = listado.obra;
       pintarListado();
+    }
+
+    function resumenCargos() {
+      const n = (listado?.lista || []).filter(p => buscarDepto(deptosPorRut[claveRut(p.rut)])).length;
+      const el = document.getElementById("cargosResumen");
+      if (el) el.textContent = `(${n} de ${listado?.lista.length || 0} con cargo)`;
+    }
+    function pintarCargosPersonal() {
+      const opciones = DEPARTAMENTOS.map(d => `<option value="${d.id}">${esc(d.icono || "")} ${esc(d.cargo)}</option>`).join("");
+      document.getElementById("listaCargos").innerHTML = (listado?.lista || []).map(p => {
+        const rut = claveRut(p.rut);
+        return `<div class="cargo-fila"><span>${esc(p.nombre)}<small>${esc(p.rut)}</small></span>
+          <select data-rut="${rut}" onchange="asignarCargoListado(this)"><option value="">Sin asignar</option>${opciones}</select></div>`;
+      }).join("") || `<p class="ayuda">Carga primero el listado de personal.</p>`;
+      document.querySelectorAll("#listaCargos select").forEach(s => s.value = buscarDepto(deptosPorRut[s.dataset.rut]) ? deptosPorRut[s.dataset.rut] : "");
+    }
+    function asignarCargoListado(sel) {
+      const rut = sel.dataset.rut, d = buscarDepto(sel.value);
+      if (d) { deptosPorRut[rut] = d.id; cargos[rut] = d.cargo; } else { delete deptosPorRut[rut]; delete cargos[rut]; }
+      guardar("pt_deptos", deptosPorRut); guardar("pt_cargos", cargos);
+      resumenCargos(); pintarListado(); refrescarDeptosTrabajadores();
     }
 
     // Dibuja la lista filtrada por el buscador
@@ -1447,6 +1546,7 @@
         return `<button type="button" class="persona ${elegido}" onclick="tocarPersona('${claveRut(p.rut)}')">
                   <span>${esc(p.nombre)}${etiqueta}</span><small>${esc(p.rut)}</small></button>`;
       }).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
+      pintarBotonTodos();
     }
 
     // Tocar un nombre: si no está, se agrega. Si ya está y no ha firmado, se quita.
@@ -1466,6 +1566,7 @@
     }
 
     function actualizarAsistentes() {
+      pintarBotonTodos();
       renumerar("trabajadores", "Trabajador");
       const n = document.querySelectorAll(".trabajador").length;
       document.getElementById("tituloAsistentes").textContent = `Asistentes (${n})`;
@@ -1496,6 +1597,7 @@
           <option value="otro">✏️ Otro…</option>
         </select>
         <input type="text" class="t-cargo" placeholder="Escribe el cargo" style="display:none; margin-top:6px">
+        <div class="t-depto-caja" style="display:none"><label>Va en la ART de</label><select class="t-depto"></select></div>
         ${PAQ.charla.bloqueador ? `<label class="check-linea"><input type="checkbox" class="t-bloqueador"> Aplicó bloqueador solar hoy</label>` : ""}
         ${htmlFirma("Firma del trabajador")}`;
 
@@ -1513,12 +1615,19 @@
         texto.required = otro;
         texto.value = otro ? "" : lista.value;
         if (otro) texto.focus(); else recordarCargo(div);
+        const dc = deptoDeCargo(texto.value)?.id, sel = div.querySelector(".t-depto");
+        if (dc && deptosElegidos().includes(dc)) sel.value = dc;
       });
       texto.addEventListener("change", () => recordarCargo(div));
+      div.querySelector(".t-depto").addEventListener("change", e => {
+        const rut = claveRut(div.querySelector(".t-rut").value);
+        if (rut && e.target.value) { deptosPorRut[rut] = e.target.value; guardar("pt_deptos", deptosPorRut); }
+      });
 
       document.getElementById("trabajadores").appendChild(div);
       actualizarAsistentes();
       activarFirmas();
+      refrescarDeptosTrabajadores();
     }
 
     // Guarda en el celular el cargo (y el departamento, si el cargo es de uno) de ese trabajador
@@ -1666,6 +1775,8 @@
        REVISAR: valida todo y junta los datos en un "objeto" (registro)
        ===================================================================== */
     let pdfListo = null;   // { bytes, nombreArchivo, asunto }
+    let pdfsListos = [];   // uno por departamento cuando la charla es de varios
+    const idsHistCharla = {};   // departamento -> id del registro en el historial
 
     async function revisar(evento) {
       evento.preventDefault();
@@ -1731,12 +1842,22 @@
 
       const r = recopilar();
 
+      // Varios departamentos: cada uno debe tener al menos un trabajador
+      if (r.arts.length > 1) {
+        const vacio = r.arts.find(a => !r.trabajadores.some(t => t.depto === a.id));
+        if (vacio) {
+          error.textContent = `Nadie quedó en la ART de ${vacio.nombre}. Asigna trabajadores a esa ART o quita el departamento (tocándolo arriba).`;
+          document.getElementById("tituloAsistentes").scrollIntoView({ behavior: "smooth" });
+          return;
+        }
+      }
+
       // Recordamos cargos y responsables para la próxima vez
       r.trabajadores.forEach(t => { if (t.rut) cargos[claveRut(t.rut)] = t.cargo; });
       guardar("pt_cargos", cargos);
       // El departamento de cada trabajador sale de su cargo (si es uno de la lista)
       r.trabajadores.forEach(t => {
-        const depto = DEPARTAMENTOS.find(d => d.cargo === t.cargo);
+        const depto = t.depto ? buscarDepto(t.depto) : (r.arts.length === 1 ? buscarDepto(r.arts[0].id) : DEPARTAMENTOS.find(d => d.cargo === t.cargo));
         if (t.rut && depto) deptosPorRut[claveRut(t.rut)] = depto.id;
       });
       guardar("pt_deptos", deptosPorRut);
@@ -1746,21 +1867,30 @@
         error.textContent = "No se cargó la herramienta de PDF (¿sin internet al abrir la app?). Abre la app con señal e inténtalo de nuevo.";
         return;
       }
-      error.textContent = "Generando PDF…";
+      error.textContent = r.arts.length > 1 ? `Generando ${r.arts.length} PDF (uno por departamento)…` : "Generando PDF…";
       try {
-        const bytes = await crearPDF(r);
+        // Un registro por departamento: misma charla, su ART y solo sus trabajadores
+        const partes = r.arts.length === 1 ? [r] : r.arts.map(a => ({ ...r, arts: [a], trabajadores: r.trabajadores.filter(t => t.depto === a.id) }));
         const rutaArchivo = r.ruta.replace(/[^\wÁÉÍÓÚÑáéíóúñ-]+/g, "_");
-        pdfListo = {
-          bytes,
-          nombreArchivo: `Charla-ART_${r.fecha}_${r.arts.map(a => a.id).join("-")}_${rutaArchivo}.pdf`,
-          asunto: `Charla Diaria + ART – ${r.arts.map(a => a.nombre).join(" / ")} – Ruta ${r.ruta} – ${r.fechaCL}`
-        };
-        // Queda guardado en el historial del teléfono (si se vuelve a generar, se reemplaza el mismo registro)
-        idHistCharla = await guardarEnHistorial(idHistCharla, "charla", pdfListo, r.fecha,
-          `${r.arts[0].nombre} · ${r.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
+        const nuevos = [];
+        for (const parte of partes) {
+          const a = parte.arts[0];
+          const pdf = {
+            bytes: await crearPDF(parte),
+            nombreArchivo: `Charla-ART_${r.fecha}_${parte.arts.map(x => x.id).join("-")}_${rutaArchivo}.pdf`,
+            asunto: `Charla Diaria + ART – ${parte.arts.map(x => x.nombre).join(" / ")} – Ruta ${r.ruta} – ${r.fechaCL}`,
+            depto: a.id, asistentes: parte.trabajadores.length
+          };
+          // Si se vuelve a generar, se reemplaza el mismo registro del historial (por departamento)
+          idsHistCharla[a.id] = await guardarEnHistorial(idsHistCharla[a.id] ?? null, "charla", pdf, r.fecha,
+            `${a.nombre} · ${parte.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
+          nuevos.push(pdf);
+        }
+        pdfsListos = nuevos; pdfListo = nuevos[0];
         error.textContent = "";
-        document.getElementById("infoPDF").textContent =
-          `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes${pdfListo.folio ? " · Folio " + pdfListo.folio : ""}`;
+        document.getElementById("infoPDF").innerHTML = nuevos.map(p =>
+          `${esc(p.nombreArchivo)} · ${p.asistentes} asistente(s)${p.folio ? " · Folio " + esc(p.folio) : ""}`).join("<br>");
+        document.querySelector("#cajaEnvio h2").textContent = nuevos.length > 1 ? `✅ ${nuevos.length} registros listos (uno por departamento)` : "✅ Registro listo";
         document.getElementById("mensajeEnvio").textContent = "";
         document.getElementById("cajaEnvio").style.display = "block";
         document.getElementById("cajaEnvio").scrollIntoView({ behavior: "smooth" });
@@ -1816,7 +1946,7 @@
         preguntas: PREGUNTAS_ART.map((_, i) => d.get("art" + i)),
         accion: (d.get("accion") || "").trim(),
         trabajadores: [...document.querySelectorAll(".trabajador")].map(t => ({
-          nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t),
+          nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t), depto: t.querySelector(".t-depto")?.value || "",
           bloqueador: !!t.querySelector(".t-bloqueador")?.checked,
           firma: t.querySelector("canvas").toDataURL("image/png") })),
         // Si el supervisor no firmó, guardamos "null" (vacío) y en el PDF la casilla queda en blanco
@@ -2080,16 +2210,17 @@
     // Y compartimos SOLO el archivo: si va con texto, algunas apps botan el adjunto.
     async function enviarCorreo() {
       const msj = document.getElementById("mensajeEnvio");
-      if (!pdfListo) return;
-      const archivo = new File([pdfListo.bytes], pdfListo.nombreArchivo, { type: "application/pdf" });
+      if (!pdfsListos.length) return;
+      const archivos = pdfsListos.map(p => new File([p.bytes], p.nombreArchivo, { type: "application/pdf" }));
+      const asunto = pdfsListos.length > 1 ? `Charla Diaria + ART – ${pdfsListos.length} departamentos – ${pdfsListos[0].asunto.split(" – ").slice(-2).join(" – ")}` : pdfListo.asunto;
 
-      // Mandamos el PDF + un texto corto (así funcionaba bien con Outlook en las primeras versiones)
-      const datos = { files: [archivo], title: pdfListo.asunto, text: pdfListo.asunto };
+      // Mandamos los PDF + un texto corto (así funcionaba bien con Outlook en las primeras versiones)
+      const datos = { files: archivos, title: asunto, text: asunto };
 
       if (navigator.canShare && navigator.canShare(datos)) {
         try {
           await navigator.share(datos);
-          msj.textContent = "Listo: PDF compartido.";
+          msj.textContent = pdfsListos.length > 1 ? `Listo: ${pdfsListos.length} PDF compartidos.` : "Listo: PDF compartido.";
         } catch (e) {
           if (e.name === "AbortError") msj.textContent = "Envío cancelado.";
           else msj.textContent = `No se pudo compartir (${e.name}). Usa "Guardar PDF" y adjúntalo a mano.` + AVISO_VISTA_PREVIA;
@@ -2104,12 +2235,14 @@
     function descargarPDF() {
       const msj = document.getElementById("mensajeEnvio");
       try {
-        const url = URL.createObjectURL(new Blob([pdfListo.bytes], { type: "application/pdf" }));
-        const a = document.createElement("a");
-        a.href = url; a.download = pdfListo.nombreArchivo;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        msj.textContent = `PDF guardado como ${pdfListo.nombreArchivo} (carpeta Descargas).`;
+        pdfsListos.forEach((p, i) => setTimeout(() => {
+          const url = URL.createObjectURL(new Blob([p.bytes], { type: "application/pdf" }));
+          const a = document.createElement("a");
+          a.href = url; a.download = p.nombreArchivo;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 60000);
+        }, i * 400));
+        msj.textContent = pdfsListos.length > 1 ? `${pdfsListos.length} PDF guardados en Descargas.` : `PDF guardado como ${pdfListo.nombreArchivo} (carpeta Descargas).`;
       } catch (e) {
         msj.textContent = "No se pudo descargar." + AVISO_VISTA_PREVIA;
       }
@@ -2758,7 +2891,7 @@
        una "bodega" del navegador que sí aguanta archivos grandes).
        Si algo falla aquí, el PDF igual se genera y se comparte normal.
        ===================================================================== */
-    let idHistCharla = null, idHistIRL = null;   // si se vuelve a generar, se reemplaza el mismo registro
+    let idHistIRL = null;   // si se vuelve a generar, se reemplaza el mismo registro
     let filtroHist = "todos";
     let regsMemoria = {};                         // registros en memoria, para compartir al instante
 
@@ -5296,6 +5429,7 @@
 
     // Todas las fechas en que toca una actividad entre "desde" y "hasta" (texto AAAA-MM-DD)
     function ocurrencias(a, desde, hasta) {
+      if (a.meses) return a.meses.map(m => m + "-01").filter(f => f >= desde && f <= hasta);
       const res = [], fin = a.hasta || (a.fecha.slice(0, 4) + "-12-31");
       let d = fechaD(a.fecha), n = 0;
       while (isoD(d) <= fin && isoD(d) <= hasta && n++ < 400) {
@@ -5344,7 +5478,7 @@
       for (let d = 1; d <= dias; d++) {
         const f = `${calMes}-${String(d).padStart(2, "0")}`;
         const regs = calRegistros.filter(r => r.fecha === f);
-        const pr = prog.filter(x => x.f === f);
+        const pr = prog.filter(x => x.f === f && !x.a.mes);
         const cuenta = t => regs.filter(r => r.tipo === t).length;
         const iconos = [["charla", "📋"], ["irl", "📘"], ["check", "✅"]].filter(([t]) => cuenta(t)).map(([t, i]) => `<span>${i}${cuenta(t) > 1 ? cuenta(t) : ""}</span>`).join("")
           + (hallazgos.some(h => (!h.cerrado && h.plazo === f) || (h.cerrado && h.cerrado.fecha === f)) ? "<span>📌</span>" : "")
@@ -5356,6 +5490,23 @@
           <b>${d}</b><span class="cal-ico">${iconos}</span><span class="cal-pts">${puntos}</span></button>`;
       }
       document.getElementById("calGrilla").innerHTML = celdas;
+      const delMes = prog.filter(x => x.a.mes), hechas = delMes.filter(x => x.hecha).length;
+      document.getElementById("calResumenMes").innerHTML = delMes.length
+        ? `<div class="cal-barra"><span style="width:${Math.round(hechas * 100 / delMes.length)}%"></span></div>Programa de ${MESES[m - 1].toLowerCase()}: <b>${hechas} de ${delMes.length}</b> actividades hechas`
+          + (delMes.length - hechas ? ` · <a href="#" onclick="verActividadesMes(); return false">ver pendientes</a>` : " ✅")
+        : "";
+    }
+    // Para ponerse al día con meses ya cumplidos en papel
+    function marcarTodoMes(ini, b) {
+      if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro? Toca de nuevo para marcarlas todas"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "✓ Marcar todas las del mes como hechas"; }, 4000); return; }
+      for (const x of programadasEntre(ini, ini).filter(x => x.a.mes)) programaHecho[x.a.id + "|" + x.f] = { cuando: new Date().toISOString() };
+      guardar("pt_programa_hecho", programaHecho);
+      pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
+    }
+    function verActividadesMes() {
+      const hoy = hoyISO(), f = calMes === hoy.slice(0, 7) ? hoy : calMes + "-01";
+      pintarDiaCal(f);
+      const d = document.getElementById("calDelMes"); if (d) { d.open = true; d.scrollIntoView({ behavior: "smooth" }); }
     }
 
     // Texto legible de cada registro del historial
@@ -5372,7 +5523,14 @@
     function pintarDiaCal(f) {
       calDiaSel = f;
       document.querySelectorAll("#calGrilla .cal-dia").forEach(b => b.classList.toggle("sel", b.getAttribute("onclick").includes(f)));
-      const d = fechaD(f), regs = calRegistros.filter(r => r.fecha === f), prog = programadasEntre(f, f);
+      const d = fechaD(f), regs = calRegistros.filter(r => r.fecha === f), prog = programadasEntre(f, f).filter(x => !x.a.mes);
+      const ini = f.slice(0, 8) + "01", delMes = programadasEntre(ini, ini).filter(x => x.a.mes);
+      const regsMes = calRegistros.filter(r => r.fecha.startsWith(f.slice(0, 7)));
+      const itemProg = (x, sug) => `<label class="cal-item prog ${x.hecha ? "hecha" : x.atrasada ? "atrasada" : ""}">
+              <span><input type="checkbox" ${x.hecha ? "checked" : ""} onchange="marcarProgramada('${x.a.id}', '${x.f}', this.checked)">
+              <b>${html(x.a.actividad)}</b> <small>${html(x.a.tipo)}${x.a.responsable ? " · " + html(x.a.responsable) : ""}${x.a.nota ? " · " + html(x.a.nota) : x.a.frecuencia ? " · " + html(x.a.frecuencia) : ""}</small>
+              ${x.a.detalle ? `<small class="cal-detalle">${html(x.a.detalle)}</small>` : ""}
+              ${x.atrasada ? `<small class="rojo">Atrasada</small>` : ""}${sug ? `<small class="verde">${sug}</small>` : ""}</span></label>`;
       const ico = { charla: "📋", irl: "📘", check: "✅", informe: "📑" };
       document.getElementById("calDia").innerHTML = `
         <h2>${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()].toLowerCase()} de ${d.getFullYear()}</h2>
@@ -5381,13 +5539,16 @@
             <button type="button" class="btn btn-secundario" onclick="compartirRegistroCal(${r.id})">Compartir</button></div>`).join("")
           : `<p class="ayuda" style="margin:0">No hay registros de este día en este equipo.</p>`}
         <h3>Programa</h3>
-        ${prog.length ? prog.map(x => {
-            const sug = SUGIERE_TIPO[x.a.tipo] && regs.some(r => r.tipo === SUGIERE_TIPO[x.a.tipo]) && !x.hecha;
-            return `<label class="cal-item prog ${x.hecha ? "hecha" : x.atrasada ? "atrasada" : ""}">
-              <span><input type="checkbox" ${x.hecha ? "checked" : ""} onchange="marcarProgramada('${x.a.id}', '${x.f}', this.checked)">
-              <b>${html(x.a.actividad)}</b> <small>${html(x.a.tipo)}${x.a.responsable ? " · " + html(x.a.responsable) : ""}${x.a.mes ? " · durante el mes" : ""}</small>
-              ${x.atrasada ? `<small class="rojo">Atrasada</small>` : ""}${sug ? `<small class="verde">Hay un registro de este día: ¿la marcas como hecha?</small>` : ""}</span></label>`; }).join("")
-          : `<p class="ayuda" style="margin:0">No hay actividades del programa para este día.</p>`}
+        ${prog.length ? prog.map(x => itemProg(x, SUGIERE_TIPO[x.a.tipo] && regs.some(r => r.tipo === SUGIERE_TIPO[x.a.tipo]) && !x.hecha ? "Hay un registro de este día: ¿la marcas como hecha?" : "")).join("")
+          : `<p class="ayuda" style="margin:0">No hay actividades con fecha fija este día.</p>`}
+        ${delMes.length ? `<details class="exportar" id="calDelMes" ${delMes.some(x => !x.hecha) && f.slice(0, 7) <= hoyISO().slice(0, 7) ? "open" : ""}>
+            <summary>📅 Del mes de ${MESES[d.getMonth()].toLowerCase()}: ${delMes.filter(x => x.hecha).length} de ${delMes.length} hechas</summary>
+            <p class="ayuda" style="margin:4px 0">Se pueden hacer cualquier día del mes. Marca el ticket cuando se cumpla.</p>
+            ${delMes.map(x => {
+              const n = SUGIERE_TIPO[x.a.tipo] ? regsMes.filter(r => r.tipo === SUGIERE_TIPO[x.a.tipo]).length : 0;
+              return itemProg(x, n && !x.hecha ? `En este mes hay ${n} registro(s) de ${x.a.tipo.toLowerCase()} en el historial: ¿la marcas como hecha?` : ""); }).join("")}
+            ${delMes.some(x => !x.hecha) ? `<button type="button" class="btn btn-secundario" onclick="marcarTodoMes('${ini}', this)">✓ Marcar todas las del mes como hechas</button>` : ""}
+          </details>` : ""}
         ${(() => { const hf = hallazgosConPlazo(f), hc = hallazgosCerradosEl(f), hn = hallazgos.filter(h => h.fecha === f && h.origen !== "Check list");
             if (!hf.length && !hc.length && !hn.length) return "";
             return `<h3>Hallazgos</h3>` + [
@@ -5410,7 +5571,7 @@
       const k = id + "|" + f;
       if (hecha) programaHecho[k] = { cuando: new Date().toISOString() }; else delete programaHecho[k];
       guardar("pt_programa_hecho", programaHecho);
-      pintarCalendario(); pintarDiaCal(f); pintarPrograma(); avisoProgramaMenu();
+      pintarCalendario(); pintarDiaCal(calDiaSel && calDiaSel.slice(0, 7) === f.slice(0, 7) ? calDiaSel : f); pintarPrograma(); avisoProgramaMenu();
     }
     async function compartirRegistroCal(id) {
       const r = calRegistros.find(x => x.id === id), msj = document.getElementById("msjCalDia");
@@ -5441,64 +5602,180 @@
       pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
     }
     function pintarPrograma() {
-      const a = hoyISO().slice(0, 4), cAnio = cumplimiento(`${a}-01-01`, `${a}-12-31`), cMes = cumplimiento(`${calMes}-01`, `${calMes}-31`);
+      const cTot = cumplimiento("1900-01-01", "2999-12-31"), pMes = programadasEntre(`${calMes}-01`, `${calMes}-31`), cMes = { hechas: pMes.filter(x => x.hecha).length, total: pMes.length };
+      const todosMeses = programa.flatMap(x => x.meses || [x.fecha.slice(0, 7)]).sort();
       document.getElementById("progCumplimiento").innerHTML = programa.length
-        ? `Cumplimiento ${a} (actividades ya vencidas): <b>${cAnio.hechas} de ${cAnio.total} (${cAnio.pct}%)</b> · ${MESES[+calMes.slice(5) - 1]}: <b>${cMes.hechas} de ${cMes.total}</b>`
+        ? `Programa de ${mesLargo(todosMeses[0])} a ${mesLargo(todosMeses.at(-1))} · Cumplimiento acumulado (lo ya vencido): <b>${cTot.hechas} de ${cTot.total}${cTot.total ? ` (${cTot.pct}%)` : ""}</b> · ${MESES[+calMes.slice(5) - 1]}: <b>${cMes.hechas} de ${cMes.total}</b>`
         : "Todavía no hay actividades. Agrégalas una por una o carga tu programa desde Excel.";
       const rep = { "": "Una vez", semana: "Cada semana", mes: "Cada mes", "3m": "Cada 3 meses", "6m": "Cada 6 meses" };
-      document.getElementById("progLista").innerHTML = [...programa].sort((x, y) => x.fecha.localeCompare(y.fecha)).map(x => `
+      const cuando = x => x.meses ? `${x.frecuencia ? html(x.frecuencia) + " · " : ""}${x.meses.length} mes(es), de ${mesLargo(x.meses[0])} a ${mesLargo(x.meses.at(-1))}`
+        : `${x.mes ? "Mes de " + MESES[+x.fecha.slice(5, 7) - 1].toLowerCase() : fechaCLde(x.fecha)} · ${rep[x.repite || ""]}${x.repite ? " hasta " + fechaCLde(x.hasta) : ""}`;
+      const items = [...programa].sort((x, y) => (x.seccion || "").localeCompare(y.seccion || "") || x.fecha.localeCompare(y.fecha));
+      let sec = null;
+      document.getElementById("progLista").innerHTML = programa.length ? `<details class="exportar"><summary>Ver las ${programa.length} actividades del programa</summary>
+        ${items.map(x => `${x.seccion !== sec && (sec = x.seccion) ? `<h3>${html(sec)}</h3>` : ""}
         <div class="registro">
           <div class="tit">${html(x.actividad)}</div>
-          <div class="det">${html(x.tipo)} · ${x.mes ? "Mes de " + MESES[+x.fecha.slice(5, 7) - 1].toLowerCase() : fechaCLde(x.fecha)} · ${rep[x.repite || ""]}${x.repite ? " hasta " + fechaCLde(x.hasta) : ""}${x.responsable ? " · " + html(x.responsable) : ""}</div>
+          <div class="det">${html(x.tipo)} · ${cuando(x)}${x.nota ? " · " + html(x.nota) : ""}${x.responsable ? " · " + html(x.responsable) : ""}</div>
           <div class="botones" style="grid-template-columns:1fr"><button type="button" class="btn btn-quitar" onclick="quitarActividad('${x.id}', this)">Quitar</button></div>
-        </div>`).join("");
+        </div>`).join("")}
+        ${programa.some(x => x.importado) ? `<button type="button" class="btn btn-quitar" onclick="quitarProgramaExcel(this)">Quitar lo cargado desde Excel</button>` : ""}</details>` : "";
     }
 
     // Programa desde Excel: lista con fechas, o carta Gantt con meses marcados con X
+    const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    // Tipo de actividad según palabras del texto (o de la columna Tipo)
+    const PALABRAS_TIPO = [
+      [/charla|5 minutos|cinco minutos/, "Charla"], [/capacitaci|\bcurso|\btaller|\bformaci|entrenamiento|instrucci[oó]n de uso/, "Capacitación"],
+      [/simulacro/, "Simulacro"], [/\breuni[oó]n|comit[eé] paritario|\bcphs\b/, "Reunión CPHS"], [/\bauditor/, "Auditoría"],
+      [/inspecci|check ?list|revisi[oó]n de|patrullaje|visitas? inspectiv|observaciones? de conducta|catastro/, "Inspección"],
+      [/informaci[oó]n de riesgos|\birl\b|\bodi\b|inducci/, "Inducción / IRL"], [/difusi|campa[nñ]a|entrega de|protocolo/, "Difusión"]
+    ];
+    const tipoPrograma = (t, act) => {
+      const tn = normalizar(String(t || "")), tipo = tn && TIPOS_PROGRAMA.find(x => tn.startsWith(normalizar(x).split(" ")[0]));
+      if (tipo) return tipo;
+      const titulo = normalizar(act.split(":")[0]), todo = normalizar(act);   // primero el título, después la descripción
+      return (PALABRAS_TIPO.find(([re]) => re.test(titulo)) || PALABRAS_TIPO.find(([re]) => re.test(todo)) || [])[1] || "Otro";
+    };
+    const fechaDeCelda = v => {
+      if (v instanceof Date) return isoD(new Date(v.getFullYear(), v.getMonth(), v.getDate(), 12));
+      if (typeof v === "number" && v > 30000 && v < 80000) return isoD(new Date(Math.round((v - 25569) * 86400000) + 12 * 3600000));
+      const s = String(v ?? "").trim(); let m;
+      if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+      if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+      return "";
+    };
+    const sumarMeses = (ym, n) => { const d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + n, 1, 12); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; };
+    const mesLargo = ym => `${MESES[+ym.slice(5, 7) - 1].toLowerCase()} ${ym.slice(0, 4)}`;
+
+    /* Lee el programa desde las filas de una hoja. Entiende:
+       - lista con fechas (Actividad | Fecha | Tipo | Responsable)
+       - carta Gantt con meses Ene…Dic (año actual), meses con año (Ene-2027, o fechas como título)
+       - carta Gantt con meses numerados 1, 2, 3 … 48 (contratos largos): necesita saber en qué mes parte el "mes 1"
+       Marcas aceptadas en la Gantt: 1, X, ✓, SI, CV (cada vez que corresponda), D (diaria), S (semanal). */
+    function leerProgramaFilas(filas, anio, inicio) {
+      const nt = v => normalizar(String(v ?? "")).trim();
+      // Fila de títulos: una celda corta que dice "Actividad" (no el título del documento) y, ojalá, otras como Responsable o Fecha
+      const esTitAct = c => { const t = nt(c); return t.length < 45 && /^(n°\s*)?(actividad|actividades|tema|descripcion)\b/.test(t); };
+      const puntaje = f => f.some(esTitAct) ? 1 + f.filter(c => /^(respons|fecha|frecuencia|tipo|mes|ene|feb)/.test(nt(c))).length : 0;
+      let iCab = -1, mejor = 0;
+      filas.slice(0, 40).forEach((f, i) => { const p = puntaje(f); if (p > mejor) { mejor = p; iCab = i; } });
+      if (iCab < 0) return [];
+      const cab = filas[iCab].map(nt), col = re => cab.findIndex(c => re.test(c));
+      let cAct = cab.findIndex((c, i) => esTitAct(filas[iCab][i]));
+      const cFecha = col(/^fecha$|^fecha programada|^fecha de (realizacion|ejecucion)$/), cTipo = col(/^tipo/), cResp = col(/respons/), cFrec = col(/frecuencia/);
+      // El título "Actividad" a veces está sobre el N° y el texto va en la columna de al lado
+      const largos = c => filas.slice(iCab + 1).filter(f => String(f[c] ?? "").trim().length > 15).length;
+      for (const c of [cAct + 1, cAct + 2]) if (c !== cResp && c !== cFrec && largos(c) > largos(cAct)) cAct = c;
+      // Columnas de meses: buscamos en el título y en las 2 filas de abajo
+      let colMes = {}, numerados = false, filaFin = iCab;
+      for (let k = iCab; k <= Math.min(iCab + 2, filas.length - 1); k++) {
+        const f = filas[k], nums = {}, conAnio = {};
+        f.forEach((v, c) => {
+          if (c <= cAct) return;
+          if (typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 120) nums[c] = v;
+          else if (v instanceof Date) conAnio[c] = isoD(v).slice(0, 7);
+          else { const m = nt(v).match(/^(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)[a-z]*[\s\-\/.]*(\d{2,4})$/); if (m) conAnio[c] = `${m[2].length === 2 ? "20" + m[2] : m[2]}-${String(MESES_CORTOS.indexOf(m[1]) + 1).padStart(2, "0")}`; }
+        });
+        const cs = Object.keys(nums).map(Number).sort((a, b) => a - b);
+        if (cs.length >= 6 && nums[cs[0]] === 1 && cs.every((c, i) => nums[c] === i + 1)) { colMes = nums; numerados = true; filaFin = k; break; }
+        if (Object.keys(conAnio).length >= 3) { colMes = conAnio; filaFin = k; break; }
+      }
+      if (!Object.keys(colMes).length) {
+        MESES_CORTOS.forEach((m, i) => { const c = cab.findIndex((x, j) => j > cAct && x.startsWith(m)); if (c >= 0) colMes[c] = `${anio}-${String(i + 1).padStart(2, "0")}`; });
+      }
+      // Columnas de totales (ej: =COUNT(...) al final de la Gantt) no son meses: se cortan ahí
+      const datos = filas.slice(filaFin + 1);
+      const colTotal = Object.keys(colMes).map(Number).sort((a, b) => a - b).find(c => datos.filter(f => typeof f[c] === "number" && f[c] > 1).length >= 3);
+      if (colTotal !== undefined) for (const c of Object.keys(colMes).map(Number)) if (c >= colTotal) delete colMes[c];
+      if (numerados && !inicio) return { necesitaInicio: true, meses: Object.keys(colMes).length };
+      const mesDeCol = c => numerados ? sumarMeses(inicio, colMes[c] - 1) : colMes[c];
+      const marca = v => typeof v === "number" ? (v === 1 ? "1" : "") : nt(v).replace(/\s+/g, "");
+      const MARCAS = { "1": "", x: "", "✓": "", "✔": "", si: "", ok: "", cv: "Cada vez que corresponda", d: "Diaria", s: "Semanal", p: "" };
+      const res = []; let n = 0, seccion = "";
+      for (const f of filas.slice(filaFin + 1)) {
+        let texto = String(f[cAct] ?? "").replace(/\s+/g, " ").trim();
+        if (!texto || /^nomenclatura|^nota\b|^programa elaborado|= ?(cada vez|de forma)/i.test(texto)) continue;
+        const meses = [], notas = new Set();
+        for (const c of Object.keys(colMes).map(Number)) { const m = marca(f[c]); if (m in MARCAS) { meses.push(mesDeCol(c)); if (MARCAS[m]) notas.add(MARCAS[m]); } }
+        const fecha = cFecha >= 0 ? fechaDeCelda(f[cFecha]) : "";
+        const resp = cResp >= 0 ? String(f[cResp] ?? "").trim() : "";
+        if (!fecha && !meses.length) { if (!resp && texto.length < 70) seccion = texto; continue; }   // título de sección (I, II…)
+        let actividad = texto, detalle = "";
+        const dp = texto.indexOf(":");
+        if (dp > 8 && dp < 90) { actividad = texto.slice(0, dp).trim(); detalle = texto.slice(dp + 1).trim(); }
+        const base = { actividad, detalle, tipo: tipoPrograma(cTipo >= 0 ? f[cTipo] : "", texto), responsable: resp, frecuencia: cFrec >= 0 ? String(f[cFrec] ?? "").trim() : "",
+          seccion, nota: [...notas].join(", "), repite: "", hasta: "", importado: true };
+        if (fecha) { res.push({ ...base, id: "p" + Date.now().toString(36) + (n++), fecha, mes: false }); continue; }
+        const unicos = [...new Set(meses)].sort();
+        res.push({ ...base, id: "p" + Date.now().toString(36) + (n++), fecha: unicos[0] + "-01", meses: unicos, mes: true });
+      }
+      return res;
+    }
+
+    // Busca en el encabezado la fecha de inicio o de elaboración del programa (para el "mes 1")
+    function fechaInicioPrograma(filas) {
+      for (const f of filas.slice(0, 20)) for (let c = 0; c < f.length; c++) {
+        if (!/inicio|periodo|elaboracion/.test(normalizar(String(f[c] ?? "")))) continue;
+        for (let k = c + 1; k < Math.min(f.length, c + 6); k++) { const d = fechaDeCelda(f[k]); if (d) return d.slice(0, 7); }
+        const m = String(f[c]).match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); if (m) return `${m[3]}-${m[2].padStart(2, "0")}`;
+      }
+      return "";
+    }
+
+    let progPendiente = null;
     async function importarProgramaExcel(input) {
       const a = input.files[0]; input.value = "";
-      const msj = document.getElementById("msjImpProg");
+      const msj = document.getElementById("msjImpProg"), caja = document.getElementById("progInicioCaja");
+      caja.style.display = "none";
       if (!a) return;
       try {
         if (!window.XLSX) { msj.textContent = "Cargando lector de Excel…"; await cargarScript(URL_SHEETJS); }
         const libro = XLSX.read(new Uint8Array(await a.arrayBuffer()), { type: "array", cellDates: true });
-        const filas = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { header: 1, raw: true, defval: "" });
-        const nuevas = leerProgramaFilas(filas, +hoyISO().slice(0, 4));
-        if (!nuevas.length) { msj.textContent = "No encontré actividades. Revisa que haya una columna 'Actividad' y una 'Fecha' (o los meses marcados con X)."; return; }
-        programa.push(...nuevas);
-        guardar("pt_programa", programa);
-        msj.textContent = `✅ Se cargaron ${nuevas.length} actividades del programa.`;
-        pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
+        // Probamos hoja por hoja: el programa puede no estar en la primera
+        for (const nombre of libro.SheetNames) {
+          const filas = XLSX.utils.sheet_to_json(libro.Sheets[nombre], { header: 1, raw: true, defval: "" });
+          const r = leerProgramaFilas(filas, +hoyISO().slice(0, 4));
+          if (r.necesitaInicio) {
+            progPendiente = { filas, hoja: nombre, archivo: a.name };
+            document.getElementById("progInicio").value = fechaInicioPrograma(filas) || hoyISO().slice(0, 7);
+            document.getElementById("progInicioTxt").textContent = `La hoja "${nombre}" tiene los meses numerados del 1 al ${r.meses}. ¿Qué mes es el "mes 1"? (normalmente el inicio del contrato)`;
+            caja.style.display = "block"; msj.textContent = "";
+            return;
+          }
+          if (r.length) return cargarProgramaLeido(r, a.name);
+        }
+        msj.textContent = "No encontré actividades. Revisa que haya una columna 'Actividad' y una 'Fecha', o meses marcados (Ene, Feb… o 1, 2, 3…).";
       } catch (e) { msj.textContent = "No se pudo leer el Excel: " + e.message; }
     }
-    const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-    function leerProgramaFilas(filas, anio) {
-      const nt = v => normalizar(String(v ?? "")).trim();
-      const iCab = filas.findIndex(f => f.some(c => /actividad|tema|descripcion/.test(nt(c))));
-      if (iCab < 0) return [];
-      const cab = filas[iCab].map(nt);
-      const col = re => cab.findIndex(c => re.test(c));
-      const cAct = col(/actividad|tema|descripcion/), cFecha = col(/^fecha|fecha programada|fecha$/), cTipo = col(/^tipo/), cResp = col(/respons/);
-      const cMeses = MESES_CORTOS.map(m => cab.findIndex(c => c.startsWith(m)));
-      const aFecha = v => {
-        if (v instanceof Date) return isoD(new Date(v.getFullYear(), v.getMonth(), v.getDate(), 12));
-        if (typeof v === "number" && v > 30000) return isoD(new Date(Math.round((v - 25569) * 86400000) + 12 * 3600000));
-        const s = String(v).trim(); let m;
-        if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-        if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-        return "";
-      };
-      const tipoDe = (t, act) => TIPOS_PROGRAMA.find(x => normalizar(x).split(" ")[0] && nt(t || act).includes(normalizar(x).split(" ")[0])) || "Otro";
-      const res = []; let n = 0;
-      for (const f of filas.slice(iCab + 1)) {
-        const act = String(f[cAct] ?? "").trim();
-        if (!act) continue;
-        const base = { actividad: act, tipo: tipoDe(cTipo >= 0 ? f[cTipo] : "", act), responsable: cResp >= 0 ? String(f[cResp] ?? "").trim() : "", repite: "", hasta: "" };
-        const fecha = cFecha >= 0 ? aFecha(f[cFecha]) : "";
-        if (fecha) { res.push({ ...base, id: "p" + Date.now().toString(36) + (n++), fecha, mes: false }); continue; }
-        cMeses.forEach((c, i) => { if (c >= 0 && String(f[c] ?? "").trim()) res.push({ ...base, id: "p" + Date.now().toString(36) + (n++), fecha: `${anio}-${String(i + 1).padStart(2, "0")}-01`, mes: true }); });
+    function confirmarInicioPrograma() {
+      const inicio = document.getElementById("progInicio").value;
+      if (!progPendiente || !inicio) return;
+      const r = leerProgramaFilas(progPendiente.filas, +hoyISO().slice(0, 4), inicio);
+      document.getElementById("progInicioCaja").style.display = "none";
+      cargarProgramaLeido(Array.isArray(r) ? r : [], progPendiente.archivo);
+      progPendiente = null;
+    }
+    function cargarProgramaLeido(nuevas, archivo) {
+      const msj = document.getElementById("msjImpProg");
+      if (!nuevas.length) { msj.textContent = "No encontré actividades en ese Excel."; return; }
+      const previas = programa.filter(a => a.importado);
+      if (previas.length && confirm(`Ya hay ${previas.length} actividades cargadas desde Excel. ¿Las reemplazo por las de este archivo? (Aceptar = reemplazar · Cancelar = sumar)`)) {
+        const ids = new Set(previas.map(a => a.id));
+        programa = programa.filter(a => !ids.has(a.id));
       }
-      return res;
+      programa.push(...nuevas);
+      guardar("pt_programa", programa);
+      const meses = nuevas.flatMap(a => a.meses || [a.fecha.slice(0, 7)]).sort();
+      const total = nuevas.reduce((s, a) => s + (a.meses ? a.meses.length : 1), 0);
+      msj.textContent = `✅ ${nuevas.length} actividades cargadas (${total} programaciones) de ${mesLargo(meses[0])} a ${mesLargo(meses.at(-1))}.`;
+      calMes = hoyISO().slice(0, 7);
+      pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
+    }
+    function quitarProgramaExcel(b) {
+      if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro? Toca de nuevo"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Quitar lo cargado desde Excel"; }, 4000); return; }
+      programa = programa.filter(a => !a.importado); guardar("pt_programa", programa);
+      pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
     }
 
     // Aviso en el menú: lo de hoy y lo atrasado del programa
@@ -5515,7 +5792,7 @@
       caja.style.display = "block";
       caja.innerHTML = `<b>📅 Pendientes de prevención</b>
         ${deHoy.length ? `<span>Hoy: ${deHoy.map(x => html(x.a.actividad)).join(", ")}</span>` : ""}
-        ${delMes.length ? `<span>Este mes: ${delMes.map(x => html(x.a.actividad)).join(", ")}</span>` : ""}
+        ${delMes.length ? (delMes.length > 3 ? `<span>Este mes: ${delMes.length} actividades del programa pendientes →</span>` : `<span>Este mes: ${delMes.map(x => html(x.a.actividad)).join(", ")}</span>`) : ""}
         ${atrasadas.length ? `<span class="rojo">${atrasadas.length} actividad(es) atrasada(s)</span>` : ""}
         ${halHoy.length ? `<span onclick="event.stopPropagation(); mostrar('hallazgos')">📌 Hallazgos que vencen hoy: ${halHoy.length} →</span>` : ""}
         ${halVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('hallazgos')">⛔ ${halVenc.length} hallazgo(s) con plazo vencido →</span>` : ""}
