@@ -52,7 +52,8 @@
        (ej. nyklaaz.github.io/prevencion-terreno y nyklaaz.github.io/APR-terreno-libre) y el navegador
        les comparte el almacenamiento. La versión con paquete incluido (empresa) usa los nombres de siempre;
        cualquier otra guarda sus datos con el nombre de su carpeta para no mezclarse. */
-    var ESPACIO_DATOS = window.PAQUETE_INCLUIDO ? "" : "[" + location.pathname.replace(/[^\/]*$/, "") + "]";
+    // DATOS_LEGADO: la instalación original (la que ya tenía datos guardados) sigue leyendo sus datos de siempre
+    var ESPACIO_DATOS = (window.PAQUETE_INCLUIDO || window.DATOS_LEGADO) ? "" : "[" + location.pathname.replace(/[^\/]*$/, "") + "]";
     (function () {
       if (!ESPACIO_DATOS) return;
       ["getItem", "setItem", "removeItem"].forEach(function (fn) {
@@ -333,9 +334,11 @@
     .cal-resumen { margin: 6px 0; } .cal-barra { height: 6px; background: #e6e9ee; border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
     .cal-barra span { display: block; height: 100%; background: var(--ok); }
     .cal-detalle { display: block; color: #56606b; font-weight: 400; }
-    .cargo-fila { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--borde); }
-    .cargo-fila span { flex: 1; font-size: 14px; } .cargo-fila small { display: block; color: #6b7480; }
-    .cargo-fila select { width: 52%; margin: 0; }
+    .cargo-fila { padding: 6px 0; border-bottom: 1px solid var(--borde); }
+    .cargo-fila summary { display: flex; gap: 8px; align-items: center; cursor: pointer; list-style: none; }
+    .cargo-fila summary span { flex: 1; font-size: 14px; } .cargo-fila small { display: block; color: #6b7480; font-weight: 400; }
+    .cargo-resumen { font-size: 13px; text-align: right; max-width: 55%; font-weight: 600; }
+    .cargo-opciones { padding: 6px 0 4px 8px; } .t-deptos .check-linea { margin: 4px 0; }
     .inf-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
     .inf-dato { background: #f6f7f9; border-radius: 8px; padding: 8px 10px; }
     .inf-dato b { display: block; font-size: 18px; color: var(--oscuro); }
@@ -483,7 +486,7 @@
             <div id="agregarTodos" style="margin-top:8px"></div>
             <details class="exportar" id="cargosPersonal" ontoggle="if (this.open) pintarCargosPersonal()">
               <summary>🏷️ Cargos del personal <span id="cargosResumen"></span></summary>
-              <p class="ayuda">Deja el cargo de cada trabajador una sola vez. Así, al elegir los departamentos, el botón 👥 los agrega a todos y cada uno cae en su ART. Si tu Excel del personal trae una columna "Cargo", se llena sola.</p>
+              <p class="ayuda">Deja el cargo de cada trabajador una sola vez (puede tener varios, ej: Maestro y Operador). Al elegir los departamentos, el botón 👥 los agrega y cada uno cae en su ART; si tiene dos de los departamentos de hoy, sale en los dos PDF con una sola firma. Si tu Excel del personal trae una columna "Cargo", se llena sola.</p>
               <div id="listaCargos"></div>
             </details>
             <p class="ayuda" style="margin-top:6px">
@@ -1129,6 +1132,7 @@
           titulo: c.titulo || "REGISTRO DE CHARLA DIARIA DE SEGURIDAD – ART", tema: c.tema || "",
           checklist: c.checklist || [], modulos: c.modulos || [], departamentos: (c.departamentos || []).filter(d => /^[\w-]+$/.test(d.id || "")),
           preguntasART: c.preguntasART || [], notasBloqueador: c.notasBloqueador || [], sugerirIRL: c.sugerirIRL || {},
+          cargosExtra: (c.cargosExtra || []).map(x => String(x).trim()).filter(Boolean),   // cargos sin departamento (ej: Administración)
           declaracion: c.declaracion || "Al firmar este documento, la persona trabajadora declara haber asistido y comprendido la charla diaria de seguridad y el análisis de riesgos del trabajo.",
           bloqueador: c.bloqueador ?? (c.notasBloqueador || []).length > 0   // registro de bloqueador solar (opcional)
         },
@@ -1303,15 +1307,20 @@
     function refrescarDeptosTrabajadores() {
       const elegidos = deptosElegidos(), varios = elegidos.length > 1;
       document.querySelectorAll(".trabajador").forEach(t => {
-        const caja = t.querySelector(".t-depto-caja"), sel = t.querySelector(".t-depto");
+        const caja = t.querySelector(".t-depto-caja"), cont = t.querySelector(".t-deptos");
         caja.style.display = varios ? "block" : "none";
-        sel.required = varios;
         if (!varios) return;
         const rut = claveRut(t.querySelector(".t-rut").value);
-        const actual = sel.value;
-        const porCargo = deptoDeCargo(t.querySelector(".t-cargo").value)?.id;
-        sel.innerHTML = `<option value="">¿En qué ART va?</option>` + elegidos.map(id => `<option value="${id}">${esc(buscarDepto(id).icono || "")} ${esc(buscarDepto(id).nombre)}</option>`).join("");
-        sel.value = [actual, porCargo, deptosPorRut[rut]].find(x => x && elegidos.includes(x)) || "";
+        const yaPintado = cont.dataset.pintado === "1";
+        const marcados = new Set([...cont.querySelectorAll("input:checked")].map(i => i.value));
+        if (!yaPintado) {
+          // La primera vez: todos sus departamentos de hoy (opción B) o el de su cargo
+          deptosDe(rut).filter(id => elegidos.includes(id)).forEach(id => marcados.add(id));
+          const dc = !esExtra(t.querySelector(".t-cargo").value) && deptoDeCargo(t.querySelector(".t-cargo").value)?.id;
+          if (!marcados.size && dc && elegidos.includes(dc)) marcados.add(dc);
+        }
+        cont.innerHTML = elegidos.map(id => `<label class="check-linea"><input type="checkbox" value="${id}" ${marcados.has(id) ? "checked" : ""}> ${esc(buscarDepto(id).icono || "")} ${esc(buscarDepto(id).nombre)}</label>`).join("");
+        cont.dataset.pintado = "1";
       });
       pintarBotonTodos();
     }
@@ -1320,13 +1329,13 @@
       const caja = document.getElementById("agregarTodos");
       if (!caja) return;
       const elegidos = deptosElegidos();
-      const faltan = (listado?.lista || []).filter(p => elegidos.includes(deptosPorRut[claveRut(p.rut)]) && !document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`));
+      const faltan = (listado?.lista || []).filter(p => deptosDe(claveRut(p.rut)).some(id => elegidos.includes(id)) && !document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`));
       caja.innerHTML = faltan.length
         ? `<button type="button" class="btn btn-secundario" onclick="agregarTodosDeptos()">👥 Agregar a los ${faltan.length} de ${elegidos.map(id => esc(buscarDepto(id).nombre)).join(", ")}</button>` : "";
     }
     function agregarTodosDeptos() {
       const elegidos = deptosElegidos();
-      (listado?.lista || []).filter(p => elegidos.includes(deptosPorRut[claveRut(p.rut)]) && !document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`))
+      (listado?.lista || []).filter(p => deptosDe(claveRut(p.rut)).some(id => elegidos.includes(id)) && !document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`))
         .forEach(p => agregarTrabajador(p));
       pintarListado();
       document.getElementById("tituloAsistentes").scrollIntoView({ behavior: "smooth" });
@@ -1371,6 +1380,50 @@
     let listado = leerGuardado("pt_listado", null);   // { obra, lista: [{nombre, rut}], cargado }
     let cargos = leerGuardado("pt_cargos", {});        // el cargo que recordamos para cada RUT
     let deptosPorRut = leerGuardado("pt_deptos", {});  // el departamento que recordamos para cada RUT
+    let cargosMulti = leerGuardado("pt_cargos_multi", {});  // RUT -> todos sus cargos (ej: Maestro y Operador)
+    const cargosExtra = () => PAQ.charla.cargosExtra || [];
+    const esExtra = c => cargosExtra().some(x => normalizar(x) === normalizar(c));
+    const todosLosCargos = () => [...new Set([...DEPARTAMENTOS.map(d => d.cargo), ...cargosExtra()])];
+    // Cargos de un trabajador: los marcados en "Cargos del personal"; si no, el último que usó
+    function cargosDe(rut) {
+      if (cargosMulti[rut]?.length) return cargosMulti[rut];
+      if (cargos[rut]) return [cargos[rut]];
+      const d = buscarDepto(deptosPorRut[rut]);
+      return d ? [d.cargo] : [];
+    }
+    // Departamentos (ART) a los que pertenece por sus cargos
+    function deptosDe(rut) {
+      const ids = cargosDe(rut).filter(c => !esExtra(c)).map(c => deptoDeCargo(c)?.id).filter(Boolean);
+      if (!ids.length && buscarDepto(deptosPorRut[rut]) && !cargosMulti[rut]) ids.push(deptosPorRut[rut]);
+      return [...new Set(ids)];
+    }
+    // Reconoce cargos escritos en el Excel: "MAESTRO / OPERADOR", "Prevencionista", "Ing. Residente"…
+    function cargosDeTexto(t) {
+      const res = [];
+      for (const parte of String(t || "").split(/\s*(?:\/|,|;|\+|\sy\s)\s*/i).filter(Boolean)) {
+        const n = normalizar(parte).replace(/^ing\.?\s/, "ingeniero ");
+        // El que más palabras comparte (ej: "Ing. Residente" -> Ingeniero Residente, no Constructor)
+        let extra = null, mejor = 0;
+        for (const x of cargosExtra()) {
+          const xn = normalizar(x), palabras = xn.split(/\s+/).filter(w => w.length >= 3);
+          if (n === xn) { extra = x; break; }
+          if (n.split(/\s+/)[0].slice(0, 6) !== (palabras[0] || xn).slice(0, 6) && !n.startsWith(xn)) continue;
+          const pts = palabras.filter(w => n.includes(w.slice(0, 5))).length + (n.startsWith(xn) ? 5 : 0);
+          if (pts > mejor) { mejor = pts; extra = x; }
+        }
+        const d = !extra && deptoDeCargo(parte);
+        const c = extra || d?.cargo;
+        if (c && !res.includes(c)) res.push(c);
+      }
+      return res;
+    }
+    function guardarCargosMulti(rut, lista) {
+      if (lista.length) cargosMulti[rut] = lista; else delete cargosMulti[rut];
+      const d = lista.map(c => !esExtra(c) && deptoDeCargo(c)).find(Boolean);
+      if (lista.length) cargos[rut] = lista[0]; else delete cargos[rut];
+      if (d) deptosPorRut[rut] = d.id; else if (!lista.length) delete deptosPorRut[rut];
+      guardar("pt_cargos_multi", cargosMulti); guardar("pt_cargos", cargos); guardar("pt_deptos", deptosPorRut);
+    }
 
     // Descarga una librería de internet solo cuando la necesitamos
     function cargarScript(url) {
@@ -1484,11 +1537,10 @@
       let conCargo = 0;
       for (const p of datos.lista) {
         if (!p.cargo) continue;
-        const rut = claveRut(p.rut), d = deptoDeCargo(p.cargo);
-        if (d) { deptosPorRut[rut] = d.id; cargos[rut] = d.cargo; conCargo++; }
-        else if (!cargos[rut]) cargos[rut] = tipoTitulo(p.cargo);
+        const rut = claveRut(p.rut), lista = cargosDeTexto(p.cargo);
+        if (lista.length) { guardarCargosMulti(rut, lista); conCargo++; }
+        else if (!cargos[rut]) { cargos[rut] = tipoTitulo(p.cargo); guardar("pt_cargos", cargos); }
       }
-      if (conCargo) { guardar("pt_deptos", deptosPorRut); guardar("pt_cargos", cargos); }
       listado = datos;
       guardar("pt_listado", datos);
       mostrarListado();
@@ -1507,23 +1559,25 @@
     }
 
     function resumenCargos() {
-      const n = (listado?.lista || []).filter(p => buscarDepto(deptosPorRut[claveRut(p.rut)])).length;
+      const n = (listado?.lista || []).filter(p => cargosDe(claveRut(p.rut)).length).length;
       const el = document.getElementById("cargosResumen");
       if (el) el.textContent = `(${n} de ${listado?.lista.length || 0} con cargo)`;
     }
+    function iconoCargo(c) { const d = !esExtra(c) && deptoDeCargo(c); return d ? (d.icono || "") : "🏢"; }
     function pintarCargosPersonal() {
-      const opciones = DEPARTAMENTOS.map(d => `<option value="${d.id}">${esc(d.icono || "")} ${esc(d.cargo)}</option>`).join("");
       document.getElementById("listaCargos").innerHTML = (listado?.lista || []).map(p => {
-        const rut = claveRut(p.rut);
-        return `<div class="cargo-fila"><span>${esc(p.nombre)}<small>${esc(p.rut)}</small></span>
-          <select data-rut="${rut}" onchange="asignarCargoListado(this)"><option value="">Sin asignar</option>${opciones}</select></div>`;
+        const rut = claveRut(p.rut), suyos = cargosDe(rut);
+        return `<details class="cargo-fila"><summary><span>${esc(p.nombre)}<small>${esc(p.rut)}</small></span>
+            <b class="cargo-resumen">${suyos.length ? suyos.map(c => esc(iconoCargo(c) + " " + c)).join("<br>") : "Sin asignar"}</b></summary>
+          <div class="cargo-opciones">${todosLosCargos().map(c => `<label class="check-linea"><input type="checkbox" data-rut="${rut}" value="${esc(c)}" ${suyos.some(x => normalizar(x) === normalizar(c)) ? "checked" : ""} onchange="asignarCargoListado('${rut}')"> ${esc(iconoCargo(c))} ${esc(c)}</label>`).join("")}</div>
+        </details>`;
       }).join("") || `<p class="ayuda">Carga primero el listado de personal.</p>`;
-      document.querySelectorAll("#listaCargos select").forEach(s => s.value = buscarDepto(deptosPorRut[s.dataset.rut]) ? deptosPorRut[s.dataset.rut] : "");
     }
-    function asignarCargoListado(sel) {
-      const rut = sel.dataset.rut, d = buscarDepto(sel.value);
-      if (d) { deptosPorRut[rut] = d.id; cargos[rut] = d.cargo; } else { delete deptosPorRut[rut]; delete cargos[rut]; }
-      guardar("pt_deptos", deptosPorRut); guardar("pt_cargos", cargos);
+    function asignarCargoListado(rut) {
+      const lista = [...document.querySelectorAll(`#listaCargos input[data-rut="${rut}"]:checked`)].map(i => i.value);
+      guardarCargosMulti(rut, lista);
+      const fila = document.querySelector(`#listaCargos input[data-rut="${rut}"]`).closest(".cargo-fila");
+      fila.querySelector(".cargo-resumen").innerHTML = lista.length ? lista.map(c => esc(iconoCargo(c) + " " + c)).join("<br>") : "Sin asignar";
       resumenCargos(); pintarListado(); refrescarDeptosTrabajadores();
     }
 
@@ -1533,7 +1587,7 @@
       const busca = normalizar(document.getElementById("buscador").value);
       const buscaRut = claveRut(busca);
       const elegidos = deptosElegidos();
-      const esDeHoy = p => elegidos.includes(deptosPorRut[claveRut(p.rut)]);
+      const esDeHoy = p => deptosDe(claveRut(p.rut)).some(id => elegidos.includes(id));
       const visibles = listado.lista
         .filter(p => !busca || normalizar(p.nombre).includes(busca) || (buscaRut.length > 2 && claveRut(p.rut).includes(buscaRut)))
         // "sort" ordena: los del departamento elegido hoy van primero (el resto mantiene su orden)
@@ -1541,8 +1595,8 @@
 
       document.getElementById("listaPersonal").innerHTML = visibles.map(p => {
         const elegido = document.querySelector(`.trabajador[data-rut="${claveRut(p.rut)}"]`) ? "elegido" : "";
-        const depto = buscarDepto(deptosPorRut[claveRut(p.rut)]);
-        const etiqueta = depto ? `<span class="etiqueta">${depto.icono} ${depto.titulo}</span>` : "";
+        const suyos = cargosDe(claveRut(p.rut));
+        const etiqueta = suyos.length ? `<span class="etiqueta">${suyos.map(c => esc(iconoCargo(c) + " " + c)).join(" · ")}</span>` : "";
         return `<button type="button" class="persona ${elegido}" onclick="tocarPersona('${claveRut(p.rut)}')">
                   <span>${esc(p.nombre)}${etiqueta}</span><small>${esc(p.rut)}</small></button>`;
       }).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
@@ -1582,7 +1636,10 @@
       // Cargo: el recordado; si no hay, el de su departamento; si hoy hay un solo departamento, el de ese
       const elegidos = deptosElegidos();
       const deptoHoy = elegidos.length === 1 ? buscarDepto(elegidos[0]) : null;
-      const cargo = (persona && cargos[claveRut(persona.rut)])
+      const suyos = persona ? cargosDe(claveRut(persona.rut)) : [];
+      const cargo = suyos.find(c => !esExtra(c) && elegidos.includes(deptoDeCargo(c)?.id))
+        || suyos[0]
+        || (persona && cargos[claveRut(persona.rut)])
         || (persona && buscarDepto(deptosPorRut[claveRut(persona.rut)])?.cargo)
         || deptoHoy?.cargo || "";
       div.innerHTML = `
@@ -1593,11 +1650,11 @@
         <label>Cargo / función</label>
         <select class="t-cargo-lista" required>
           <option value="">Elige el cargo…</option>
-          ${DEPARTAMENTOS.map(d => `<option value="${esc(d.cargo)}">${esc(d.icono || "")} ${esc(d.cargo)}</option>`).join("")}
+          ${todosLosCargos().map(c => `<option value="${esc(c)}">${esc(iconoCargo(c))} ${esc(c)}</option>`).join("")}
           <option value="otro">✏️ Otro…</option>
         </select>
         <input type="text" class="t-cargo" placeholder="Escribe el cargo" style="display:none; margin-top:6px">
-        <div class="t-depto-caja" style="display:none"><label>Va en la ART de</label><select class="t-depto"></select></div>
+        <div class="t-depto-caja" style="display:none"><label>Va en la ART de <small>(si hoy hace las dos tareas, marca las dos: sale en ambos PDF con una sola firma)</small></label><div class="t-deptos"></div></div>
         ${PAQ.charla.bloqueador ? `<label class="check-linea"><input type="checkbox" class="t-bloqueador"> Aplicó bloqueador solar hoy</label>` : ""}
         ${htmlFirma("Firma del trabajador")}`;
 
@@ -1605,8 +1662,8 @@
       const lista = div.querySelector(".t-cargo-lista");
       const texto = div.querySelector(".t-cargo");
       // Buscamos el cargo en la lista sin importar mayúsculas ni tildes ("laboratorista" = "Laboratorista")
-      const deLaLista = DEPARTAMENTOS.find(d => normalizar(d.cargo) === normalizar(cargo));
-      if (deLaLista) { lista.value = deLaLista.cargo; texto.value = deLaLista.cargo; }
+      const deLaLista = todosLosCargos().find(c => normalizar(c) === normalizar(cargo));
+      if (deLaLista) { lista.value = deLaLista; texto.value = deLaLista; }
       else if (cargo) { lista.value = "otro"; texto.value = cargo; texto.style.display = "block"; texto.required = true; }
 
       lista.addEventListener("change", () => {
@@ -1615,14 +1672,11 @@
         texto.required = otro;
         texto.value = otro ? "" : lista.value;
         if (otro) texto.focus(); else recordarCargo(div);
-        const dc = deptoDeCargo(texto.value)?.id, sel = div.querySelector(".t-depto");
-        if (dc && deptosElegidos().includes(dc)) sel.value = dc;
+        const dc = !esExtra(texto.value) && deptoDeCargo(texto.value)?.id;
+        const casilla = dc && div.querySelector(`.t-deptos input[value="${dc}"]`);
+        if (casilla) casilla.checked = true;
       });
       texto.addEventListener("change", () => recordarCargo(div));
-      div.querySelector(".t-depto").addEventListener("change", e => {
-        const rut = claveRut(div.querySelector(".t-rut").value);
-        if (rut && e.target.value) { deptosPorRut[rut] = e.target.value; guardar("pt_deptos", deptosPorRut); }
-      });
 
       document.getElementById("trabajadores").appendChild(div);
       actualizarAsistentes();
@@ -1636,8 +1690,10 @@
       const cargo = bloque.querySelector(".t-cargo").value.trim();
       if (!rut || !cargo) return;
       cargos[rut] = cargo;
-      const depto = DEPARTAMENTOS.find(d => d.cargo === cargo);
+      const depto = !esExtra(cargo) && DEPARTAMENTOS.find(d => d.cargo === cargo);
       if (depto) deptosPorRut[rut] = depto.id;
+      // Si tiene varios cargos guardados y este es nuevo, se suma a la lista
+      if (cargosMulti[rut] && !cargosMulti[rut].some(c => normalizar(c) === normalizar(cargo))) { cargosMulti[rut].push(cargo); guardar("pt_cargos_multi", cargosMulti); }
       guardar("pt_cargos", cargos);
       guardar("pt_deptos", deptosPorRut);
       pintarListado();   // actualiza la etiqueta del departamento en el listado
@@ -1844,7 +1900,14 @@
 
       // Varios departamentos: cada uno debe tener al menos un trabajador
       if (r.arts.length > 1) {
-        const vacio = r.arts.find(a => !r.trabajadores.some(t => t.depto === a.id));
+        const sinArt = [...document.querySelectorAll(".trabajador")].find(t => !t.querySelector(".t-deptos input:checked"));
+        if (sinArt) {
+          error.textContent = `Marca en qué ART va ${sinArt.querySelector(".t-nombre").value || "el trabajador"} (casillas "Va en la ART de").`;
+          sinArt.querySelector(".t-depto-caja").classList.add("campo-falta");
+          sinArt.scrollIntoView({ behavior: "smooth", block: "center" });
+          return;
+        }
+        const vacio = r.arts.find(a => !r.trabajadores.some(t => t.deptos.includes(a.id)));
         if (vacio) {
           error.textContent = `Nadie quedó en la ART de ${vacio.nombre}. Asigna trabajadores a esa ART o quita el departamento (tocándolo arriba).`;
           document.getElementById("tituloAsistentes").scrollIntoView({ behavior: "smooth" });
@@ -1857,7 +1920,7 @@
       guardar("pt_cargos", cargos);
       // El departamento de cada trabajador sale de su cargo (si es uno de la lista)
       r.trabajadores.forEach(t => {
-        const depto = t.depto ? buscarDepto(t.depto) : (r.arts.length === 1 ? buscarDepto(r.arts[0].id) : DEPARTAMENTOS.find(d => d.cargo === t.cargo));
+        const depto = t.deptos?.length ? buscarDepto(t.deptos[0]) : (r.arts.length === 1 ? buscarDepto(r.arts[0].id) : DEPARTAMENTOS.find(d => d.cargo === t.cargo));
         if (t.rut && depto) deptosPorRut[claveRut(t.rut)] = depto.id;
       });
       guardar("pt_deptos", deptosPorRut);
@@ -1870,7 +1933,13 @@
       error.textContent = r.arts.length > 1 ? `Generando ${r.arts.length} PDF (uno por departamento)…` : "Generando PDF…";
       try {
         // Un registro por departamento: misma charla, su ART y solo sus trabajadores
-        const partes = r.arts.length === 1 ? [r] : r.arts.map(a => ({ ...r, arts: [a], trabajadores: r.trabajadores.filter(t => t.depto === a.id) }));
+        // En cada PDF el trabajador sale con el cargo de esa ART (ej: Operador en la de operadores, Maestro en la de maestros)
+        const cargoEn = (t, a) => {
+          if (!esExtra(t.cargo) && deptoDeCargo(t.cargo)?.id === a.id) return t.cargo;
+          return cargosDe(claveRut(t.rut)).find(c => !esExtra(c) && deptoDeCargo(c)?.id === a.id) || t.cargo;
+        };
+        const partes = r.arts.length === 1 ? [r] : r.arts.map(a => ({ ...r, arts: [a],
+          trabajadores: r.trabajadores.filter(t => t.deptos.includes(a.id)).map(t => ({ ...t, cargo: cargoEn(t, a) })) }));
         const rutaArchivo = r.ruta.replace(/[^\wÁÉÍÓÚÑáéíóúñ-]+/g, "_");
         const nuevos = [];
         for (const parte of partes) {
@@ -1946,7 +2015,7 @@
         preguntas: PREGUNTAS_ART.map((_, i) => d.get("art" + i)),
         accion: (d.get("accion") || "").trim(),
         trabajadores: [...document.querySelectorAll(".trabajador")].map(t => ({
-          nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t), depto: t.querySelector(".t-depto")?.value || "",
+          nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t), deptos: [...t.querySelectorAll(".t-deptos input:checked")].map(i => i.value),
           bloqueador: !!t.querySelector(".t-bloqueador")?.checked,
           firma: t.querySelector("canvas").toDataURL("image/png") })),
         // Si el supervisor no firmó, guardamos "null" (vacío) y en el PDF la casilla queda en blanco
@@ -4039,7 +4108,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -6895,6 +6964,7 @@
         <label>Preguntas de la ART (Título | Pregunta)</label><textarea id="edCPreg" rows="3">${pares(c.preguntasART)}</textarea>
         <label>Módulos de la charla (## Título del módulo, y debajo: Punto | Texto)</label>
         <textarea id="edCMod" rows="8">${html((c.modulos || []).map(m => "## " + m.titulo + "\n" + m.puntos.map(([a, b]) => `${a} | ${b}`).join("\n")).join("\n\n"))}</textarea>
+        <label>Otros cargos, sin departamento (uno por línea; ej: Administración, Ingeniero Residente)</label><textarea id="edCExtra" rows="4">${html((c.cargosExtra || []).join("\n"))}</textarea>
         <label>Declaración al firmar</label><textarea id="edCDecl" rows="3">${html(c.declaracion)}</textarea>
         <label class="check-linea"><input type="checkbox" id="edCBloq" ${c.bloqueador ? "checked" : ""}> Registrar entrega de bloqueador solar</label>
         <label>Notas del bloqueador (una por línea)</label><textarea id="edCNotas" rows="3">${html((c.notasBloqueador || []).join("\n"))}</textarea>
@@ -6910,7 +6980,7 @@
         const [a, ...b] = l.split("|"); if (m && b.length) m.puntos.push([a.trim(), b.join("|").trim()]);
       }
       Object.assign(ED.charla, { titulo: v("edCTitulo") || ED.charla.titulo, tema: v("edCTema"), checklist: pares("edCCheck"), preguntasART: pares("edCPreg"),
-        modulos: modulos.filter(x => x.puntos.length), declaracion: v("edCDecl") || ED.charla.declaracion, bloqueador: document.getElementById("edCBloq").checked, notasBloqueador: edLineas("edCNotas") });
+        modulos: modulos.filter(x => x.puntos.length), cargosExtra: edLineas("edCExtra"), declaracion: v("edCDecl") || ED.charla.declaracion, bloqueador: document.getElementById("edCBloq").checked, notasBloqueador: edLineas("edCNotas") });
       edCambio("charla");
       document.getElementById("msjEdCharla").textContent = `✅ Aplicado: ${ED.charla.checklist.length} puntos de checklist, ${ED.charla.preguntasART.length} preguntas ART, ${ED.charla.modulos.length} módulos. Falta Guardar cambios.`;
     }
