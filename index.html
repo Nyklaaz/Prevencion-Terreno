@@ -30,7 +30,7 @@
   <!-- Librería para crear el PDF, descargada desde unpkg (versión fija 1.17.1) -->
   <!-- App instalable: nombre, ícono y colores al agregarla a la pantalla de inicio -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#232830">
+  <meta name="theme-color" content="#0b1220">
   <!-- Seguridad: la app solo carga sus propios archivos (ninguno de internet) y no puede enviar datos a otros sitios -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
   <meta name="referrer" content="no-referrer">
@@ -96,7 +96,7 @@
     .tarjeta { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--borde); }
     .tarjeta h2 { font-size: 15px; margin: 0 0 12px; color: var(--principal); text-transform: uppercase; letter-spacing: .3px; }
     .tarjeta h3 { font-size: 15px; margin: 18px 0 8px; }
-    .ayuda { font-size: 13px; color: #667085; margin: 0 0 10px; }
+    .ayuda { font-size: 13px; color: #667085; margin: 0 0 10px; overflow-wrap: anywhere; }
 
     label { display: block; font-size: 14px; font-weight: 600; margin: 10px 0 4px; }
     input[type=text], input[type=date], input[type=time], input[type=search], textarea, select { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; font-family: inherit; background: white; }
@@ -219,7 +219,7 @@
     /* Campo que falta: borde rojo */
     .campo-falta { border: 2px solid var(--mal) !important; background: #fff5f5 !important; }
     .pregunta.campo-falta { border-radius: 8px; padding-left: 8px; padding-right: 8px; }
-    .mensaje { font-size: 14px; background: #f2f4f7; border-radius: 8px; padding: 10px; }
+    .mensaje { font-size: 14px; background: #f2f4f7; border-radius: 8px; padding: 10px; overflow-wrap: anywhere; }
     .mensaje:empty { display: none; }
     /* ===== Diseño "Grafito ejecutivo" ===== */
     header { box-shadow: 0 2px 0 var(--principal); }
@@ -364,6 +364,83 @@
     .exportar .dos-col { margin-top: 8px; align-items: center; }
     @media (min-width: 900px) { main:has(#informe.activa) { max-width: 860px; } }
     .ck-resumen.hay { background: var(--suave); color: var(--mal); }
+
+    /* =====================================================================
+       TEMA: negro, azul y rojo con degradados, y animaciones suaves.
+       Va al final para que se sobreponga a lo de arriba; para cambiar colores, solo se tocan estas variables.
+       ===================================================================== */
+    :root {
+      --negro: #0b1220; --azul: #2563eb; --azul-osc: #1e3a8a; --rojo: #e11d48; --rojo-osc: #9f1239;
+      --principal: #1d4ed8;            /* títulos, selección y enlaces pasan a azul */
+      --suave: #e8efff;
+      --fondo: #eef2fb;
+      --grad-cab: linear-gradient(120deg, #0b1220 0%, #14275a 50%, #1d4ed8 100%);
+      --grad-azul: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+      --grad-cielo: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+      --grad-rojo: linear-gradient(135deg, #fb4d6d 0%, #b8102a 100%);
+      --grad-negro: linear-gradient(135deg, #475569 0%, #0b1220 100%);
+      --grad-rojo-negro: linear-gradient(135deg, #e11d48 0%, #1e1b2e 100%);
+      --grad-azul-negro: linear-gradient(135deg, #2563eb 0%, #0b1220 100%);
+      --sombra: 0 1px 2px rgba(11,18,32,.06), 0 8px 24px rgba(29,78,216,.10);
+    }
+    body { background: radial-gradient(900px 420px at 100% -8%, #d6e2ff 0%, transparent 65%), radial-gradient(700px 360px at -10% 110%, #ffe1e8 0%, transparent 60%), var(--fondo); background-attachment: fixed; }
+    header { background: var(--grad-cab); box-shadow: 0 3px 0 var(--rojo), 0 10px 24px rgba(11,18,32,.28); }
+    header .logo { box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+    .tarjeta { border: none; border-radius: 16px; box-shadow: var(--sombra); }
+    .tarjeta h2 { color: var(--azul-osc); display: flex; align-items: center; gap: 8px; }
+    .tarjeta h2::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: var(--grad-rojo); flex-shrink: 0; }
+    .empresa-activa { color: var(--azul-osc); font-weight: 600; }
+
+    /* Menú: cada módulo con su color */
+    .menu-btn { border: none; border-radius: 16px; box-shadow: var(--sombra); transition: transform .15s ease, box-shadow .15s ease; }
+    .menu-btn:active { transform: scale(.97); border-color: transparent; box-shadow: 0 0 0 2px var(--azul), var(--sombra); }
+    .menu-ico { color: #fff; background: var(--grad-azul); border-radius: 12px; box-shadow: 0 6px 14px rgba(29,78,216,.28); }
+    .menu-btn[onclick*="'charla'"] .menu-ico { background: var(--grad-rojo); box-shadow: 0 6px 14px rgba(225,29,72,.28); }
+    .menu-btn[onclick*="'irl'"] .menu-ico { background: var(--grad-azul); }
+    .menu-btn[onclick*="'epp'"] .menu-ico { background: var(--grad-negro); box-shadow: 0 6px 14px rgba(11,18,32,.28); }
+    .menu-btn[onclick*="'chequeo'"] .menu-ico { background: var(--grad-cielo); }
+    .menu-btn[onclick*="'calendario'"] .menu-ico { background: var(--grad-azul-negro); }
+    .menu-btn[onclick*="'hallazgos'"] .menu-ico { background: var(--grad-rojo); box-shadow: 0 6px 14px rgba(225,29,72,.28); }
+    .menu-btn[onclick*="'vencimientos'"] .menu-ico { background: var(--grad-rojo-negro); box-shadow: 0 6px 14px rgba(159,18,57,.28); }
+    .menu-btn[onclick*="'informe'"] .menu-ico { background: var(--grad-azul-negro); }
+    .menu-btn[onclick*="'empresa'"] .menu-ico { background: var(--grad-negro); box-shadow: 0 6px 14px rgba(11,18,32,.28); }
+    .menu-btn[onclick*="'historial'"] .menu-ico { background: var(--grad-cielo); }
+    .menu-flecha { color: var(--azul); }
+    #filtrosHist { display: grid; grid-template-columns: repeat(3, 1fr); }   /* 6 filtros: dos filas de 3 en el celular */
+
+    /* Botones, selecciones y campos */
+    .btn { transition: transform .12s ease, box-shadow .12s ease, filter .12s ease; }
+    .btn:active { transform: scale(.97); }
+    .btn-principal { background: var(--grad-azul); box-shadow: 0 6px 16px rgba(29,78,216,.35); }
+    .btn-principal:active { filter: brightness(1.08); }
+    .btn-secundario { border-color: #c7d6fb; color: var(--azul-osc); }
+    .btn-quitar { background: #ffe4ea; color: var(--rojo-osc); }
+    .depto, .filtros button, .exportar, .registro { transition: border-color .15s, background .15s, transform .12s; }
+    .depto:active, .filtros button:active { transform: scale(.97); }
+    .depto.activo, .filtros button.activo { border-color: var(--azul); background: var(--suave); color: var(--azul-osc); }
+    .depto.activo::after { color: var(--azul); }
+    .persona.elegido { background: var(--suave); color: var(--azul-osc); }
+    .persona.elegido::before { color: var(--azul); }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--azul); box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
+    .registro, .exportar { border-color: #dfe6f5; border-radius: 12px; }
+    .irl-contenido h4 { background: var(--grad-cab); border-left: 4px solid var(--rojo); }
+    .art-depto { border-left-color: var(--azul); }
+    .art-depto h3, .etiqueta, .enlace { color: var(--azul-osc); }
+    .aviso-programa { background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%); border: 1px solid #c7d6fb; border-left: 4px solid var(--azul); border-radius: 12px; }
+    .aviso-respaldo { background: linear-gradient(135deg, #ffffff 0%, #ffe8ee 100%); border: 1px solid #f6b6c6; border-left: 4px solid var(--rojo); }
+
+    /* Animaciones: las pantallas entran suave y el menú aparece botón por botón */
+    @keyframes entrar { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    @keyframes latido { 0%, 100% { box-shadow: 0 0 0 0 rgba(225,29,72,.0); } 50% { box-shadow: 0 0 0 6px rgba(225,29,72,.12); } }
+    .pantalla.activa { animation: entrar .35s cubic-bezier(.2,.8,.2,1); }
+    #menu.activa .menu-btn, #menu.activa .aviso-programa { animation: entrar .45s cubic-bezier(.2,.8,.2,1) both; }
+    #menu.activa .menu-btn:nth-of-type(1) { animation-delay: .03s; } #menu.activa .menu-btn:nth-of-type(2) { animation-delay: .06s; }
+    #menu.activa .menu-btn:nth-of-type(3) { animation-delay: .09s; } #menu.activa .menu-btn:nth-of-type(4) { animation-delay: .12s; }
+    #menu.activa .menu-btn:nth-of-type(5) { animation-delay: .15s; } #menu.activa .menu-btn:nth-of-type(6) { animation-delay: .18s; }
+    #menu.activa .menu-btn:nth-of-type(7) { animation-delay: .21s; } #menu.activa .menu-btn:nth-of-type(8) { animation-delay: .24s; }
+    #menu.activa .menu-btn:nth-of-type(9) { animation-delay: .27s; } #menu.activa .menu-btn:nth-of-type(10) { animation-delay: .30s; }
+    .aviso-respaldo { animation: latido 2.6s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
 
@@ -560,6 +637,7 @@
           <button type="button" data-f="irl" onclick="filtrarHist(this)">IRL</button>
           <button type="button" data-f="check" onclick="filtrarHist(this)">Check list</button>
           <button type="button" data-f="hallazgos" onclick="filtrarHist(this)">Hallazgos</button>
+          <button type="button" data-f="epp" onclick="filtrarHist(this)">EPP</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
@@ -1043,7 +1121,7 @@
           <p class="ayuda" style="margin-top:10px">¿No está en el listado? Escribe sus datos aquí: al registrar la entrega queda agregado.</p>
           <label>Nombre completo</label><input type="text" id="eppNombre" required>
           <div class="dos-col">
-            <div><label>RUT</label><input type="text" id="eppRut" required placeholder="12.345.678-9" onchange="this.value = formatearRut(this.value); pintarListaEPP(); pintarFichaEPP()"></div>
+            <div><label>RUT</label><input type="text" id="eppRut" required placeholder="12.345.678-9" onchange="this.value = formatearRut(this.value); document.getElementById('msjEPP').textContent = ''; pintarListaEPP(); pintarFichaEPP()"></div>
             <div><label>Especialidad (cargo)</label><input type="text" id="eppCargo" list="eppCargos"><datalist id="eppCargos"></datalist></div>
           </div>
           <label>Obra</label><input type="text" id="eppObra">
@@ -3053,7 +3131,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP" };
     function nuevoFolio(tipo, fecha) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3124,7 +3202,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : "📋"} ${html(r.asunto)}</div>
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
@@ -4165,6 +4243,7 @@
           <span>${esc(p.nombre)}</span><small>${esc(p.rut)}</small></button>`).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
     }
     function elegirTrabajadorEPP(rut) {
+      document.getElementById("msjEPP").textContent = "";   // el aviso de la entrega anterior no corresponde a este trabajador
       const p = (listado?.lista || []).find(x => claveRut(x.rut) === rut);
       if (!p) return;
       document.getElementById("eppNombre").value = p.nombre;
