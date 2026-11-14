@@ -1443,6 +1443,13 @@
 
     // Limpia un texto antes de ponerlo en la pantalla (evita que un Excel con código "raro" lo ejecute)
     function esc(t) { return String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+    // Datos que pueden venir de un respaldo: solo se aceptan si tienen la forma que genera la app
+    const idSeguroTxt = x => /^[\w-]+$/.test(String(x ?? ""));   // id de botones: solo letras, números, _ y -
+    const esFotoSegura = f => typeof f === "string" && /^data:image\/(png|jpeg|webp);base64,[\w+/=]+$/.test(f);
+    function listaGuardada(clave, valida) {   // lista guardada, sin los elementos que no pasan la revisión
+      const l = leerGuardado(clave, []);
+      return Array.isArray(l) ? l.filter(x => x && typeof x === "object" && valida(x)) : [];
+    }
 
     // "12345678-5" -> "12.345.678-5"
     function formatearRut(rut) {
@@ -2575,7 +2582,7 @@
       const id = document.getElementById("irlCargo").value;
       if (!id) { div.innerHTML = `<p class="ayuda" style="padding:8px">Elige el cargo para ver su IRL.</p>`; return; }
       let html = htmlBloques(IRL_DATOS.cargos[id].contenido);
-      for (const a of adicionalesMarcados()) html += `<h4>IRL ADICIONAL: ${IRL_DATOS.cargos[a].nombre.toUpperCase()}</h4>` + htmlBloques(IRL_DATOS.cargos[a].contenido);
+      for (const a of adicionalesMarcados()) html += `<h4>IRL ADICIONAL: ${esc(IRL_DATOS.cargos[a].nombre.toUpperCase())}</h4>` + htmlBloques(IRL_DATOS.cargos[a].contenido);
       if (campoIRL("irlLicencia").checked && IRL_DATOS.cargos.conductor_livianos) {
         html += `<h4>IRL COMPLEMENTARIA: CONDUCTOR DE VEHÍCULOS LIVIANOS</h4>` + htmlBloques(IRL_DATOS.cargos.conductor_livianos.contenido);
       }
@@ -3060,9 +3067,9 @@
           <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : "📋"} ${html(r.asunto)}</div>
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}</div>
           <div class="botones">
-            <button class="btn btn-principal" onclick="compartirHist(${r.id})">📤 Compartir</button>
-            <button class="btn btn-secundario" onclick="guardarHist(${r.id})">💾 Guardar</button>
-            <button class="btn btn-quitar" onclick="borrarHist(${r.id}, this)">🗑️</button>
+            <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
+            <button class="btn btn-secundario" onclick="guardarHist(${+r.id})">💾 Guardar</button>
+            <button class="btn btn-quitar" onclick="borrarHist(${+r.id}, this)">🗑️</button>
           </div>
         </div>`).join("") ||
         `<div class="tarjeta"><p class="ayuda" style="margin:0">${regs.length ? "Nada coincide con la búsqueda." : "Todavía no hay PDF guardados. Aparecerán aquí al generar una charla, una IRL o un check list."}</p></div>`;
@@ -4142,15 +4149,17 @@
         if (d.app !== "prevencion-terreno" || d.tipo !== "respaldo") { aviso.textContent = "Ese archivo no es un respaldo de la app."; return; }
         if (!confirm(`¿Restaurar el respaldo del ${new Date(d.creado).toLocaleString("es-CL")}? Reemplaza los datos de este equipo (los PDF que ya están no se duplican).`)) return;
         infBloqueado = true;
-        Object.entries(d.almacen || {}).forEach(([c, v]) => { try { localStorage.setItem(c, v); } catch {} });
+        // Solo se restauran las claves de la app y las fotos que son imágenes de verdad
+        Object.entries(d.almacen || {}).forEach(([c, v]) => { if (CLAVES_RESPALDO.includes(c) && typeof v === "string") try { localStorage.setItem(c, v); } catch {} });
         if (d.paqueteIRL) { try { await bdPaquete("readwrite", s => s.put(d.paqueteIRL, "irl")); } catch {} }
-        for (const [c, v] of d.fotosHallazgos || []) { try { await bdFotos("readwrite", s => s.put(v, c)); } catch {} }
+        for (const [c, v] of Array.isArray(d.fotosHallazgos) ? d.fotosHallazgos : []) { if (typeof c === "string" && esFotoSegura(v)) try { await bdFotos("readwrite", s => s.put(v, c)); } catch {} }
         const existentes = await operacionBD("readonly", s => s.getAll());
         const ya = new Set(existentes.map(r => `${r.tipo}|${r.nombreArchivo}|${r.creado}`));
         let n = 0;
         for (const r of d.registros || []) {
           if (ya.has(`${r.tipo}|${r.nombreArchivo}|${r.creado}`)) continue;
-          await operacionBD("readwrite", s => s.put({ ...r, pdf: b64aBytes(r.pdf) }));
+          const { id, ...resto } = r;   // el número del registro lo pone este equipo, no el respaldo
+          await operacionBD("readwrite", s => s.put({ ...resto, pdf: b64aBytes(r.pdf) }));
           n++;
         }
         sessionStorage.setItem("pt_abrirPantalla", pantalla);
@@ -5487,7 +5496,8 @@
        ===================================================================== */
     const TIPOS_PROGRAMA = ["Charla", "Capacitación", "Inspección", "Inducción / IRL", "Reunión CPHS", "Simulacro", "Difusión", "Auditoría", "Otro"];
     const DIAS_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-    let programa = leerGuardado("pt_programa", []);
+    let programa = listaGuardada("pt_programa", a => idSeguroTxt(a.id) && /^\d{4}-\d{2}-\d{2}$/.test(a.fecha || "") &&
+      (!a.meses || (Array.isArray(a.meses) && a.meses.every(m => /^\d{4}-\d{2}$/.test(m)))) && (!a.hasta || /^\d{4}-\d{2}-\d{2}$/.test(a.hasta)));
     let programaHecho = leerGuardado("pt_programa_hecho", {});
     let calMes = new Date().toLocaleDateString("sv-SE").slice(0, 7);
     let calDiaSel = new Date().toLocaleDateString("sv-SE");
@@ -5875,7 +5885,7 @@
        El texto va en localStorage (pt_hallazgos); las fotos en IndexedDB aparte (pesan).
        ===================================================================== */
     const ORIGENES_HALLAZGO = ["Inspección en terreno", "Check list", "Charla / ART", "Observación de conducta", "Auditoría / mandante", "Accidente o incidente", "Comité Paritario", "Otro"];
-    let hallazgos = leerGuardado("pt_hallazgos", []);
+    let hallazgos = listaGuardada("pt_hallazgos", h => idSeguroTxt(h.id));
     let filtroHal = "abiertos", fotoNuevaHal = null;
 
     function abrirBDFotos() {
@@ -5974,8 +5984,8 @@
       }).join("");
       for (const h of lista) {
         const fotos = [];
-        if (h.foto) { const f = await fotoHal(h.id + "|antes"); if (f) fotos.push(`<figure><img src="${f}" alt="Antes"><figcaption>Antes</figcaption></figure>`); }
-        if (h.fotoCierre) { const f = await fotoHal(h.id + "|cierre"); if (f) fotos.push(`<figure><img src="${f}" alt="Después"><figcaption>Después</figcaption></figure>`); }
+        if (h.foto) { const f = await fotoHal(h.id + "|antes"); if (esFotoSegura(f)) fotos.push(`<figure><img src="${f}" alt="Antes"><figcaption>Antes</figcaption></figure>`); }
+        if (h.fotoCierre) { const f = await fotoHal(h.id + "|cierre"); if (esFotoSegura(f)) fotos.push(`<figure><img src="${f}" alt="Después"><figcaption>Después</figcaption></figure>`); }
         const caja = document.getElementById("halF_" + h.id);
         if (caja) caja.innerHTML = fotos.join("");
       }
@@ -6248,7 +6258,7 @@
       "Equipo o vehículo": ["Recarga extintor", "Mantención extintor", "Revisión técnica", "Permiso de circulación", "SOAP", "Certificación de grúa / equipo de levante", "Mantención programada"],
       "Documento u otro": ["Reglamento interno", "Plan de emergencia", "Contrato / subcontrato", "Acta Comité Paritario", "Certificado de fumigación"]
     };
-    let vencimientos = leerGuardado("pt_vencimientos", []);
+    let vencimientos = listaGuardada("pt_vencimientos", v => idSeguroTxt(v.id));
     let filtroVen = "alerta";
     const guardarVenc = () => guardar("pt_vencimientos", vencimientos);
     const diasPara = f => Math.round((fechaD(f) - fechaD(hoyISO())) / 86400000);
