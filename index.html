@@ -3929,7 +3929,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -3948,9 +3948,11 @@
       const usados = new Set();
       const archivos = regs.map(r => {
         const carpeta = CARPETA_RESPALDO[r.tipo] || "Otros";
-        const base = nombreSeguro(String(r.nombreArchivo || "registro").replace(/\.pdf$/i, "")) || "registro";
-        let nombre = `${carpeta}/${base}.pdf`;
-        for (let i = 2; usados.has(nombre.toLowerCase()); i++) nombre = `${carpeta}/${base} (${i}).pdf`;
+        // Se respeta la extensión original (los anexos pueden ser fotos .jpg); sin extensión, es un PDF
+        const original = String(r.nombreArchivo || "registro"), ext = (original.match(/\.[a-z0-9]{2,5}$/i) || [".pdf"])[0].toLowerCase();
+        const base = nombreSeguro(original.slice(0, original.length - (original.toLowerCase().endsWith(ext) ? ext.length : 0))) || "registro";
+        let nombre = `${carpeta}/${base}${ext}`;
+        for (let i = 2; usados.has(nombre.toLowerCase()); i++) nombre = `${carpeta}/${base} (${i})${ext}`;
         usados.add(nombre.toLowerCase());
         return { nombre, datos: new Uint8Array(r.pdf) };
       });
@@ -3966,6 +3968,8 @@
     async function limpiarMesesRespaldados() {
       const hechos = leerGuardado("pt_respaldoMes", {}), limite = mesAnteriorDe(mesHoy());
       const borrar = (await todosLosRegistros()).filter(r => mesDeRegistro(r) < limite && yaRespaldado(r, hechos));
+      // Antes de borrar IRL: se agendan sus reinducciones (12 meses por defecto), para no perder a esos trabajadores
+      if (borrar.some(r => r.tipo === "irl")) { try { await reinduccionesDesdeIRL(); } catch {} }
       for (const r of borrar) { try { await operacionBD("readwrite", s => s.delete(r.id)); } catch {} }
       return borrar.length;
     }
