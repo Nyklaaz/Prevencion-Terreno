@@ -1821,6 +1821,7 @@
       const c = boton.closest(".firma").querySelector("canvas");
       c.getContext("2d").clearRect(0, 0, c.width, c.height);
       delete c.dataset.firmado;
+      c.dataset.borrada = "1";   // se borró a propósito (el informe usa esto para no guardar una firma vieja)
     }
 
     document.getElementById("firmaSupervisor").innerHTML = htmlFirma("Firma Supervisor");
@@ -3829,6 +3830,10 @@
     let infMeses = leerGuardado("pt_inf_meses", {});
     let infListas = leerGuardado("pt_inf_listas", { accidentes: [], actas: [] });
     let infFirmas = leerGuardado("pt_inf_firmas", {});
+    // La firma del experto (prevención) es de CADA informe: se guarda por mes y un mes nuevo parte en blanco.
+    // Las del residente y el representante legal se mantienen de un mes a otro.
+    let infFirmaExperto = leerGuardado("pt_inf_firmaExperto", {});   // { "AAAA-MM": firma }
+    delete infFirmas.experto;                                         // las firmas de experto antiguas (sin mes) se descartan
     let infMesActual = null, infListo = false, pdfInforme = null;
 
     function iniciarInforme() {
@@ -3902,11 +3907,15 @@
     }
 
     function cambiarMesInforme() {
-      if (infMesActual) guardarInforme();
+      if (infMesActual) { guardarInforme(); guardarFirmasInforme(); }
       const k = document.getElementById("infMes").value;
       if (!k) return;
       infMesActual = k;
       guardar("pt_inf_ultimoMes", k);
+      // Firma del experto: la de ESTE mes (si ya firmó) o el recuadro en blanco
+      infFirmas.experto = infFirmaExperto[k] || null;
+      const ce = document.querySelector("#infFirmaExperto canvas");
+      if (ce) { ce.getContext("2d").clearRect(0, 0, ce.width, ce.height); delete ce.dataset.firmado; delete ce.dataset.borrada; setTimeout(restaurarFirmasInforme, 60); }
       // Si el mes es nuevo, se parte de lo del mes anterior (lo que suele repetirse)
       const previo = Object.keys(infMeses).filter(m => m < k).sort().pop();
       const p = previo ? infMeses[previo] : {};
@@ -3949,11 +3958,20 @@
 
     function guardarFirmasInforme() {
       if (infBloqueado) return;
-      for (const [id, k] of [["infFirmaExperto", "experto"], ["infFirmaResidente", "residente"], ["infFirmaRepresentante", "representante"]]) {
+      for (const [id, k] of [["infFirmaResidente", "residente"], ["infFirmaRepresentante", "representante"]]) {
         const c = document.querySelector(`#${id} canvas`);
         infFirmas[k] = c.dataset.firmado ? c.toDataURL("image/png") : null;
       }
-      guardar("pt_inf_firmas", infFirmas);
+      // Experto: se guarda en el mes del informe. Un recuadro vacío solo borra la firma si se tocó "Borrar"
+      // (así no se pierde mientras la firma guardada todavía se está dibujando en el recuadro).
+      const ce = document.querySelector("#infFirmaExperto canvas");
+      if (ce && infMesActual) {
+        if (ce.dataset.firmado) infFirmaExperto[infMesActual] = ce.toDataURL("image/png");
+        else if (ce.dataset.borrada) delete infFirmaExperto[infMesActual];
+        infFirmas.experto = infFirmaExperto[infMesActual] || null;
+      }
+      guardar("pt_inf_firmas", { residente: infFirmas.residente || null, representante: infFirmas.representante || null });
+      guardar("pt_inf_firmaExperto", infFirmaExperto);
       pintarPanel();
     }
     function restaurarFirmasInforme() {
@@ -4055,7 +4073,14 @@
       if (await descargarRespaldoMes(k)) { await limpiarMesesRespaldados(); pintarHistorial(); }
     }
     // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y avisos
-    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); }, 0);
+    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); }, 0);
+    // Firma del experto: se guarda solo la del mes actual y el anterior (y la del informe que se está haciendo)
+    function podarFirmasExperto() {
+      const limite = mesAnteriorDe(mesHoy()), enCurso = leerGuardado("pt_inf_ultimoMes", "");
+      const viejas = Object.keys(infFirmaExperto).filter(k => k < limite && k !== enCurso);
+      viejas.forEach(k => delete infFirmaExperto[k]);
+      if (viejas.length) guardar("pt_inf_firmaExperto", infFirmaExperto);
+    }
 
     /* =====================================================================
        ENTREGA DE EPP (Hoja de cargos)
@@ -4572,7 +4597,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
