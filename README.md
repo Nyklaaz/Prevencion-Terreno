@@ -35,6 +35,7 @@
 |---|---|
 | `index.html` | La app completa: pantallas, estilos y lógica |
 | `pdf-lib.min.js` | Librería que arma los PDF |
+| `xlsx.full.min.js` | Librería que lee los Excel (listado de personal y programa) |
 | `plantillas.js` | Plantillas Excel del informe mensual y del IFOS SAFI, sin datos de empresas |
 | `sw.js` | Modo sin internet: guarda la app en el equipo |
 | `manifest.json`, `icono-*.png` | Datos para instalarla como app |

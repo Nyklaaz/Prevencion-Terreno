@@ -19,8 +19,8 @@
     3. JavaScript -> QUÉ HACE (dentro del último <script>)
   Usamos 2 "librerías" (código hecho por otros que reutilizamos):
     - pdf-lib  -> arma el PDF (archivo pdf-lib.min.js, guardado junto a la app).
-    - SheetJS  -> lee el Excel del listado. Se descarga de internet solo
-                  cuando cargas el listado (necesita señal esa vez).
+    - SheetJS  -> lee el Excel del listado (archivo xlsx.full.min.js, guardado
+                  junto a la app: funciona sin internet).
 -->
 <html lang="es">
 <head>
@@ -31,8 +31,8 @@
   <!-- App instalable: nombre, ícono y colores al agregarla a la pantalla de inicio -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#232830">
-  <!-- Seguridad: la app solo carga sus propios archivos (y el lector de Excel de cdnjs) y no puede enviar datos a otros sitios -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://cdnjs.cloudflare.com; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <!-- Seguridad: la app solo carga sus propios archivos (ninguno de internet) y no puede enviar datos a otros sitios -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
   <meta name="referrer" content="no-referrer">
   <link rel="apple-touch-icon" href="icono-192.png">
   <!-- Librería para crear el PDF: ahora va en un archivo propio (pdf-lib.min.js), así funciona sin internet -->
@@ -1219,6 +1219,8 @@
     const PAQ = normalizarPaquete(PAQUETE);
     const EMPRESA = PAQ.empresa;
     const LOGO_EMPRESA = EMPRESA.logo || LOGO_GENERICO;
+    // Identificación del empleador para el encabezado de los PDF (razón social y RUT)
+    const LINEA_EMPLEADOR = [EMPRESA.nombre, EMPRESA.rut ? "RUT " + EMPRESA.rut : ""].filter(Boolean).join(" · ");
     const TITULO_DOC = PAQ.charla.titulo;
     const TEMA_DOC = PAQ.charla.tema;
     const CHECKLIST = PAQ.charla.checklist;
@@ -1429,7 +1431,7 @@
     /* =====================================================================
        LISTADO DE PERSONAL (Paso 3)
        ===================================================================== */
-    const URL_SHEETJS = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    const URL_SHEETJS = "xlsx.full.min.js";   // SheetJS 0.20.3, copia local (funciona sin internet)
     let listado = leerGuardado("pt_listado", null);   // { obra, lista: [{nombre, rut}], cargado }
     let cargos = leerGuardado("pt_cargos", {});        // el cargo que recordamos para cada RUT
     let deptosPorRut = leerGuardado("pt_deptos", {});  // el departamento que recordamos para cada RUT
@@ -1483,7 +1485,7 @@
       return new Promise((ok, falla) => {
         const s = document.createElement("script");
         s.src = url; s.onload = ok;
-        s.onerror = () => falla(new Error("no hay conexión a internet para leer el Excel"));
+        s.onerror = () => falla(new Error("no se pudo abrir el lector de Excel; cierra y vuelve a abrir la app"));
         document.head.appendChild(s);
       });
     }
@@ -2139,6 +2141,7 @@
         pag.drawImage(logo, { x: ANCHO_HOJA - M - TAM_LOGO, y: y - TAM_LOGO + 4, width: TAM_LOGO, height: TAM_LOGO });
         for (const l of partir(TITULO_DOC, fB, 9.5, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 10, size: 9.5, font: fB, color: NEGRO }); y -= 12; }
         for (const l of partir(TEMA_DOC, fN, 7.5, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
+        if (LINEA_EMPLEADOR) for (const l of partir("Empleador: " + LINEA_EMPLEADOR, fB, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fB, color: GRIS }); y -= 10; }
         if (r.obra) for (const l of partir("Obra: " + r.obra, fN, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
         y -= 5;
         pag.drawLine({ start: { x: M, y }, end: { x: ANCHO_HOJA - M, y }, thickness: 2, color: NARANJO });
@@ -2804,9 +2807,11 @@
         const t2 = `Cargo: ${r.cargoNombre}  ·  Trabajador: ${r.nombre}`;
         const t2b = limpiar(t2).slice(0, 110);
         pag.drawText(t2b, { x: (A - fN.widthOfTextAtSize(t2b, 7.5)) / 2, y: y - 26, size: 7.5, font: fN, color: GRIS });
+        const emp = limpiar(LINEA_EMPLEADOR).slice(0, 110);
+        if (emp) pag.drawText(emp, { x: (A - fB.widthOfTextAtSize(emp, 7.5)) / 2, y: y - 36, size: 7.5, font: fB, color: GRIS });
         const cod = IRL_DATOS.codigo ? "Código: " + IRL_DATOS.codigo : "";
         pag.drawText(cod, { x: A - M - fN.widthOfTextAtSize(cod, 7), y: y - 10, size: 7, font: fN, color: GRIS });
-        y -= 40;
+        y -= LINEA_EMPLEADOR ? 46 : 40;
         pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 2, color: NARANJO });
         y -= 10;
       }
@@ -3550,6 +3555,7 @@
         pag.drawImage(logo, { x: A - M - TAM, y: y - TAM + 4, width: TAM, height: TAM });
         for (const l of partir(`CHECK LIST ${r.nombre.toUpperCase()}`, fB, 11, ANCHO - 80)) { pag.drawText(l, { x: M, y: y - 11, size: 11, font: fB, color: NEGRO }); y -= 14; }
         pag.drawText(limpiar(`Programa de Prevención de Riesgos · ${r.grupoNombre} · Código ${r.codigo}`), { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 11;
+        if (LINEA_EMPLEADOR) for (const l of partir("Empleador: " + LINEA_EMPLEADOR, fB, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fB, color: GRIS }); y -= 10; }
         if (r.campos.obra) for (const l of partir("Obra: " + r.campos.obra, fN, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
         y = Math.min(y, H - M - TAM) - 6;
         pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 2, color: ROJO });
@@ -6793,17 +6799,20 @@
       if (!regs.length) { msj.textContent = "No hay IRL guardadas en este equipo."; return; }
       const ultima = {};
       for (const r of regs) {
-        const p = String(r.detalle || "").split(" · "), nombre = (p[1] || "").trim();
+        // detalle de la IRL: "Cargo · Nombre · RUT 12.345.678-5 · …" → se agrupa por RUT (dos personas pueden llamarse igual)
+        const p = String(r.detalle || "").split(" · "), nombre = (p[1] || "").trim(), rut = claveRut((p[2] || "").replace(/^RUT\s*/i, ""));
         if (!nombre) continue;
-        const k = normalizar(nombre);
-        if (!ultima[k] || ultima[k].fecha < r.fecha) ultima[k] = { nombre, fecha: r.fecha, cargo: p[0] };
+        const k = rut.length > 1 ? "rut:" + rut : "nom:" + normalizar(nombre);
+        if (!ultima[k] || ultima[k].fecha < r.fecha) ultima[k] = { nombre, rut: rut.length > 1 ? rut : "", fecha: r.fecha, cargo: p[0] };
       }
       let n = 0, ya = 0;
-      for (const { nombre, fecha, cargo } of Object.values(ultima)) {
+      for (const { nombre, rut, fecha, cargo } of Object.values(ultima)) {
         const d = fechaD(fecha), vence = isoD(new Date(d.getFullYear(), d.getMonth() + meses, d.getDate(), 12));
-        const existe = vencimientos.find(v => v.tipo === "Reinducción IRL" && normalizar(v.quien) === normalizar(nombre));
-        if (existe) { if (existe.vence < vence) { existe.vence = vence; existe.nota = `${cargo} · última IRL el ${fechaCLde(fecha)}`; n++; } else ya++; continue; }
-        vencimientos.push({ id: "v" + Date.now().toString(36) + (n + ya), cat: "Trabajador", tipo: "Reinducción IRL", quien: nombre, vence, aviso: 30, nota: `${cargo} · última IRL el ${fechaCLde(fecha)}`, anteriores: [] });
+        const nota = `${cargo}${rut ? " · RUT " + formatearRut(rut) : ""} · última IRL el ${fechaCLde(fecha)}`;
+        // Se busca por RUT; las reinducciones antiguas (sin RUT guardado) se reconocen por el nombre
+        const existe = vencimientos.find(v => v.tipo === "Reinducción IRL" && (rut && v.rut ? v.rut === rut : normalizar(v.quien) === normalizar(nombre)));
+        if (existe) { if (existe.vence < vence) { existe.vence = vence; existe.nota = nota; if (rut) existe.rut = rut; n++; } else ya++; continue; }
+        vencimientos.push({ id: "v" + Date.now().toString(36) + (n + ya), cat: "Trabajador", tipo: "Reinducción IRL", quien: nombre, rut, vence, aviso: 30, nota, anteriores: [] });
         n++;
       }
       guardarVenc();

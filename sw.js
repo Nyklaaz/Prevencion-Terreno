@@ -10,15 +10,17 @@
    en el mismo sitio no se borran entre ellas.
    ===================================================================== */
 const BASE = "prevencion:" + self.registration.scope + ":";
-const VERSION = BASE + "2026-11-14g";
-const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js",
+const VERSION = BASE + "2026-11-14h";
+const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js", "./xlsx.full.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
+// "reload"/"no-cache": se pide SIEMPRE al servidor (si no cambió, responde rápido), nunca una copia vieja del navegador
+const fresco = url => new Request(url, { cache: "reload" });
 const ESPERA_RED = 4000;   // con señal mala, a los 4 segundos usamos la copia guardada
 
 // Al instalarse: guardamos todos los archivos
 self.addEventListener("install", evento => {
   // Los archivos de la app, y si existe (versión de una empresa) el paquete de formatos incluido
-  evento.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCHIVOS).then(() => c.add("./paquete-incluido.js").catch(() => {}))));
+  evento.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCHIVOS.map(fresco)).then(() => c.add(fresco("./paquete-incluido.js")).catch(() => {}))));
   self.skipWaiting();
 });
 
@@ -43,15 +45,13 @@ self.addEventListener("fetch", evento => {
   const pedido = evento.request;
   if (pedido.method !== "GET") return;
   const url = new URL(pedido.url);
-  const esNuestro = url.origin === self.location.origin;
-  const esLibreria = url.hostname === "cdnjs.cloudflare.com";   // la librería para leer el Excel
-  if (!esNuestro && !esLibreria) return;
+  if (url.origin !== self.location.origin) return;   // todo lo de la app es propio (también el lector de Excel)
 
   evento.respondWith((async () => {
     const cache = await caches.open(VERSION);
     try {
       const respuesta = await Promise.race([
-        fetch(pedido),
+        fetch(pedido, { cache: "no-cache" }),
         new Promise((_, falla) => setTimeout(() => falla(new Error("lenta")), ESPERA_RED))
       ]);
       if (respuesta && respuesta.ok) cache.put(pedido, respuesta.clone());
