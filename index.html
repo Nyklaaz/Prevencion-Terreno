@@ -406,7 +406,9 @@
     .menu-btn[onclick*="'empresa'"] .menu-ico { background: var(--grad-negro); box-shadow: 0 6px 14px rgba(11,18,32,.28); }
     .menu-btn[onclick*="'historial'"] .menu-ico { background: var(--grad-cielo); }
     .menu-flecha { color: var(--azul); }
-    #filtrosHist { display: grid; grid-template-columns: repeat(3, 1fr); }   /* 6 filtros: dos filas de 3 en el celular */
+    #filtrosHist { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .lic-clases { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px 8px; }
+    .lic-clases .check-linea { margin-top: 6px; }   /* 6 filtros: dos filas de 3 en el celular */
 
     /* Botones, selecciones y campos */
     .btn { transition: transform .12s ease, box-shadow .12s ease, filter .12s ease; }
@@ -1240,6 +1242,31 @@
             <input type="file" accept=".xls,.xlsx,.csv" onchange="importarVencExcel(this)" hidden>
           </label>
           <p class="mensaje" id="msjVenExcel"></p>
+        </details>
+        <details class="exportar" id="licForm">
+          <summary>🚗 Licencias de conducir</summary>
+          <p class="ayuda">Registra la licencia de cada trabajador con la fecha del <b>próximo control</b> que viene impresa en ella. Te aviso a los 60, 30 y 7 días, mientras siga en tu listado.</p>
+          <label>Trabajador</label>
+          <select id="licTrab" onchange="elegirTrabLicencia()"></select>
+          <label>Clase(s)</label>
+          <div class="lic-clases" id="licClases"></div>
+          <div class="dos-col">
+            <div><label>Obtuvo su primera licencia</label><input type="date" id="licObtencion"></div>
+            <div><label>Próximo control</label><input type="date" id="licControl"></div>
+          </div>
+          <label>Restricciones (opcional)</label>
+          <input type="text" id="licNota" placeholder="Ej: debe usar lentes">
+          <button type="button" class="btn btn-principal" onclick="guardarLicencia()">Guardar licencia</button>
+          <p class="mensaje" id="msjLic"></p>
+          <div id="licFaltan"></div>
+        </details>
+        <details class="exportar">
+          <summary>🔔 Recordatorios en el teléfono</summary>
+          <p class="ayuda"><b>Calendario (lo más seguro):</b> agrega todos los vencimientos con sus alarmas al calendario de tu teléfono. Te avisa aunque la app esté cerrada. Si cambias fechas, vuelve a agregarlos.</p>
+          <button type="button" class="btn btn-secundario" onclick="exportarCalendario()">📅 Agregar al calendario del celular</button>
+          <p class="ayuda" style="margin-top:12px"><b>Avisos de la app:</b> una notificación del teléfono con lo que vence, al abrir la app (y en Android, a veces una vez al día aunque esté cerrada).</p>
+          <button type="button" class="btn btn-secundario" id="btnNotif" onclick="activarNotificaciones()">🔔 Activar avisos de la app</button>
+          <p class="mensaje" id="msjNotif"></p>
         </details>
       </div>
       <div id="venLista"></div>
@@ -4151,7 +4178,7 @@
       if (await descargarRespaldoMes(k)) { await limpiarMesesRespaldados(); pintarHistorial(); }
     }
     // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y avisos
-    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); }, 0);
+    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); notificarVencimientos(); }, 0);
     // Firma del experto: se guarda solo la del mes actual y el anterior (y la del informe que se está haciendo)
     function podarFirmasExperto() {
       const limite = mesAnteriorDe(mesHoy()), enCurso = leerGuardado("pt_inf_ultimoMes", "");
@@ -6436,7 +6463,8 @@
       const delMes = programadasEntre(mesIni, `${hoy.slice(0, 7)}-31`).filter(x => x.a.mes && !x.hecha && !x.atrasada);
       const halVenc = hallazgos.filter(h => !h.cerrado && h.plazo && h.plazo < hoy), halHoy = hallazgos.filter(h => !h.cerrado && h.plazo === hoy);
       const venVenc = vencimientos.filter(v => estadoVen(v) === "vencido"), venProx = vencimientos.filter(v => estadoVen(v) === "alerta");
-      if (!deHoy.length && !atrasadas.length && !delMes.length && !halVenc.length && !halHoy.length && !venVenc.length && !venProx.length) { caja.style.display = "none"; return; }
+      const sinLicencia = (listado?.lista || []).filter(p => { const r = claveRut(p.rut); return esConductor(r) && !licenciaDe(r); });
+      if (!deHoy.length && !atrasadas.length && !delMes.length && !halVenc.length && !halHoy.length && !venVenc.length && !venProx.length && !sinLicencia.length) { caja.style.display = "none"; return; }
       caja.style.display = "block";
       caja.innerHTML = `<b>📅 Pendientes de prevención</b>
         ${deHoy.length ? `<span>Hoy: ${deHoy.map(x => html(x.a.actividad)).join(", ")}</span>` : ""}
@@ -6445,7 +6473,8 @@
         ${halHoy.length ? `<span onclick="event.stopPropagation(); mostrar('hallazgos')">📌 Hallazgos que vencen hoy: ${halHoy.length} →</span>` : ""}
         ${halVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('hallazgos')">⛔ ${halVenc.length} hallazgo(s) con plazo vencido →</span>` : ""}
         ${venProx.length ? `<span onclick="event.stopPropagation(); mostrar('vencimientos')">⏰ Por vencer: ${venProx.slice(0, 3).map(v => html(v.tipo + " " + v.quien) + " (" + fechaCLde(v.vence) + ")").join(", ")}${venProx.length > 3 ? " y " + (venProx.length - 3) + " más" : ""} →</span>` : ""}
-        ${venVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('vencimientos')">⛔ ${venVenc.length} documento(s) o certificación(es) vencido(s) →</span>` : ""}`;
+        ${venVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('vencimientos')">⛔ ${venVenc.length} documento(s) o certificación(es) vencido(s) →</span>` : ""}
+        ${sinLicencia.length ? `<span onclick="event.stopPropagation(); mostrar('vencimientos')">🚗 ${sinLicencia.length} conductor(es) u operador(es) sin licencia registrada →</span>` : ""}`;
     }
 
     /* =====================================================================
@@ -6829,9 +6858,11 @@
     };
     let vencimientos = listaGuardada("pt_vencimientos", v => idSeguroTxt(v.id));
     let filtroVen = "alerta";
-    const guardarVenc = () => guardar("pt_vencimientos", vencimientos);
+    const guardarVenc = () => { guardar("pt_vencimientos", vencimientos); copiarAvisos(); };   // la copia es para los avisos con la app cerrada
     const diasPara = f => Math.round((fechaD(f) - fechaD(hoyISO())) / 86400000);
-    const estadoVen = v => { const d = diasPara(v.vence); return d < 0 ? "vencido" : d <= (+v.aviso || 30) ? "alerta" : "vigente"; };
+    // Una licencia (o cualquier vencimiento con RUT) de alguien que ya no está en el listado no genera avisos
+    const fueraDeObra = v => !!v.rut && !!(listado?.lista?.length) && !listado.lista.some(p => claveRut(p.rut) === v.rut);
+    const estadoVen = v => { if (fueraDeObra(v)) return "fuera"; const d = diasPara(v.vence); return d < 0 ? "vencido" : d <= (+v.aviso || 30) ? "alerta" : "vigente"; };
 
     function iniciarVencimientos() {
       const cat = document.getElementById("venCat");
@@ -6839,6 +6870,7 @@
       cat.onchange = pintarTipos; pintarTipos();
       const nombres = new Set([...(listado?.lista || []).map(p => p.nombre), ...vencimientos.map(v => v.quien)].filter(Boolean));
       document.getElementById("venQuienes").innerHTML = [...nombres].sort().map(n => `<option value="${html(n)}">`).join("");
+      pintarLicencias(); pintarBotonNotif();
       pintarVencimientos();
     }
     function filtrarVenc(b) {
@@ -6858,13 +6890,14 @@
       const b = normalizar(document.getElementById("venBusca").value || "");
       const lista = vencimientos.filter(v => {
         const e = estadoVen(v);
-        return (filtroVen === "todos" || (filtroVen === "alerta" && e !== "vigente") || filtroVen === e) && (!b || normalizar(`${v.quien} ${v.tipo} ${v.nota} ${v.cat}`).includes(b));
+        return (filtroVen === "todos" || (filtroVen === "alerta" && (e === "alerta" || e === "vencido")) || filtroVen === e) && (!b || normalizar(`${v.quien} ${v.tipo} ${v.nota} ${v.cat}`).includes(b));
       }).sort((x, y) => x.vence.localeCompare(y.vence));
       document.getElementById("venLista").innerHTML = lista.length ? lista.map(v => {
         const e = estadoVen(v);
         return `<div class="tarjeta hal ven-${e}">
-          <div class="hal-cab"><span class="hal-riesgo">${html(v.cat)}</span><span>${e === "vencido" ? "⛔ Vencido" : e === "alerta" ? "⚠️ Por vencer" : "✅ Vigente"}</span></div>
+          <div class="hal-cab"><span class="hal-riesgo">${html(v.cat)}</span><span>${e === "vencido" ? "⛔ Vencido" : e === "alerta" ? "⚠️ Por vencer" : e === "fuera" ? "🏁 Ya no está en la obra" : "✅ Vigente"}</span></div>
           <div class="tit">${html(v.tipo)} · ${html(v.quien)}</div>
+          ${Array.isArray(v.clases) && v.clases.length ? `<div class="det">🚗 Clase ${html(v.clases.join(", "))}${v.obtencion ? ` · conduce desde el ${fechaCLde(v.obtencion)} (${aniosDesde(v.obtencion)} año(s))` : ""}</div>` : ""}
           <div class="det ${e === "vencido" ? "rojo" : ""}">${textoVence(v)}</div>
           ${v.nota ? `<div class="det">${html(v.nota)}</div>` : ""}
           ${(v.anteriores || []).length ? `<div class="det"><small>Antes: ${v.anteriores.map(a => "venció " + fechaCLde(a.vence) + (a.renovado ? ", renovado el " + fechaCLde(a.renovado) : "")).join(" · ")}</small></div>` : ""}
@@ -6891,6 +6924,135 @@
       v.anteriores = [...(v.anteriores || []), { vence: v.vence, renovado: hoyISO() }].slice(-5);
       v.vence = nueva; guardarVenc(); pintarVencimientos(); avisoProgramaMenu();
     }
+    /* ----- Licencias de conducir (un vencimiento por trabajador, con clase y antigüedad) ----- */
+    const CLASES_LICENCIA = ["A1", "A2", "A3", "A4", "A5", "B", "C", "D", "E", "F"];
+    const aniosDesde = f => { const a = fechaD(f), h = fechaD(hoyISO()); let n = h.getFullYear() - a.getFullYear(); if (h.getMonth() < a.getMonth() || (h.getMonth() === a.getMonth() && h.getDate() < a.getDate())) n--; return Math.max(0, n); };
+    const licenciaDe = rut => vencimientos.find(v => v.tipo === "Licencia de conducir" && v.rut === rut);
+    const esConductor = rut => cargosDe(rut).some(c => /conduct|operador|chofer/i.test(c));
+    function pintarLicencias() {
+      const sel = document.getElementById("licTrab");
+      if (!sel) return;
+      const lista = (listado?.lista || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      const actual = sel.value;
+      sel.innerHTML = `<option value="">Elige al trabajador…</option>` + lista.map(p => { const r = claveRut(p.rut); return `<option value="${r}">${html(p.nombre)} · ${html(p.rut)}${licenciaDe(r) ? " ✓" : ""}</option>`; }).join("");
+      if (actual) sel.value = actual;
+      const caja = document.getElementById("licClases");
+      if (!caja.children.length) caja.innerHTML = CLASES_LICENCIA.map(c => `<label class="check-linea"><input type="checkbox" value="${c}"> ${c}</label>`).join("");
+      // Conductores u operadores sin licencia registrada
+      const faltan = lista.filter(p => { const r = claveRut(p.rut); return esConductor(r) && !licenciaDe(r); });
+      document.getElementById("licFaltan").innerHTML = faltan.length
+        ? `<p class="ayuda rojo" style="margin-top:10px">⚠️ Falta registrar la licencia de: ${faltan.map(p => html(p.nombre)).join(", ")}.</p>` : "";
+    }
+    function elegirTrabLicencia() {
+      const rut = document.getElementById("licTrab").value, v = rut ? licenciaDe(rut) : null;
+      document.querySelectorAll("#licClases input").forEach(i => i.checked = !!v?.clases?.includes(i.value));
+      document.getElementById("licObtencion").value = v?.obtencion || "";
+      document.getElementById("licControl").value = v?.vence || "";
+      document.getElementById("licNota").value = v?.nota || "";
+      document.getElementById("msjLic").textContent = v ? "Ya tiene una licencia registrada: puedes corregirla aquí." : "";
+    }
+    function guardarLicencia() {
+      const msj = document.getElementById("msjLic"), rut = document.getElementById("licTrab").value;
+      const p = (listado?.lista || []).find(x => claveRut(x.rut) === rut);
+      const clases = [...document.querySelectorAll("#licClases input:checked")].map(i => i.value);
+      const obtencion = document.getElementById("licObtencion").value, control = document.getElementById("licControl").value, nota = document.getElementById("licNota").value.trim();
+      if (!p) { msj.textContent = "Elige al trabajador."; return; }
+      if (!clases.length) { msj.textContent = "Marca al menos una clase."; return; }
+      if (!control) { msj.textContent = "Falta la fecha del próximo control (viene impresa en la licencia)."; return; }
+      if (obtencion && obtencion > hoyISO()) { msj.textContent = "La fecha de obtención no puede ser futura."; return; }
+      const v = licenciaDe(rut);
+      if (v) Object.assign(v, { quien: p.nombre, clases, obtencion, vence: control, nota, aviso: 60 });
+      else vencimientos.push({ id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), cat: "Trabajador", tipo: "Licencia de conducir", quien: p.nombre, rut, clases, obtencion, vence: control, aviso: 60, nota, anteriores: [] });
+      guardarVenc();
+      msj.textContent = `✅ Licencia de ${p.nombre} guardada. Te aviso a los 60, 30 y 7 días antes del ${fechaCLde(control)}.`;
+      pintarLicencias(); pintarVencimientos(); avisoProgramaMenu();
+    }
+
+    /* ----- Recordatorios en el teléfono (sin servidor: nada sale del equipo) ----- */
+    // 1) Calendario: archivo .ics con cada vencimiento y sus alarmas; el calendario del teléfono avisa aunque la app esté cerrada
+    const icsTexto = t => String(t ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+    function icsDoblar(linea) {   // líneas de máximo 75 bytes, como pide el formato
+      const tam = s => new TextEncoder().encode(s).length, partes = [];
+      let resto = linea;
+      while (tam(resto) > 75) { let n = 74; while (tam(resto.slice(0, n)) > 74) n--; partes.push(resto.slice(0, n)); resto = " " + resto.slice(n); }
+      partes.push(resto);
+      return partes.join("\r\n");
+    }
+    const diasAviso = v => v.tipo === "Licencia de conducir" ? [60, 30, 7] : [...new Set([+v.aviso || 30, 1])];
+    function calendarioICS() {
+      const f = d => d.replace(/-/g, ""), sello = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
+      const lineas = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Prevencion en Terreno//ES", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Vencimientos de prevención"];
+      for (const v of vencimientos.filter(v => estadoVen(v) !== "fuera" && /^\d{4}-\d{2}-\d{2}$/.test(v.vence || ""))) {
+        const fin = isoD(new Date(fechaD(v.vence).getTime() + 86400000));
+        const detalle = [Array.isArray(v.clases) && v.clases.length ? "Clase " + v.clases.join(", ") : "", v.nota || "", "Prevención en Terreno"].filter(Boolean).join("\n");
+        lineas.push("BEGIN:VEVENT", `UID:${v.id}@prevencion-terreno`, `DTSTAMP:${sello}`, `DTSTART;VALUE=DATE:${f(v.vence)}`, `DTEND;VALUE=DATE:${f(fin)}`,
+          `SUMMARY:${icsTexto(`Vence: ${v.tipo} · ${v.quien}`)}`, `DESCRIPTION:${icsTexto(detalle)}`);
+        for (const d of diasAviso(v)) lineas.push("BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsTexto(`${v.tipo} de ${v.quien} vence en ${d} día(s)`)}`, `TRIGGER:-P${d}D`, "END:VALARM");
+        lineas.push("END:VEVENT");
+      }
+      lineas.push("END:VCALENDAR");
+      return lineas.map(icsDoblar).join("\r\n") + "\r\n";
+    }
+    async function exportarCalendario() {
+      const msj = document.getElementById("msjNotif"), n = vencimientos.filter(v => estadoVen(v) !== "fuera").length;
+      if (!n) { msj.textContent = "Todavía no hay vencimientos para agregar."; return; }
+      const bytes = textoABytes(calendarioICS()), nombre = "Vencimientos_Prevencion.ics", archivo = new File([bytes], nombre, { type: "text/calendar" });
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        try { await navigator.share({ files: [archivo], title: "Vencimientos de prevención" }); msj.textContent = `Listo: ${n} vencimiento(s). Elige tu app de Calendario para agregarlos.`; return; }
+        catch (e) { if (e.name === "AbortError") { msj.textContent = "Cancelado."; return; } }
+      }
+      descargarArchivo(bytes, nombre, "text/calendar");
+      msj.textContent = `Se descargó ${nombre} con ${n} vencimiento(s). Ábrelo desde Descargas y elige tu Calendario: quedan con sus alarmas.`;
+    }
+    // 2) Avisos del teléfono. El service worker no lee localStorage: le dejamos una copia de lo que vence en IndexedDB.
+    const BD_AVISOS = "prevencion-avisos:" + location.pathname.replace(/[^\/]*$/, "");
+    function abrirBDAvisos() {
+      return new Promise((ok, falla) => { const p = indexedDB.open(BD_AVISOS, 1); p.onupgradeneeded = () => p.result.createObjectStore("datos"); p.onsuccess = () => ok(p.result); p.onerror = () => falla(p.error); });
+    }
+    async function bdAvisos(modo, accion) {
+      const bd = await abrirBDAvisos();
+      return new Promise((ok, falla) => { const tx = bd.transaction("datos", modo), pedido = accion(tx.objectStore("datos")); tx.oncomplete = () => { ok(pedido.result); bd.close(); }; tx.onerror = () => { falla(tx.error); bd.close(); }; });
+    }
+    async function copiarAvisos() {
+      try { await bdAvisos("readwrite", s => s.put(vencimientos.filter(v => estadoVen(v) !== "fuera").map(v => ({ texto: `${v.tipo} · ${v.quien}`, vence: v.vence, avisos: diasAviso(v) })), "vencimientos")); } catch {}
+    }
+    async function notificarVencimientos(forzar = false) {
+      if (!("Notification" in window) || Notification.permission !== "granted" || !navigator.serviceWorker) return false;
+      await copiarAvisos();
+      const hoy = hoyISO();
+      try { if (!forzar && await bdAvisos("readonly", s => s.get("ultima")) === hoy) return false; } catch {}   // máximo un aviso al día
+      const items = vencimientos.filter(v => ["vencido", "alerta"].includes(estadoVen(v))).sort((a, b) => a.vence.localeCompare(b.vence));
+      if (!items.length) return false;
+      const venc = items.filter(v => estadoVen(v) === "vencido").length;
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(venc ? `⛔ ${venc} vencido(s) · ${items.length - venc} por vencer` : `⏰ ${items.length} por vencer`, {
+          body: items.slice(0, 3).map(v => `${v.tipo} · ${v.quien}: ${textoVence(v)}`).join("\n") + (items.length > 3 ? `\n…y ${items.length - 3} más` : ""),
+          tag: "prevencion-vencimientos", icon: "icono-192.png", badge: "icono-192.png" });
+        await bdAvisos("readwrite", s => s.put(hoy, "ultima"));
+        return true;
+      } catch { return false; }
+    }
+    async function activarNotificaciones() {
+      const msj = document.getElementById("msjNotif");
+      if (!("Notification" in window) || !navigator.serviceWorker) { msj.textContent = "Este navegador no permite avisos. Usa la opción del calendario."; return; }
+      if (await Notification.requestPermission() !== "granted") { msj.textContent = "No se dio el permiso. Puedes activarlo después en los ajustes del sitio, o usar el calendario."; return; }
+      let diario = false;
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        if ("periodicSync" in reg && (await navigator.permissions.query({ name: "periodic-background-sync" })).state === "granted") {
+          await reg.periodicSync.register("revisar-vencimientos", { minInterval: 24 * 60 * 60 * 1000 }); diario = true;
+        }
+      } catch {}
+      const mostro = await notificarVencimientos(true);
+      msj.textContent = `✅ Avisos activados.${mostro ? " Te mandé uno ahora con lo que vence." : " Ahora no hay nada por vencer."}${diario ? " Además, este teléfono revisará una vez al día aunque la app esté cerrada." : " Este navegador avisa al abrir la app: usa también el calendario."}`;
+      pintarBotonNotif();
+    }
+    function pintarBotonNotif() {
+      const b = document.getElementById("btnNotif");
+      if (b && "Notification" in window && Notification.permission === "granted") b.textContent = "🔔 Avisos activados (mandar uno ahora)";
+    }
+
     function quitarVencimiento(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
       vencimientos = vencimientos.filter(v => v.id !== id); guardarVenc(); pintarVencimientos(); avisoProgramaMenu();

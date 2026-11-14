@@ -10,7 +10,7 @@
    en el mismo sitio no se borran entre ellas.
    ===================================================================== */
 const BASE = "prevencion:" + self.registration.scope + ":";
-const VERSION = BASE + "2026-11-14j";
+const VERSION = BASE + "2026-11-14k";
 const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js", "./xlsx.full.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
 // "reload"/"no-cache": se pide SIEMPRE al servidor (si no cambió, responde rápido), nunca una copia vieja del navegador
@@ -62,5 +62,48 @@ self.addEventListener("fetch", evento => {
       if (pedido.mode === "navigate") return cache.match("./index.html");
       return Response.error();
     }
+  })());
+});
+
+// Aviso diario con la app cerrada (Chrome en Android, con la app instalada). La app deja en IndexedDB
+// una copia de lo que vence (el service worker no puede leer localStorage). Nada sale del teléfono.
+const BD_AVISOS = "prevencion-avisos:" + new URL(self.registration.scope).pathname;
+function bdAvisos(modo, accion) {
+  return new Promise((ok, falla) => {
+    const p = indexedDB.open(BD_AVISOS, 1);
+    p.onupgradeneeded = () => p.result.createObjectStore("datos");
+    p.onerror = () => falla(p.error);
+    p.onsuccess = () => {
+      const bd = p.result, tx = bd.transaction("datos", modo), pedido = accion(tx.objectStore("datos"));
+      tx.oncomplete = () => { ok(pedido.result); bd.close(); };
+      tx.onerror = () => { falla(tx.error); bd.close(); };
+    };
+  });
+}
+async function avisoDiario() {
+  const hoy = new Date().toLocaleDateString("sv-SE");
+  if (await bdAvisos("readonly", s => s.get("ultima")) === hoy) return;   // máximo un aviso al día
+  const lista = (await bdAvisos("readonly", s => s.get("vencimientos"))) || [];
+  const dias = f => Math.round((new Date(f + "T12:00:00") - new Date(hoy + "T12:00:00")) / 86400000);
+  const items = lista.filter(x => x && x.vence && dias(x.vence) <= Math.max(...(x.avisos || [30]))).sort((a, b) => a.vence.localeCompare(b.vence));
+  if (!items.length) return;
+  const venc = items.filter(x => dias(x.vence) < 0).length;
+  const linea = x => { const d = dias(x.vence); return `${x.texto}: ${d < 0 ? "venció hace " + -d + " día(s)" : d === 0 ? "vence hoy" : "vence en " + d + " día(s)"}`; };
+  await self.registration.showNotification(venc ? `⛔ ${venc} vencido(s) · ${items.length - venc} por vencer` : `⏰ ${items.length} por vencer`, {
+    body: items.slice(0, 3).map(linea).join("\n") + (items.length > 3 ? `\n…y ${items.length - 3} más` : ""),
+    tag: "prevencion-vencimientos", icon: "icono-192.png", badge: "icono-192.png"
+  });
+  await bdAvisos("readwrite", s => s.put(hoy, "ultima"));
+}
+self.addEventListener("periodicsync", evento => {
+  if (evento.tag === "revisar-vencimientos") evento.waitUntil(avisoDiario().catch(() => {}));
+});
+// Tocar el aviso abre la app (o la trae al frente si ya está abierta)
+self.addEventListener("notificationclick", evento => {
+  evento.notification.close();
+  evento.waitUntil((async () => {
+    for (const c of await self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      if (c.url.startsWith(self.registration.scope)) return c.focus();
+    return self.clients.openWindow(self.registration.scope);
   })());
 });
