@@ -32,7 +32,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0b1220">
   <!-- Seguridad: la app solo carga sus propios archivos (ninguno de internet) y no puede enviar datos a otros sitios -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
   <meta name="referrer" content="no-referrer">
   <link rel="apple-touch-icon" href="icono-192.png">
   <!-- Librería para crear el PDF: ahora va en un archivo propio (pdf-lib.min.js), así funciona sin internet -->
@@ -465,6 +465,7 @@
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
+      <button type="button" class="aviso-programa" id="avisoDrive" style="display:none" onclick="conectarDrive()"></button>
       <div class="aviso-programa aviso-respaldo" id="avisoEPP" style="display:none">
         <b>🦺 Respaldo semanal de EPP</b><span id="avisoEPPTexto"></span>
         <div class="dos-col" style="margin-top:8px"><button type="button" class="btn btn-principal" style="margin:0" onclick="enviarParcialEPP()">Mandar hoja parcial</button>
@@ -1002,6 +1003,24 @@
         </div>
         <button type="button" class="btn btn-principal" onclick="guardarDatosEmpresa()">Guardar datos de la empresa</button>
         <p class="mensaje" id="msjEmpresa"></p>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Google Drive</h2>
+        <p class="ayuda">Cada PDF que generes se guarda solo en tu Google Drive, en la carpeta "Prevención en Terreno", ordenado por mes y tipo. Sin señal, queda en cola y sube apenas haya internet. La app solo puede ver los archivos que ella misma crea en tu Drive.</p>
+        <p class="mensaje" id="driveEstado"></p>
+        <div class="dos-col" style="margin-top:10px">
+          <button type="button" class="btn btn-principal" style="margin:0" onclick="conectarDrive()">☁️ Conectar Google Drive</button>
+          <button type="button" class="btn btn-secundario" style="margin:0" onclick="subirPendientesDrive(true)">Subir pendientes</button>
+        </div>
+        <details class="exportar" id="driveConfig">
+          <summary>⚙️ Configuración (una sola vez)</summary>
+          <p class="ayuda">Pega el "ID de cliente" que creaste en Google Cloud. Termina en <b>.apps.googleusercontent.com</b>.</p>
+          <input type="text" id="driveCliente" placeholder="123456789-abc.apps.googleusercontent.com" autocomplete="off" spellcheck="false">
+          <p class="ayuda" style="margin-top:8px">Dirección de regreso que debes registrar en Google: <b id="driveRedirect"></b></p>
+          <button type="button" class="btn btn-secundario" onclick="guardarClienteDrive()">Guardar</button>
+          <button type="button" class="btn btn-quitar" style="margin-top:8px" onclick="desconectarDrive()">Desconectar Drive en este equipo</button>
+        </details>
       </div>
 
       <div class="tarjeta">
@@ -1984,12 +2003,12 @@
       if (id === "historial") pintarHistorial();
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
-      if (id === "empresa") pintarEmpresa();
+      if (id === "empresa") { pintarEmpresa(); pintarDrive(); }
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
       if (id === "epp") iniciarEPP();
-      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); }
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); }
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -3189,8 +3208,13 @@
       try {
         const registro = { tipo, fecha, detalle, asunto: pdf.asunto, nombreArchivo: pdf.nombreArchivo,
                            creado: Date.now(), pdf: pdf.bytes, folio: pdf.folio || "", hash: pdf.hash || "" };
-        if (idAnterior) registro.id = idAnterior;
-        return await operacionBD("readwrite", s => s.put(registro));
+        if (idAnterior) {
+          registro.id = idAnterior;
+          try { const previo = await operacionBD("readonly", s => s.get(idAnterior)); const d = previo && (previo.drive || previo.driveAnterior); if (d) registro.driveAnterior = d; } catch {}
+        }
+        const id = await operacionBD("readwrite", s => s.put(registro));
+        subirPendientesDrive();   // a Google Drive, si está conectado (si no, queda en cola)
+        return id;
       } catch (e) {
         console.warn("No se pudo guardar en el historial", e);
         return idAnterior;
@@ -3230,7 +3254,7 @@
       lista.innerHTML = visibles.map(r => `
         <div class="registro">
           <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : "📋"} ${html(r.asunto)}</div>
-          <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}</div>
+          <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
             <button class="btn btn-secundario" onclick="guardarHist(${+r.id})">💾 Guardar</button>
@@ -4139,7 +4163,9 @@
         return { nombre, datos: new Uint8Array(r.pdf) };
       });
       const nombreZip = `Respaldo_Prevencion_${k}.zip`;
-      descargarArchivo(armarZip(archivos), nombreZip, "application/zip");
+      const zip = armarZip(archivos);
+      descargarArchivo(zip, nombreZip, "application/zip");
+      if (driveToken()) subirArchivoDrive(nombreZip, zip, "application/zip", [DRIVE_RAIZ, k]).catch(() => {});
       if (!confirm(`Se descargó ${nombreZip} con ${regs.length} PDF de ${nombreMes(k)}.\n\n¿Quedó guardado (en el PC o en tu correo)?\n\nSi tocas Aceptar, este mes queda respaldado y sus PDF se borrarán de este equipo cuando termine el mes siguiente.`)) return false;
       const hechos = leerGuardado("pt_respaldoMes", {});
       hechos[k] = momento;
@@ -4178,7 +4204,7 @@
       if (await descargarRespaldoMes(k)) { await limpiarMesesRespaldados(); pintarHistorial(); }
     }
     // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y avisos
-    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); notificarVencimientos(); }, 0);
+    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); notificarVencimientos(); subirPendientesDrive(); }, 0);
     // Firma del experto: se guarda solo la del mes actual y el anterior (y la del informe que se está haciendo)
     function podarFirmasExperto() {
       const limite = mesAnteriorDe(mesHoy()), enCurso = leerGuardado("pt_inf_ultimoMes", "");
@@ -4186,6 +4212,142 @@
       viejas.forEach(k => delete infFirmaExperto[k]);
       if (viejas.length) guardar("pt_inf_firmaExperto", infFirmaExperto);
     }
+
+    /* =====================================================================
+       GOOGLE DRIVE: cada PDF se guarda solo en el Drive del usuario.
+       Sin servidor y sin código de Google dentro de la app: el permiso se pide a Google con una redirección
+       (OAuth con permiso "drive.file": la app solo ve los archivos que ella misma crea). El permiso dura ~1 hora.
+       ===================================================================== */
+    const DRIVE_RAIZ = "Prevención en Terreno", DRIVE_API = "https://www.googleapis.com";
+    const driveRedirect = () => location.origin + location.pathname.replace(/index\.html$/, "");
+    const driveCliente = () => leerGuardado("pt_drive_cliente", "");
+    const driveConfigurado = () => /^[\w.-]+\.apps\.googleusercontent\.com$/.test(driveCliente());
+    function driveToken() {
+      try { const t = JSON.parse(sessionStorage.getItem("pt_drive_token") || "null"); return t && t.vence > Date.now() + 60000 ? t.token : null; } catch { return null; }
+    }
+    function guardarClienteDrive() {
+      const v = document.getElementById("driveCliente").value.trim();
+      if (v && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(v)) { document.getElementById("driveEstado").textContent = 'Ese no parece un ID de cliente de Google: debe terminar en ".apps.googleusercontent.com".'; return; }
+      guardar("pt_drive_cliente", v); guardar("pt_drive_carpetas", {}); pintarDrive();
+    }
+    function conectarDrive() {
+      if (!driveConfigurado()) {
+        mostrar("empresa"); document.getElementById("driveConfig").open = true;
+        document.getElementById("driveEstado").textContent = "Primero pega el ID de cliente de Google (configuración, una sola vez).";
+        return;
+      }
+      if (!navigator.onLine) { alert("Necesitas internet para conectar Google Drive."); return; }
+      const estado = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("");
+      sessionStorage.setItem("pt_drive_estado", estado);
+      sessionStorage.setItem("pt_drive_volver", document.querySelector(".pantalla.activa")?.id || "menu");
+      const p = new URLSearchParams({ client_id: driveCliente(), redirect_uri: driveRedirect(), response_type: "token",
+        scope: "https://www.googleapis.com/auth/drive.file", include_granted_scopes: "true", state: estado });
+      location.assign("https://accounts.google.com/o/oauth2/v2/auth?" + p);
+    }
+    // Al volver de Google el permiso viene en la dirección (#access_token=…): se revisa que sea nuestro pedido y se borra de la dirección
+    (function recibirPermisoDrive() {
+      if (!/[#&](access_token|error)=/.test(location.hash)) return;
+      const p = new URLSearchParams(location.hash.slice(1)), esperado = sessionStorage.getItem("pt_drive_estado");
+      history.replaceState(null, "", location.pathname + location.search);
+      sessionStorage.removeItem("pt_drive_estado");
+      if (!esperado || p.get("state") !== esperado) return;   // no lo pedimos nosotros: se ignora
+      if (p.get("access_token")) sessionStorage.setItem("pt_drive_token", JSON.stringify({ token: p.get("access_token"), vence: Date.now() + (+p.get("expires_in") || 3600) * 1000 }));
+      else sessionStorage.setItem("pt_drive_error", String(p.get("error") || "error").slice(0, 60));
+      const volver = sessionStorage.getItem("pt_drive_volver"); sessionStorage.removeItem("pt_drive_volver");
+      if (volver && /^[a-z]+$/.test(volver)) setTimeout(() => mostrar(volver), 300);
+    })();
+    function desconectarDrive() {
+      const t = driveToken(); sessionStorage.removeItem("pt_drive_token");
+      if (t) fetch("https://oauth2.googleapis.com/revoke?token=" + encodeURIComponent(t), { method: "POST" }).catch(() => {});
+      pintarDrive();
+    }
+    async function driveFetch(url, opciones = {}) {
+      const token = driveToken();
+      if (!token) throw Object.assign(new Error("falta conectar Google Drive"), { sinPermiso: true });
+      const r = await fetch(url, { ...opciones, headers: { ...(opciones.headers || {}), Authorization: "Bearer " + token } });
+      if (r.status === 401) { sessionStorage.removeItem("pt_drive_token"); throw Object.assign(new Error("el permiso de Google venció"), { sinPermiso: true }); }
+      if (!r.ok) throw Object.assign(new Error(`Google Drive respondió ${r.status}`), { estado: r.status });
+      return r;
+    }
+    // ["Prevención en Terreno", "2026-11", "Charlas"] → id de la última carpeta (crea las que falten)
+    async function driveCarpeta(ruta) {
+      const cache = leerGuardado("pt_drive_carpetas", {});
+      let padre = "root", clave = "";
+      for (const nombre of ruta) {
+        clave += "/" + nombre;
+        if (cache[clave]) { padre = cache[clave]; continue; }
+        const q = `name='${nombre.replace(/\\/g, "\\\\").replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and '${padre}' in parents and trashed=false`;
+        const lista = await (await driveFetch(`${DRIVE_API}/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)&spaces=drive`)).json();
+        let id = lista.files && lista.files[0] && lista.files[0].id;
+        if (!id) id = (await (await driveFetch(`${DRIVE_API}/drive/v3/files?fields=id`, { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: nombre, mimeType: "application/vnd.google-apps.folder", parents: [padre] }) })).json()).id;
+        if (!id) throw new Error("Google Drive no creó la carpeta");
+        cache[clave] = padre = id;
+      }
+      guardar("pt_drive_carpetas", cache);
+      return padre;
+    }
+    async function subirArchivoDrive(nombre, bytes, tipoMime, ruta, reemplazar) {
+      const armar = meta => {
+        const limite = "pt" + Math.random().toString(36).slice(2);
+        return { tipo: `multipart/related; boundary=${limite}`, cuerpo: new Blob([`--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${limite}\r\nContent-Type: ${tipoMime}\r\n\r\n`, bytes, `\r\n--${limite}--`]) };
+      };
+      if (reemplazar) {   // el mismo documento generado de nuevo: se reemplaza el archivo en Drive en vez de duplicarlo
+        try {
+          const b = armar({ name: nombre });
+          return (await (await driveFetch(`${DRIVE_API}/upload/drive/v3/files/${encodeURIComponent(reemplazar)}?uploadType=multipart&fields=id`, { method: "PATCH", headers: { "Content-Type": b.tipo }, body: b.cuerpo })).json()).id;
+        } catch (e) { if (e.sinPermiso) throw e; }   // si ya no existe en Drive, se crea uno nuevo
+      }
+      for (let intento = 0; intento < 2; intento++) {
+        try {
+          const b = armar({ name: nombre, parents: [await driveCarpeta(ruta)] });
+          return (await (await driveFetch(`${DRIVE_API}/upload/drive/v3/files?uploadType=multipart&fields=id`, { method: "POST", headers: { "Content-Type": b.tipo }, body: b.cuerpo })).json()).id;
+        } catch (e) { if (e.sinPermiso || intento) throw e; guardar("pt_drive_carpetas", {}); }   // carpeta borrada en Drive: se vuelve a crear
+      }
+    }
+    const rutaDrive = r => [DRIVE_RAIZ, mesDeRegistro(r), CARPETA_RESPALDO[r.tipo] || "Otros"];
+    let subiendoDrive = false, otraVueltaDrive = false;
+    async function subirPendientesDrive(manual = false) {
+      if (!driveConfigurado() || !driveToken()) { if (manual) conectarDrive(); else pintarDrive(); return; }
+      if (!navigator.onLine) return;
+      if (subiendoDrive) { otraVueltaDrive = true; return; }   // llegó algo nuevo mientras subía: se sube al terminar esta vuelta
+      subiendoDrive = true;
+      let n = 0, error = "";
+      try {
+        do {
+          otraVueltaDrive = false;
+          for (const r of (await todosLosRegistros()).filter(r => !r.drive)) {
+          try {
+            const id = await subirArchivoDrive(r.nombreArchivo || "registro.pdf", new Uint8Array(r.pdf), r.mime || "application/pdf", rutaDrive(r), r.driveAnterior);
+            // Solo se marca si el registro no cambió mientras subía (si se volvió a generar, el nuevo sube en la próxima vuelta)
+            const actual = await operacionBD("readonly", s => s.get(r.id));
+            if (actual && actual.creado === r.creado) { const { driveAnterior, ...resto } = actual; await operacionBD("readwrite", s => s.put({ ...resto, drive: id })); n++; }
+          } catch (e) { error = e.message; if (e.sinPermiso) { otraVueltaDrive = false; break; } }
+          }
+        } while (otraVueltaDrive);
+      } finally { subiendoDrive = false; }
+      await pintarDrive(n, error);
+      if (document.getElementById("historial").classList.contains("activa")) pintarHistorial();
+    }
+    async function pintarDrive(subidos = 0, error = "") {
+      const conf = driveConfigurado(), con = !!driveToken();
+      const pend = conf ? (await todosLosRegistros()).filter(r => !r.drive).length : 0;
+      const cli = document.getElementById("driveCliente"), red = document.getElementById("driveRedirect"), est = document.getElementById("driveEstado");
+      if (cli && document.activeElement !== cli) cli.value = driveCliente();
+      if (red) red.textContent = driveRedirect();
+      const err = sessionStorage.getItem("pt_drive_error"); if (err) sessionStorage.removeItem("pt_drive_error");
+      if (est) est.textContent = !conf ? "Sin configurar. Sigue los pasos de configuración (una sola vez)."
+        : err ? `Google no dio el permiso (${err}). Vuelve a intentar.`
+        : con ? `✅ Conectado.${subidos ? ` Se subieron ${subidos} archivo(s).` : ""} ${pend ? pend + " pendiente(s) por subir." : "Todo está en tu Drive."}${error ? " Último problema: " + error + "." : ""}`
+        : `Desconectado. ${pend ? pend + " documento(s) esperando subir: " : ""}toca "Conectar Google Drive".`;
+      const aviso = document.getElementById("avisoDrive");
+      if (aviso) {
+        const ver = conf && !con && pend > 0;
+        aviso.style.display = ver ? "block" : "none";
+        if (ver) aviso.innerHTML = `<b>☁️ Reconectar Google Drive</b><span>${pend} documento(s) esperando subir a tu Drive. Toca para conectar.</span>`;
+      }
+    }
+    window.addEventListener("online", () => subirPendientesDrive());
 
     /* =====================================================================
        ENTREGA DE EPP (Hoja de cargos)
@@ -4703,7 +4865,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
