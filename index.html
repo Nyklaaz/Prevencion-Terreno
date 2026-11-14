@@ -282,6 +282,54 @@
     .empresa-logo { display: flex; justify-content: center; background: #f6f7f9; border-radius: 8px; padding: 12px; }
     .empresa-logo img { max-height: 90px; max-width: 220px; }
     .paquete-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 8px 0; }
+    /* ===== Calendario ===== */
+    .cal-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .cal-cab h2 { margin: 0; font-size: 18px; text-transform: none; letter-spacing: 0; color: var(--oscuro); }
+    .cal-nav { width: 44px; height: 44px; border: 1px solid var(--borde); border-radius: 8px; background: white; font-size: 16px; cursor: pointer; }
+    .cal-semana, .cal-grilla { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+    .cal-semana { margin: 12px 0 4px; text-align: center; font-size: 12px; font-weight: 700; color: #56606b; }
+    .cal-dia { min-height: 58px; border: 1px solid var(--borde); border-radius: 8px; background: white; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; font-family: inherit; color: inherit; }
+    .cal-dia b { font-size: 14px; }
+    .cal-dia.hoy { border: 2px solid var(--oscuro); }
+    .cal-dia.sel { background: var(--suave); border-color: var(--principal); }
+    .cal-ico { font-size: 11px; line-height: 1.1; display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; }
+    .cal-pts { display: flex; gap: 2px; flex-wrap: wrap; justify-content: center; }
+    .pt { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .pt.hecho { background: var(--ok); } .pt.pend { border: 2px solid #667085; box-sizing: border-box; } .pt.atr { background: var(--mal); }
+    .cal-leyenda .pt { margin: 0 2px 0 6px; vertical-align: middle; }
+    .cal-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px; border: 1px solid var(--borde); border-radius: 8px; margin-bottom: 6px; background: white; font-size: 14px; }
+    .cal-item .btn { width: auto; padding: 8px 10px; font-size: 13px; flex-shrink: 0; }
+    .cal-item.prog { justify-content: flex-start; cursor: pointer; }
+    .cal-item.prog span { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .cal-item.prog small { color: #56606b; }
+    .cal-item.hecha { background: #ecfdf3; border-color: #abefc6; }
+    .cal-item.atrasada { border-color: var(--mal); }
+    .rojo { color: var(--mal) !important; font-weight: 700; } .verde { color: var(--ok) !important; font-weight: 600; }
+    .aviso-programa { display: block; width: 100%; text-align: left; background: #fff8e6; border: 1px solid #f5d37a; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; font-family: inherit; font-size: 14px; color: inherit; cursor: pointer; }
+    .aviso-programa span { display: block; margin-top: 3px; }
+    .hal { padding: 14px; border-left: 5px solid #f5b400; }
+    .hal.vencido { border-left-color: var(--mal); } .hal.cerrado { border-left-color: var(--ok); background: #f8fdf9; }
+    .hal .tit { font-weight: 700; margin: 6px 0 4px; } .hal .det { font-size: 14px; color: #3d4652; margin-top: 3px; }
+    .hal-cab { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+    .hal-riesgo { font-weight: 700; padding: 2px 8px; border-radius: 10px; font-size: 12px; background: #fff3cd; color: #8a5a00; }
+    .hal-riesgo.r-alto { background: #fde2e1; color: #a1121e; } .hal-riesgo.r-bajo { background: #e3f6ec; color: #0f6b47; }
+    .hal-fotos { display: flex; gap: 8px; margin-top: 8px; }
+    .hal-fotos figure { margin: 0; flex: 1; max-width: 50%; } .hal-fotos img { width: 100%; height: 150px; object-fit: cover; border-radius: 6px; border: 1px solid var(--borde); }
+    .hal-fotos figcaption { font-size: 12px; color: #56606b; text-align: center; }
+    .hal .botones { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .hal .botones .btn { width: 100%; margin: 0; } .hal-cierre { margin-top: 10px; }
+    .hal.ven-vencido { border-left-color: var(--mal); } .hal.ven-alerta { border-left-color: #f5b400; } .hal.ven-vigente { border-left-color: var(--ok); }
+    .btn-asis { margin-top: 10px; }
+    .asistente { margin-top: 8px; padding: 10px; border: 1px dashed #c9a227; border-radius: 8px; background: #fffdf3; }
+    .asis-grupo { margin-top: 6px; } .asis-grupo b { display: block; font-size: 13px; margin-bottom: 4px; }
+    .asis-chip { display: inline-block; text-align: left; margin: 0 6px 6px 0; padding: 7px 10px; border: 1px solid var(--borde); border-radius: 16px; background: white; font: inherit; font-size: 13px; cursor: pointer; color: inherit; }
+    .asis-aviso { margin: 4px 0; font-size: 13px; color: #8a4b00; font-weight: 600; }
+    .ed-item { border: 1px solid var(--borde); border-radius: 8px; padding: 10px; margin-top: 8px; background: white; }
+    .ed-botones { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .ed-botones .btn { width: auto; flex: 1 1 auto; margin: 0; padding: 8px 10px; font-size: 13px; }
+    .ed-panel { margin-top: 8px; } .ed-texto { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+    .ed-barra { position: sticky; bottom: 0; background: #fff8e6; border: 1px solid #f5d37a; border-radius: 8px; padding: 10px; margin-top: 12px; z-index: 5; }
+    .asistente > div > b, .asistente > b { display: block; font-size: 13.5px; margin-top: 8px; }
+    .asistente ul { margin: 4px 0 8px; padding-left: 18px; font-size: 13.5px; }
     .inf-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 10px; }
     .inf-dato { background: #f6f7f9; border-radius: 8px; padding: 8px 10px; }
     .inf-dato b { display: block; font-size: 18px; color: var(--oscuro); }
@@ -320,14 +368,24 @@
         <button class="btn btn-principal" onclick="mostrar('empresa')">Configurar mi empresa</button>
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
+      <button type="button" class="aviso-programa" id="avisoPrograma" style="display:none" onclick="mostrar('calendario')"></button>
       <button class="menu-btn" onclick="mostrar('charla')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span class="menu-txt">Charla diaria + ART + Bloqueador<small>Formato oficial de la jornada, todo en uno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span class="menu-txt" id="menuCharla">Charla diaria + ART + Bloqueador<small>Formato oficial de la jornada, todo en uno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('irl')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg></span><span class="menu-txt">IRL – Información de Riesgos Laborales<small>Inducción por cargo según el art. 15 del DS 44</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('chequeo')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('calendario')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 18h2"/></svg></span><span class="menu-txt">Calendario y programa<small>Lo que se hizo cada día y el programa anual de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('hallazgos')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M11 8v3.5M11 14h.01"/></svg></span><span class="menu-txt">Hallazgos y acciones<small>Seguimiento de lo que hay que corregir, con plazo y cierre</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('vencimientos')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></svg></span><span class="menu-txt">Vencimientos<small>Licencias, exámenes, cursos, reinducciones y extintores</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('informe')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="menu-txt">Informe mensual<small>Informe de gestión preventiva, Excel e IFOS SAFI (en el PC)</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -469,12 +527,32 @@
           <button type="button" data-f="charla" onclick="filtrarHist(this)">Charlas</button>
           <button type="button" data-f="irl" onclick="filtrarHist(this)">IRL</button>
           <button type="button" data-f="check" onclick="filtrarHist(this)">Check list</button>
+          <button type="button" data-f="hallazgos" onclick="filtrarHist(this)">Hallazgos</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
           <summary>📦 Pasar los registros del mes al PC (para el informe mensual)</summary>
           <p class="ayuda">Arma un solo PDF con todas las charlas, IRL y check list del mes. Mándatelo por correo o WhatsApp y en el PC cárgalo en "Informe mensual".</p>
           <div class="dos-col"><input type="month" id="expMes"><button type="button" class="btn btn-principal" onclick="exportarRegistrosMes()">Exportar</button></div>
+        </details>
+        <details class="exportar">
+          <summary>🔎 Verificar un documento</summary>
+          <p class="ayuda">Elige un PDF que te hayan mandado: la app revisa su folio y su huella digital para saber si es el original generado aquí o si alguien lo modificó.</p>
+          <label class="btn btn-secundario" style="margin:0">Elegir PDF a verificar
+            <input type="file" accept=".pdf,application/pdf" onchange="verificarDocumento(this)" hidden>
+          </label>
+          <div id="resVerificar" class="mensaje"></div>
+        </details>
+        <details class="exportar">
+          <summary>💾 Respaldo de este equipo</summary>
+          <p class="ayuda">Guarda en un archivo todo lo de la app en este equipo: historial de PDF, listado, programa, formatos e informe. Guárdalo en tu correo o en Drive: si se pierde o cambias el celular, lo restauras.</p>
+          <div class="dos-col">
+            <button type="button" class="btn btn-principal" onclick="guardarRespaldo('respaldoHist')">💾 Guardar respaldo</button>
+            <label class="btn btn-secundario" style="margin:0">♻️ Restaurar
+              <input type="file" accept=".json,application/json" onchange="restaurarRespaldo(this, 'respaldoHist', 'historial')" hidden>
+            </label>
+          </div>
+          <p class="ayuda" id="respaldoHist" style="margin-top:6px"></p>
         </details>
         <p class="mensaje" id="mensajeHist"></p>
       </div>
@@ -740,6 +818,55 @@
       </div>
     </section>
 
+    <!-- ========== CALENDARIO Y PROGRAMA ANUAL ========== -->
+    <section id="calendario" class="pantalla">
+      <div class="tarjeta">
+        <div class="cal-cab">
+          <button type="button" class="cal-nav" onclick="moverMesCal(-1)" aria-label="Mes anterior">◀</button>
+          <h2 id="calTitulo"></h2>
+          <button type="button" class="cal-nav" onclick="moverMesCal(1)" aria-label="Mes siguiente">▶</button>
+        </div>
+        <div class="cal-semana"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+        <div id="calGrilla" class="cal-grilla"></div>
+        <p class="ayuda cal-leyenda"><span class="pt hecho"></span> Realizado (registro o ✔) · <span class="pt pend"></span> Programado · <span class="pt atr"></span> Atrasado</p>
+        <button type="button" class="btn btn-secundario" onclick="irHoyCal()">Ir a hoy</button>
+      </div>
+
+      <div class="tarjeta" id="calDia"></div>
+
+      <div class="tarjeta">
+        <h2>Programa anual de prevención</h2>
+        <p class="ayuda" id="progCumplimiento"></p>
+        <details class="exportar" id="progForm">
+          <summary>+ Agregar actividad al programa</summary>
+          <label>Actividad</label><input type="text" id="progActividad" placeholder="Ej: Capacitación uso de extintores">
+          <div class="dos-col">
+            <div><label>Tipo</label><select id="progTipo"></select></div>
+            <div><label>Responsable</label><input type="text" id="progResp" placeholder="Ej: APR"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Fecha (o primera vez)</label><input type="date" id="progFecha"></div>
+            <div><label>Se repite</label><select id="progRepite">
+              <option value="">Una sola vez</option><option value="semana">Cada semana</option><option value="mes">Cada mes</option>
+              <option value="3m">Cada 3 meses</option><option value="6m">Cada 6 meses</option></select></div>
+          </div>
+          <label class="check-linea"><input type="checkbox" id="progMes"> Sin día fijo: se puede hacer cualquier día de ese mes</label>
+          <label>Repetir hasta</label><input type="date" id="progHasta">
+          <button type="button" class="btn btn-principal" onclick="agregarActividadPrograma()">Agregar al programa</button>
+          <p class="mensaje" id="msjProg"></p>
+        </details>
+        <details class="exportar">
+          <summary>📥 Cargar el programa desde Excel</summary>
+          <p class="ayuda">Sirve una planilla con columnas <b>Actividad</b> y <b>Fecha</b> (opcional: Tipo, Responsable), o el formato carta Gantt: una columna <b>Actividad</b> y los meses (Ene, Feb, Mar…) marcados con X.</p>
+          <label class="btn btn-secundario" style="margin:0">Elegir archivo Excel
+            <input type="file" accept=".xls,.xlsx,.csv" onchange="importarProgramaExcel(this)" hidden>
+          </label>
+          <p class="mensaje" id="msjImpProg"></p>
+        </details>
+        <div id="progLista"></div>
+      </div>
+    </section>
+
     <!-- ========== EMPRESA Y FORMATOS (paquete de la empresa) ========== -->
     <section id="empresa" class="pantalla">
       <div class="tarjeta">
@@ -772,9 +899,33 @@
         <p class="mensaje" id="msjPaquete"></p>
       </div>
 
-      <div class="tarjeta">
-        <h2>Próximamente: editor de formatos</h2>
-        <p class="ayuda">Podrás crear y corregir tus check list, la charla y ART por departamento y las IRL de cada cargo, o subir tus Word y Excel para que la app los convierta.</p>
+      <div class="tarjeta" id="editorFormatos">
+        <h2>Editor de formatos</h2>
+        <p class="ayuda">Crea o corrige tus formatos aquí mismo. Los cambios quedan listos al tocar <b>Guardar cambios</b>; después usa "Exportar mi paquete" para pasárselos a tu equipo.</p>
+        <details class="exportar ed-sec" ontoggle="if (this.open) edAbrir('irl')">
+          <summary>📘 IRL por cargo (cargar desde Word)</summary>
+          <div id="edIRL"></div>
+        </details>
+        <details class="exportar ed-sec" ontoggle="if (this.open) edAbrir('deptos')">
+          <summary>📋 Charla y ART por departamento</summary>
+          <div id="edDeptos"></div>
+        </details>
+        <details class="exportar ed-sec" ontoggle="if (this.open) edAbrir('charla')">
+          <summary>🗣️ Textos de la charla (checklist, preguntas ART, módulos)</summary>
+          <div id="edCharla"></div>
+        </details>
+        <details class="exportar ed-sec" ontoggle="if (this.open) edAbrir('check')">
+          <summary>✅ Check list</summary>
+          <div id="edCheck"></div>
+        </details>
+        <div class="ed-barra" id="edBarra" style="display:none">
+          <p class="ayuda" id="edEstado" style="margin:0 0 8px"></p>
+          <div class="dos-col">
+            <button type="button" class="btn btn-principal" style="margin:0" onclick="edGuardar()">💾 Guardar cambios</button>
+            <button type="button" class="btn btn-secundario" style="margin:0" onclick="edDescartar()">Descartar</button>
+          </div>
+        </div>
+        <p class="mensaje" id="msjEditor"></p>
       </div>
     </section>
 
@@ -831,6 +982,7 @@
       <div class="tarjeta" id="cajaEnvioCheck" style="display:none; margin-top:16px">
         <h2>✅ Check list listo</h2>
         <p class="ayuda" id="infoPDFCheck"></p>
+        <div id="ckHallazgos" style="display:none; margin-bottom:10px"></div>
         <div class="acciones">
           <button class="btn btn-principal" onclick="compartirCheck()">📤 Compartir PDF (correo, WhatsApp…)</button>
           <button class="btn btn-secundario" onclick="guardarPDFCheck()">💾 Guardar PDF en el teléfono</button>
@@ -839,6 +991,106 @@
           <button class="btn btn-secundario" onclick="otroCheck(false)">Elegir otro tipo de check list</button>
         </div>
       </div>
+    </section>
+
+    <!-- ========== SEGUIMIENTO DE HALLAZGOS ========== -->
+    <section id="hallazgos" class="pantalla">
+      <div class="tarjeta">
+        <div class="inf-panel" id="halResumen"></div>
+        <div class="filtros" id="halFiltros">
+          <button type="button" class="activo" data-f="abiertos" onclick="filtrarHallazgos(this)">Abiertos</button>
+          <button type="button" data-f="vencidos" onclick="filtrarHallazgos(this)">Vencidos</button>
+          <button type="button" data-f="cerrados" onclick="filtrarHallazgos(this)">Cerrados</button>
+          <button type="button" data-f="todos" onclick="filtrarHallazgos(this)">Todos</button>
+        </div>
+        <input type="search" id="halBusca" placeholder="🔍 Buscar por lugar, responsable o texto" oninput="pintarHallazgos()">
+        <details class="exportar" id="halForm">
+          <summary>+ Nuevo hallazgo</summary>
+          <label>¿Qué se encontró?</label>
+          <textarea id="halDesc" rows="2" placeholder="Ej: Extintor sin señalética en bodega"></textarea>
+          <div class="dos-col">
+            <div><label>Lugar o área</label><input type="text" id="halLugar" placeholder="Ej: Bodega de materiales"></div>
+            <div><label>Origen</label><select id="halOrigen"></select></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Nivel de riesgo</label><select id="halRiesgo"><option>Alto</option><option selected>Medio</option><option>Bajo</option></select></div>
+            <div><label>Plazo para corregir</label><input type="date" id="halPlazo"></div>
+          </div>
+          <label>Acción correctiva</label>
+          <textarea id="halAccion" rows="2" placeholder="Ej: Instalar señalética y demarcar"></textarea>
+          <label>Responsable</label><input type="text" id="halResp" placeholder="Ej: Jefe de bodega">
+          <label class="btn btn-secundario" style="margin:10px 0 0">📷 Foto del hallazgo
+            <input type="file" accept="image/*" capture="environment" onchange="fotoNuevoHallazgo(this)" hidden>
+          </label>
+          <div id="halFotoNueva"></div>
+          <button type="button" class="btn btn-principal" onclick="agregarHallazgo()">Guardar hallazgo</button>
+          <p class="mensaje" id="msjHal"></p>
+        </details>
+        <details class="exportar">
+          <summary>📄 Informe de seguimiento (PDF)</summary>
+          <p class="ayuda">Arma un PDF con la tabla de hallazgos y sus fotos (antes y después). Sirve como anexo del informe mensual o para mandarlo al mandante.</p>
+          <div class="dos-col">
+            <div><label>Incluir</label><select id="halPdfQue">
+              <option value="mes">Los del mes (registrados o cerrados)</option>
+              <option value="abiertos">Todos los abiertos</option>
+              <option value="todos">Todos</option></select></div>
+            <div><label>Mes</label><input type="month" id="halPdfMes"></div>
+          </div>
+          <button type="button" class="btn btn-principal" onclick="pdfHallazgos()">Generar PDF</button>
+          <p class="mensaje" id="msjHalPdf"></p>
+        </details>
+      </div>
+      <div id="halLista"></div>
+    </section>
+
+    <!-- ========== VENCIMIENTOS ========== -->
+    <section id="vencimientos" class="pantalla">
+      <div class="tarjeta">
+        <div class="inf-panel" id="venResumen"></div>
+        <div class="filtros" id="venFiltros">
+          <button type="button" class="activo" data-f="alerta" onclick="filtrarVenc(this)">Por vencer</button>
+          <button type="button" data-f="vencido" onclick="filtrarVenc(this)">Vencidos</button>
+          <button type="button" data-f="todos" onclick="filtrarVenc(this)">Todos</button>
+        </div>
+        <input type="search" id="venBusca" placeholder="🔍 Buscar por trabajador, equipo o documento" oninput="pintarVencimientos()">
+        <details class="exportar" id="venForm">
+          <summary>+ Agregar vencimiento</summary>
+          <div class="dos-col">
+            <div><label>Es de</label><select id="venCat"><option>Trabajador</option><option>Equipo o vehículo</option><option>Documento u otro</option></select></div>
+            <div><label>Vence el</label><input type="date" id="venFecha"></div>
+          </div>
+          <label>¿Qué vence?</label>
+          <input type="text" id="venTipo" list="venTipos" placeholder="Ej: Licencia de conducir, Examen ocupacional, Recarga extintor">
+          <datalist id="venTipos"></datalist>
+          <label>¿De quién o de qué?</label>
+          <input type="text" id="venQuien" list="venQuienes" placeholder="Ej: Juan Pérez · Camioneta CM-12 · Extintor bodega">
+          <datalist id="venQuienes"></datalist>
+          <div class="dos-col">
+            <div><label>Avisar con</label><select id="venAviso"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>30 días</option><option value="60">60 días</option></select></div>
+            <div><label>Nota</label><input type="text" id="venNota" placeholder="Opcional"></div>
+          </div>
+          <button type="button" class="btn btn-principal" onclick="agregarVencimiento()">Guardar</button>
+          <p class="mensaje" id="msjVen"></p>
+        </details>
+        <details class="exportar">
+          <summary>📘 Reinducciones desde las IRL del historial</summary>
+          <p class="ayuda">Toma la última IRL de cada trabajador guardada en este equipo y agenda su reinducción. Si el trabajador ya tiene una reinducción agendada, no se duplica.</p>
+          <div class="dos-col">
+            <div><label>Reinducción cada</label><select id="venMesesIRL"><option value="6">6 meses</option><option value="12" selected>12 meses</option><option value="24">24 meses</option></select></div>
+            <div><label>&nbsp;</label><button type="button" class="btn btn-secundario" style="margin:0" onclick="reinduccionesDesdeIRL()">Agendar</button></div>
+          </div>
+          <p class="mensaje" id="msjVenIRL"></p>
+        </details>
+        <details class="exportar">
+          <summary>📥 Cargar desde Excel</summary>
+          <p class="ayuda">Una planilla con columnas <b>Nombre</b> (o Equipo, Patente), <b>Documento</b> (o Tipo, Curso) y <b>Vence</b> (o Vencimiento, Fecha). Sirve el control de licencias, exámenes o extintores que ya tengas.</p>
+          <label class="btn btn-secundario" style="margin:0">Elegir archivo Excel
+            <input type="file" accept=".xls,.xlsx,.csv" onchange="importarVencExcel(this)" hidden>
+          </label>
+          <p class="mensaje" id="msjVenExcel"></p>
+        </details>
+      </div>
+      <div id="venLista"></div>
     </section>
   </main>
 
@@ -857,12 +1109,36 @@
         empresa: { nombre: "", rut: "", tipo: "Contratista", marca: "", logo: "", ...(p.empresa || {}) },
         charla: {
           titulo: c.titulo || "REGISTRO DE CHARLA DIARIA DE SEGURIDAD – ART", tema: c.tema || "",
-          checklist: c.checklist || [], modulos: c.modulos || [], departamentos: c.departamentos || [],
+          checklist: c.checklist || [], modulos: c.modulos || [], departamentos: (c.departamentos || []).filter(d => /^[\w-]+$/.test(d.id || "")),
           preguntasART: c.preguntasART || [], notasBloqueador: c.notasBloqueador || [], sugerirIRL: c.sugerirIRL || {},
-          declaracion: c.declaracion || "Al firmar este documento, la persona trabajadora declara haber asistido y comprendido la charla diaria de seguridad y el análisis de riesgos del trabajo."
+          declaracion: c.declaracion || "Al firmar este documento, la persona trabajadora declara haber asistido y comprendido la charla diaria de seguridad y el análisis de riesgos del trabajo.",
+          bloqueador: c.bloqueador ?? (c.notasBloqueador || []).length > 0   // registro de bloqueador solar (opcional)
         },
-        checklists: { grupos: {}, listas: {}, ...(p.checklists || {}) },
+        checklists: normalizarChecklists(p.checklists),
         informe: { codigoEstadistica: "", ...(p.informe || {}) }
+      };
+    }
+    // Check list: cada tipo (grupo) necesita escala, campos y firmas; si faltan, se usan los básicos
+    function normalizarChecklists(ck) {
+      const grupos = {}, listas = {};
+      const idSeguro = id => /^[\w-]+$/.test(id);
+      for (const [id, g] of Object.entries((ck && ck.grupos) || {})) if (idSeguro(id)) grupos[id] = {
+        nombre: g.nombre || id, icono: g.icono || "", escala: g.escala && g.escala.length && g.escala.every(o => ["SÍ", "NO", "N/A", "B", "R", "M"].includes(o)) ? g.escala : ["SÍ", "NO", "N/A"], codigo: g.codigo || "",
+        campos: g.campos && g.campos.length && g.campos.every(c => /^\w+$/.test(c[0])) ? g.campos : [["obra", "Obra", 0], ["fecha", "Fecha", 1], ["inspector", "Nombre inspector", 1]],
+        firmas: g.firmas && g.firmas.length ? g.firmas : [["Inspector", 1]], ayuda: g.ayuda || "", acciones: !!g.acciones };
+      for (const [id, l] of Object.entries((ck && ck.listas) || {})) if (idSeguro(id) && grupos[l.grupo]) listas[id] = { ...l, nombre: l.nombre || id, items: l.items || [] };
+      return { grupos, listas };
+    }
+    // IRL: textos y listas por defecto si el paquete no los trae
+    function normalizarIRL(irl) {
+      if (!irl || !irl.cargos || !Object.keys(irl.cargos).length) return null;
+      const cargos = {};
+      for (const [id, c] of Object.entries(irl.cargos)) if (/^[\w-]+$/.test(id)) cargos[id] = { ...c, nombre: c.nombre || c.cargo || id, cargo: c.cargo || c.nombre || id, contenido: c.contenido || [] };
+      return {
+        ...irl, cargos, imagenes: irl.imagenes || {}, pts: irl.pts || [], hds: irl.hds || [], otros_docs: irl.otros_docs || [],
+        tipos_induccion: irl.tipos_induccion && irl.tipos_induccion.length ? irl.tipos_induccion : ["Inducción de ingreso", "Reinducción", "Cambio de puesto o tarea", "Nuevos métodos, tecnologías o productos"],
+        declaracion_irl: irl.declaracion_irl || "Declaro haber recibido la Información de los Riesgos Laborales de mi puesto de trabajo, sus medidas preventivas y los métodos de trabajo correctos, conforme al artículo 15 del D.S. N° 44, y haberla comprendido.",
+        declaracion_pts: irl.declaracion_pts || "Declaro haber recibido y comprendido los procedimientos de trabajo seguro y documentos indicados."
       };
     }
     const PAQ = normalizarPaquete(PAQUETE);
@@ -888,7 +1164,10 @@
       try { return JSON.parse(localStorage.getItem(clave)) ?? siNoHay; } catch { return siNoHay; }
     }
     function guardar(clave, valor) {
-      try { localStorage.setItem(clave, JSON.stringify(valor)); } catch { /* sin espacio o bloqueado: seguimos igual */ }
+      try { localStorage.setItem(clave, JSON.stringify(valor)); }
+      catch {   // sin espacio o bloqueado: avisamos una sola vez para que no se pierdan datos sin saberlo
+        if (!window.__avisoEspacio) { window.__avisoEspacio = true; alert("Atención: este equipo no tiene espacio para guardar más datos de la app. Guarda un respaldo y libera espacio del navegador."); }
+      }
     }
 
     /* =====================================================================
@@ -900,9 +1179,15 @@
         `</div>`;
     }
 
+    // Partes que el paquete puede no traer: se ocultan
+    if (!CHECKLIST.length) document.getElementById("checklist").closest(".tarjeta").style.display = "none";
+    if (!MODULOS.length) document.getElementById("modulos").style.display = "none";
+    const ETIQUETA_CHARLA = PAQ.charla.bloqueador ? "Charla diaria + ART + Bloqueador" : "Charla diaria + ART";
+    document.getElementById("menuCharla").firstChild.textContent = ETIQUETA_CHARLA;
+
     CHECKLIST.forEach(([titulo, texto], i) => {
       document.getElementById("checklist").innerHTML += `
-        <div class="pregunta"><p><b>${i + 1}. ${titulo}:</b> ${texto}</p>${botones("chk" + i, ["C", "NC", "N/A"])}
+        <div class="pregunta"><p><b>${i + 1}. ${esc(titulo)}:</b> ${esc(texto)}</p>${botones("chk" + i, ["C", "NC", "N/A"])}
           <div class="obs-nc" style="display:none">
             <label>¿Qué no cumple y qué medida se tomó?</label>
             <textarea name="obs${i}" placeholder="Ej: Falta extintor en camioneta; se solicita reposición y se usa el de la camioneta 2"></textarea>
@@ -921,12 +1206,12 @@
 
     MODULOS.forEach(m => {
       document.getElementById("modulos").innerHTML += `
-        <h3>${m.titulo}</h3><ul>${m.puntos.map(([t, x]) => `<li><b>${t}:</b> ${x}</li>`).join("")}</ul>`;
+        <h3>${esc(m.titulo)}</h3><ul>${m.puntos.map(([t, x]) => `<li><b>${esc(t)}:</b> ${esc(x)}</li>`).join("")}</ul>`;
     });
 
     PREGUNTAS_ART.forEach(([titulo, texto], i) => {
       document.getElementById("preguntasART").innerHTML += `
-        <div class="pregunta"><p><b>Pregunta ${i + 1} (${titulo}):</b> ${texto}</p>${botones("art" + i, ["SÍ", "NO"])}</div>`;
+        <div class="pregunta"><p><b>Pregunta ${i + 1} (${esc(titulo)}):</b> ${esc(texto)}</p>${botones("art" + i, ["SÍ", "NO"])}</div>`;
     });
 
     document.getElementById("preguntasART").addEventListener("change", () => {
@@ -964,7 +1249,7 @@
         div.className = "art-depto";
         div.dataset.id = id;
         div.innerHTML = `
-          <h3>${d.icono} ART – ${d.titulo}</h3>
+          <h3>${esc(d.icono || "")} ART – ${esc(d.titulo || d.nombre)}</h3>
           <div class="etapas"></div>
           <button type="button" class="btn btn-secundario" onclick="agregarEtapa(this.previousElementSibling)">+ Agregar etapa</button>`;
         document.getElementById("artsDeptos").appendChild(div);
@@ -994,7 +1279,9 @@
         <label>Peligros identificados</label><textarea class="e-peligros" required></textarea>
         <label>Riesgos asociados</label><textarea class="e-riesgos" required></textarea>
         <label>Medidas de control preventivas</label><textarea class="e-medidas" required></textarea>
-        <label>EPP / elementos obligatorios</label><textarea class="e-epp" required></textarea>`;
+        <label>EPP / elementos obligatorios</label><textarea class="e-epp" required></textarea>
+        <button type="button" class="btn btn-secundario btn-asis" onclick="abrirAsistenteEtapa(this)">💡 Sugerir riesgos y medidas</button>
+        <div class="asistente" style="display:none"></div>`;
       // Ponemos el texto con .value (así se respetan los saltos de línea)
       for (const campo of ["etapa", "peligros", "riesgos", "medidas", "epp"]) {
         div.querySelector(".e-" + campo).value = datos[campo] || "";
@@ -1205,11 +1492,11 @@
         <label>Cargo / función</label>
         <select class="t-cargo-lista" required>
           <option value="">Elige el cargo…</option>
-          ${DEPARTAMENTOS.map(d => `<option value="${d.cargo}">${d.icono} ${d.cargo}</option>`).join("")}
+          ${DEPARTAMENTOS.map(d => `<option value="${esc(d.cargo)}">${esc(d.icono || "")} ${esc(d.cargo)}</option>`).join("")}
           <option value="otro">✏️ Otro…</option>
         </select>
         <input type="text" class="t-cargo" placeholder="Escribe el cargo" style="display:none; margin-top:6px">
-        <label class="check-linea"><input type="checkbox" class="t-bloqueador"> Aplicó bloqueador solar FPS 50+ hoy</label>
+        ${PAQ.charla.bloqueador ? `<label class="check-linea"><input type="checkbox" class="t-bloqueador"> Aplicó bloqueador solar hoy</label>` : ""}
         ${htmlFirma("Firma del trabajador")}`;
 
       // Cargo: la lista es lo que se ve; el cuadro de texto "t-cargo" guarda el valor final
@@ -1254,7 +1541,7 @@
     function htmlFirma(etiqueta) {
       return `
         <div class="firma">
-          <div class="firma-top"><label>${etiqueta}</label>
+          <div class="firma-top"><label>${esc(etiqueta)}</label>
             <button type="button" class="btn-limpiar" onclick="limpiarFirma(this)">Borrar</button></div>
           <canvas class="lienzo"></canvas>
           <small class="firma-ayuda">Firme con el dedo dentro del recuadro</small>
@@ -1359,12 +1646,16 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos" };
       if (id === "irl") iniciarIRL();
       if (id === "historial") pintarHistorial();
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
       if (id === "empresa") pintarEmpresa();
+      if (id === "calendario") iniciarCalendario();
+      if (id === "hallazgos") iniciarHallazgos();
+      if (id === "vencimientos") iniciarVencimientos();
+      if (id === "menu") avisoProgramaMenu();
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -1469,7 +1760,7 @@
           `${r.arts[0].nombre} · ${r.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
         error.textContent = "";
         document.getElementById("infoPDF").textContent =
-          `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes`;
+          `${pdfListo.nombreArchivo} · ${r.trabajadores.length} asistentes${pdfListo.folio ? " · Folio " + pdfListo.folio : ""}`;
         document.getElementById("mensajeEnvio").textContent = "";
         document.getElementById("cajaEnvio").style.display = "block";
         document.getElementById("cajaEnvio").scrollIntoView({ behavior: "smooth" });
@@ -1526,7 +1817,7 @@
         accion: (d.get("accion") || "").trim(),
         trabajadores: [...document.querySelectorAll(".trabajador")].map(t => ({
           nombre: v(".t-nombre", t), rut: v(".t-rut", t), cargo: v(".t-cargo", t),
-          bloqueador: t.querySelector(".t-bloqueador").checked,
+          bloqueador: !!t.querySelector(".t-bloqueador")?.checked,
           firma: t.querySelector("canvas").toDataURL("image/png") })),
         // Si el supervisor no firmó, guardamos "null" (vacío) y en el PDF la casilla queda en blanco
         supervisor: {
@@ -1676,6 +1967,7 @@
         [{ negrita: "Hora" }, r.hora]
       ], { conTitulos: false });
 
+      if (CHECKLIST.length) {
       seccion("2. Verificación previa y checklist operativo en terreno");
       await tabla(
         [{ titulo: "N°", ancho: 0.06, centro: true }, { titulo: "Preguntas críticas de chequeo previo", ancho: 0.70 },
@@ -1686,8 +1978,9 @@
           X(r.checklist[i] === "C", VERDE), X(r.checklist[i] === "NC", ROJO), X(r.checklist[i] === "N/A", GRIS)
         ]));
       parrafo("C: Cumple  |  NC: No Cumple  |  N/A: No Aplica", { tam: 7.5, fuente: fI, color: GRIS });
+      }
 
-      seccion("Charla diaria – Módulo 3 al Módulo 5");
+      seccion(MODULOS.length ? "Charla diaria – Módulo 3 al Módulo 5" : "Charla diaria");
       for (const m of MODULOS) {
         y -= 2;
         parrafo(m.titulo.toUpperCase(), { tam: 8.5, fuente: fB });
@@ -1706,7 +1999,7 @@
            { titulo: "EPP / Elementos obligatorios", ancho: 0.18 }],
           art.etapas.map(e => [{ negrita: e.etapa }, e.peligros, e.riesgos, e.medidas, e.epp]), { tam: 7.5 });
       }
-      await tabla(
+      if (PREGUNTAS_ART.length || r.accion) await tabla(
         [{ titulo: "Pregunta", ancho: 0.2 }, { titulo: "", ancho: 0.64 }, { titulo: "SÍ", ancho: 0.08, centro: true }, { titulo: "NO", ancho: 0.08, centro: true }],
         PREGUNTAS_ART.map(([t, x], i) => [{ negrita: `Pregunta ${i + 1} (${t}):` }, x, X(r.preguntas[i] === "SÍ", ROJO), X(r.preguntas[i] === "NO", VERDE)])
         .concat(r.accion ? [[{ negrita: "Acción obligatoria:" }, { texto: r.accion }, "", ""]] : []));
@@ -1714,12 +2007,16 @@
       seccion("4. Hoja de registro y firmas de asistencia en terreno");
       parrafo(DECLARACION, { tam: 7.5, fuente: fI, color: GRIS });
       y -= 4;
-      await tabla(
+      if (PAQ.charla.bloqueador) await tabla(
         [{ titulo: "N°", ancho: 0.05, centro: true }, { titulo: "Nombre completo del trabajador", ancho: 0.3 },
          { titulo: "RUT", ancho: 0.14 }, { titulo: "Cargo / Función", ancho: 0.15 },
          { titulo: `Bloqueador (${r.dia})`, ancho: 0.12, centro: true }, { titulo: "Firma", ancho: 0.24, centro: true }],
         r.trabajadores.map((t, i) => [String(i + 1), t.nombre, t.rut, t.cargo,
           t.bloqueador ? { negrita: "Sí", color: VERDE } : { negrita: "No", color: ROJO }, { imagen: t.firma }]));
+      else await tabla(
+        [{ titulo: "N°", ancho: 0.05, centro: true }, { titulo: "Nombre completo del trabajador", ancho: 0.33 },
+         { titulo: "RUT", ancho: 0.15 }, { titulo: "Cargo / Función", ancho: 0.2 }, { titulo: "Firma", ancho: 0.27, centro: true }],
+        r.trabajadores.map((t, i) => [String(i + 1), t.nombre, t.rut, t.cargo, { imagen: t.firma }]));
 
       hayEspacio(140);   // nombres y firmas siempre en la misma hoja
       seccion("5. Validación y responsables de la actividad");
@@ -1729,11 +2026,13 @@
          [r.supervisor.firma ? { imagen: r.supervisor.firma } : "", { imagen: r.prevencion.firma }]],
         { altoFirma: 50 });
 
+      if (PAQ.charla.bloqueador) {
       seccion(`Control de re-aplicación de protector solar en ruta – ${r.dia} ${r.fechaCL}`);
       parrafo(`Se registra en la columna "Bloqueador" de la hoja de asistencia: ${r.trabajadores.filter(t => t.bloqueador).length} de ${r.trabajadores.length} trabajadores aplicaron protector solar.`);
       y -= 2;
       parrafo("NOTAS TÉCNICAS Y OBLIGACIONES DEL PERSONAL:", { tam: 8, fuente: fB });
       NOTAS_BLOQUEADOR.forEach((n, i) => parrafo(`${i + 1}. ${n}`, { tam: 7.5, sangria: 8 }));
+      }
 
       // Registro fotográfico (solo si sacaron fotos): 2 fotos por fila
       if (r.fotos.length) {
@@ -1901,15 +2200,16 @@
       document.getElementById("irlCargo").innerHTML = `<option value="">Elige el cargo…</option>` +
         Object.entries(IRL_DATOS.cargos).filter(([id]) => id !== "conductor_livianos")
           .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre, "es"))
-          .map(([id, c]) => `<option value="${id}">${c.nombre}</option>`).join("");
+          .map(([id, c]) => `<option value="${id}">${html(c.nombre)}</option>`).join("");
 
       document.getElementById("irlAdicionales").innerHTML = Object.entries(IRL_DATOS.cargos).filter(([id]) => id !== "conductor_livianos")
         .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre, "es"))
-        .map(([id, c]) => `<label class="check-linea" data-id="${id}"><input type="checkbox" value="${id}" onchange="cambioAdicionalesIRL()"> <span>${c.nombre}</span></label>`).join("");
+        .map(([id, c]) => `<label class="check-linea" data-id="${id}"><input type="checkbox" value="${id}" onchange="cambioAdicionalesIRL()"> <span>${html(c.nombre)}</span></label>`).join("");
       document.getElementById("irlTipos").innerHTML = IRL_DATOS.tipos_induccion.map((t, i) =>
-        `<label class="check-linea"><input type="radio" name="irlTipo" value="${i}" required> ${t}</label>`).join("");
+        `<label class="check-linea"><input type="radio" name="irlTipo" value="${i}" required> ${html(t)}</label>`).join("");
 
       LISTAS_IRL.forEach(([id, clave]) => pintarMarcas(id, IRL_DATOS[clave]));
+      if (!IRL_DATOS.cargos.conductor_livianos) campoIRL("irlLicencia").closest("label").style.display = "none";
 
       document.getElementById("firmaIRLTrab").innerHTML = htmlFirma("Firma del trabajador");
       document.getElementById("firmaIRLRel").innerHTML = htmlFirma("Firma del relator");
@@ -2055,14 +2355,14 @@
       if (abrir) pintarContenidoIRL();
     }
 
-    function htmlBloques(bloques) {
+    function htmlBloques(bloques, imagenes = (window.IRL_DATOS || {}).imagenes || {}) {
       return bloques.map(b => {
-        if (b.t === "h") return `<h4>${b.x}</h4>`;
-        if (b.t === "sub") return `<p class="sub">${b.x}</p>`;
-        if (b.t === "p") return `<p>${b.b ? `<b>${b.b}</b> ` : ""}${b.x}</p>`;
-        if (b.t === "li") return `<p class="li">• ${b.b ? `<b>${b.b}</b> ` : ""}${b.x}</p>`;
-        if (b.t === "img") return `<div>${b.ids.map(id => `<img src="${IRL_DATOS.imagenes[id]}" alt="EPP">`).join("")}</div>`;
-        if (b.t === "tabla") return `<table>${b.f.map(f => `<tr>${f.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+        if (b.t === "h") return `<h4>${html(b.x)}</h4>`;
+        if (b.t === "sub") return `<p class="sub">${html(b.x)}</p>`;
+        if (b.t === "p") return `<p>${b.b ? `<b>${html(b.b)}</b> ` : ""}${html(b.x)}</p>`;
+        if (b.t === "li") return `<p class="li">• ${b.b ? `<b>${html(b.b)}</b> ` : ""}${html(b.x)}</p>`;
+        if (b.t === "img") return `<div>${(b.ids || []).map(id => /^data:image\/(png|jpeg);base64,[\w+/=]+$/.test(imagenes[id] || "") ? `<img src="${imagenes[id]}" alt="EPP">` : "").join("")}</div>`;
+        if (b.t === "tabla") return `<table>${b.f.map(f => `<tr>${f.map(c => `<td>${html(c)}</td>`).join("")}</tr>`).join("")}</table>`;
         return "";
       }).join("");
     }
@@ -2074,7 +2374,7 @@
       if (!id) { div.innerHTML = `<p class="ayuda" style="padding:8px">Elige el cargo para ver su IRL.</p>`; return; }
       let html = htmlBloques(IRL_DATOS.cargos[id].contenido);
       for (const a of adicionalesMarcados()) html += `<h4>IRL ADICIONAL: ${IRL_DATOS.cargos[a].nombre.toUpperCase()}</h4>` + htmlBloques(IRL_DATOS.cargos[a].contenido);
-      if (campoIRL("irlLicencia").checked) {
+      if (campoIRL("irlLicencia").checked && IRL_DATOS.cargos.conductor_livianos) {
         html += `<h4>IRL COMPLEMENTARIA: CONDUCTOR DE VEHÍCULOS LIVIANOS</h4>` + htmlBloques(IRL_DATOS.cargos.conductor_livianos.contenido);
       }
       div.innerHTML = html;
@@ -2137,9 +2437,9 @@
           nombreArchivo: `IRL_${limpio(r.cargoNombre)}_${limpio(r.nombre)}_${r.fecha}.pdf`,
           asunto: `IRL – ${[r.cargoNombre, ...r.adicionales.map(a => a.nombre)].join(" + ")} – ${r.nombre} – ${r.fechaCL}`
         };
-        idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}${r.adicionales.length ? " · también: " + r.adicionales.map(a => a.nombre).join(", ") : ""}`);
+        idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}${r.adicionales.length ? " · también: " + r.adicionales.map(a => a.nombre).join(", ") : ""} · ${IRL_DATOS.tipos_induccion[r.tipo] || ""}`);
         error.textContent = "";
-        document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB`;
+        document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(pdfIRL.bytes.length / 1024)} KB${pdfIRL.folio ? " · Folio " + pdfIRL.folio : ""}`;
         document.getElementById("mensajeIRL").textContent = "";
         document.getElementById("cajaEnvioIRL").style.display = "block";
         document.getElementById("cajaEnvioIRL").scrollIntoView({ behavior: "smooth" });
@@ -2183,7 +2483,7 @@
         cargoId: id, cargoNombre: IRL_DATOS.cargos[id].nombre,
         adicionales: adicionalesMarcados().filter(a => a !== id).map(a => ({ id: a, nombre: IRL_DATOS.cargos[a].nombre })),
         tipo: +document.querySelector("[name=irlTipo]:checked").value,
-        licencia: campoIRL("irlLicencia").checked,
+        licencia: campoIRL("irlLicencia").checked && !!IRL_DATOS.cargos.conductor_livianos,
         relator: campoIRL("irlRelator").value.trim(), cargoRel: campoIRL("irlCargoRel").value.trim(),
         obra: campoIRL("irlObra").value.trim(), fecha, fechaCL: fCL(fecha),
         pts: marcados("irlPTS", "pts"), hds: marcados("irlHDS", "hds"), otros: marcados("irlOtros", "otros_docs"),
@@ -2481,10 +2781,40 @@
       });
     }
 
+    /* ----- Folio de verificación ----- 
+       Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
+       En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF" };
+    function nuevoFolio(tipo, fecha) {
+      const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
+      return `${PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
+    }
+    async function huella(bytes) {
+      if (!crypto.subtle) return "";
+      const h = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+      return [...h].map(x => x.toString(16).padStart(2, "0")).join("");
+    }
+    // Estampa el folio al pie de cada página. Cambia pdf.bytes por la versión sellada.
+    async function sellarPDF(pdf, tipo, fecha) {
+      try {
+        const { PDFDocument, StandardFonts, rgb } = PDFLib;
+        const folio = nuevoFolio(tipo, fecha);
+        const d = await PDFDocument.load(pdf.bytes, { updateMetadata: false });
+        const f = await d.embedFont(StandardFonts.Helvetica);
+        for (const pag of d.getPages()) pag.drawText(`Folio ${folio} · verificable en la app Prevención en Terreno (Historial > Verificar documento)`, { x: 36, y: 11, size: 6, font: f, color: rgb(0.45, 0.48, 0.55) });
+        d.setKeywords(["prevencion-terreno", "folio:" + folio]);
+        pdf.bytes = await d.save();
+        pdf.folio = folio;
+        pdf.hash = await huella(pdf.bytes);
+      } catch (e) { console.warn("No se pudo poner el folio", e); }
+      return pdf;
+    }
+
     async function guardarEnHistorial(idAnterior, tipo, pdf, fecha, detalle) {
+      await sellarPDF(pdf, tipo, fecha);
       try {
         const registro = { tipo, fecha, detalle, asunto: pdf.asunto, nombreArchivo: pdf.nombreArchivo,
-                           creado: Date.now(), pdf: pdf.bytes };
+                           creado: Date.now(), pdf: pdf.bytes, folio: pdf.folio || "", hash: pdf.hash || "" };
         if (idAnterior) registro.id = idAnterior;
         return await operacionBD("readwrite", s => s.put(registro));
       } catch (e) {
@@ -2503,6 +2833,8 @@
     }
 
     async function pintarHistorial() {
+      const ur = leerGuardado("pt_inf_ultimoRespaldo", null);
+      document.getElementById("respaldoHist").textContent = ur ? `Último respaldo: ${new Date(ur).toLocaleString("es-CL")}` : "Todavía no has guardado un respaldo de este equipo.";
       const lista = document.getElementById("listaHist");
       let regs = [];
       try { regs = await operacionBD("readonly", s => s.getAll()); }
@@ -2514,7 +2846,7 @@
       const fechaCL = f => String(f || "").split("-").reverse().join("/");
       const visibles = regs
         .filter(r => (filtroHist === "todos" || r.tipo === filtroHist) &&
-                     (!b || normalizar(`${r.asunto} ${r.detalle} ${fechaCL(r.fecha)}`).includes(b)))
+                     (!b || normalizar(`${r.asunto} ${r.detalle} ${fechaCL(r.fecha)} ${r.folio || ""}`).includes(b)))
         .sort((x, y) => y.creado - x.creado);   // lo más nuevo primero
 
       const mb = regs.reduce((s, r) => s + (r.pdf?.byteLength || 0), 0) / 1048576;
@@ -2523,8 +2855,8 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : "📋"} ${html(r.asunto)}</div>
-          <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : "📋"} ${html(r.asunto)}</div>
+          <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${r.id})">📤 Compartir</button>
             <button class="btn btn-secundario" onclick="guardarHist(${r.id})">💾 Guardar</button>
@@ -2532,6 +2864,27 @@
           </div>
         </div>`).join("") ||
         `<div class="tarjeta"><p class="ayuda" style="margin:0">${regs.length ? "Nada coincide con la búsqueda." : "Todavía no hay PDF guardados. Aparecerán aquí al generar una charla, una IRL o un check list."}</p></div>`;
+    }
+
+    async function verificarDocumento(input) {
+      const a = input.files[0]; input.value = "";
+      const caja = document.getElementById("resVerificar");
+      if (!a) return;
+      caja.textContent = "Revisando…";
+      try {
+        const bytes = new Uint8Array(await a.arrayBuffer());
+        const h = await huella(bytes);
+        let folio = "";
+        try { const d = await PDFLib.PDFDocument.load(bytes, { updateMetadata: false, ignoreEncryption: true }); folio = ((d.getKeywords() || "").match(/folio:([\w-]+)/) || [])[1] || ""; } catch {}
+        const regs = await operacionBD("readonly", s => s.getAll());
+        const igual = h && regs.find(r => r.hash === h);
+        const delFolio = folio && regs.find(r => r.folio === folio);
+        const ficha = r => `<br><b>${html(r.asunto)}</b><br>Folio ${html(r.folio)} · generado el ${new Date(r.creado).toLocaleString("es-CL")}<br><small>Huella: ${html((r.hash || "").slice(0, 16))}…</small>`;
+        if (igual) caja.innerHTML = `<span class="verde">✅ Documento original, sin modificaciones.</span>${ficha(igual)}`;
+        else if (delFolio) caja.innerHTML = `<span class="rojo">⚠️ El folio existe en este equipo, pero el archivo NO es idéntico al original.</span> Pudo ser editado, o guardado de nuevo con otro programa. Compáralo con el original del historial.${ficha(delFolio)}`;
+        else if (folio) caja.innerHTML = `<span class="rojo">❓ Tiene el folio ${html(folio)}, pero ese documento no está en este equipo.</span> Verifícalo en el equipo donde se generó (o restaura su respaldo).`;
+        else caja.innerHTML = `<span class="rojo">❌ Este PDF no tiene folio de la app.</span> No fue generado con Prevención en Terreno, o es anterior a los folios.`;
+      } catch (e) { caja.textContent = "No se pudo revisar el archivo: " + e.message; }
     }
 
     async function compartirHist(id) {
@@ -2602,7 +2955,7 @@
       }
       const iconos = { maquinaria: "🚜", herramientas: "🔧", instalaciones: "🏢", senalizacion: "🚧" };
       document.getElementById("ckGrupos").innerHTML = Object.entries(CHECKLISTS.grupos).map(([id, g]) =>
-        `<button type="button" class="depto" data-g="${id}" onclick="elegirGrupoCheck('${id}')">${iconos[id]} ${g.nombre}</button>`).join("");
+        `<button type="button" class="depto" data-g="${esc(id)}" onclick="elegirGrupoCheck('${esc(id)}')">${esc(g.icono || iconos[id] || "📋")} ${esc(g.nombre)}</button>`).join("");
     }
 
     function elegirGrupoCheck(g) {
@@ -2610,7 +2963,7 @@
       const listas = Object.entries(CHECKLISTS.listas).filter(([, l]) => l.grupo === g);
       if (listas.length === 1) { document.getElementById("ckListas").innerHTML = ""; elegirCheck(listas[0][0]); return; }
       document.getElementById("ckListas").innerHTML = listas.map(([id, l]) =>
-        `<button type="button" class="ck-lista" data-id="${id}" onclick="elegirCheck('${id}')">${l.nombre}<small>${l.items.filter(i => typeof i === "string").length + (l.porEquipo ? l.porEquipo.length : 0)} ítems</small></button>`).join("");
+        `<button type="button" class="ck-lista" data-id="${id}" onclick="elegirCheck('${id}')">${html(l.nombre)}<small>${l.items.filter(i => typeof i === "string").length + (l.porEquipo ? l.porEquipo.length : 0)} ítems</small></button>`).join("");
       document.getElementById("ckCuerpo").style.display = "none";
       document.getElementById("cajaEnvioCheck").style.display = "none";
     }
@@ -2629,13 +2982,13 @@
       const ult = { ...(ckUltimos.general || {}), ...(ckUltimos[id] || {}), ...(previos || {}) };
       const hoy = new Date().toLocaleDateString("sv-SE");
       document.getElementById("ckCampos").innerHTML = g.campos.map(([c, et, req]) => c === "fecha"
-        ? `<label>${et}</label><input type="date" name="ck_${c}" value="${hoy}" required>`
-        : `<label>${et}</label><input type="text" name="ck_${c}" ${req ? "required" : ""} value="${html(c === "obra" ? (ult.obra || listado?.obra || "") : (ult[c] || ""))}" ${["operador", "inspector", "acargo", "supervisor", "revisor"].includes(c) ? 'list="ckNombres" autocomplete="off"' : ""}>`
+        ? `<label>${html(et)}</label><input type="date" name="ck_${c}" value="${hoy}" required>`
+        : `<label>${html(et)}</label><input type="text" name="ck_${c}" ${req ? "required" : ""} value="${html(c === "obra" ? (ult.obra || listado?.obra || "") : (ult[c] || ""))}" ${["operador", "inspector", "acargo", "supervisor", "revisor"].includes(c) ? 'list="ckNombres" autocomplete="off"' : ""}>`
       ).join("") + `<datalist id="ckNombres">${(listado?.lista || []).map(p => `<option value="${html(p.nombre)}">`).join("")}</datalist>`;
 
       // Preguntas
       let n = 0;
-      document.getElementById("ckAyuda").textContent = g.ayuda;
+      document.getElementById("ckAyuda").textContent = g.ayuda || "";
       document.getElementById("ckItems").innerHTML = l.items.map(it => {
         if (typeof it !== "string") return `<div class="ck-sec">${html(it.sec)}</div>`;
         const i = n++;
@@ -2658,10 +3011,10 @@
       ckFotos = []; pintarFotosCheck();
 
       // Firmas
-      const fuentes = NOMBRES_FIRMA[l.grupo];
+      const fuentes = NOMBRES_FIRMA[l.grupo] || g.firmas.map(([et]) => { const c = g.campos.find(([k, t]) => normalizar(t).includes(normalizar(et))); return c ? c[0] : null; });
       document.getElementById("ckFirmas").innerHTML = g.firmas.map(([et, req], i) => `
         <div class="ck-firma" data-req="${req}" data-fuente="${fuentes[i] || ""}">
-          ${fuentes[i] ? "" : `<label>Nombre ${et.toLowerCase()}${req ? "" : " (si está presente)"}</label><input type="text" name="ckNomFirma${i}" list="ckNombres" autocomplete="off" value="${html(ult["firma" + i] || "")}">`}
+          ${fuentes[i] ? "" : `<label>Nombre ${html(et.toLowerCase())}${req ? "" : " (si está presente)"}</label><input type="text" name="ckNomFirma${i}" list="ckNombres" autocomplete="off" value="${html(ult["firma" + i] || "")}">`}
           ${htmlFirma("Firma " + et.toLowerCase())}
         </div>`).join("");
       activarFirmas();
@@ -2836,8 +3189,9 @@
         idHistCheck = await guardarEnHistorial(idHistCheck, "check", pdfCheck, r.campos.fecha,
           `${r.nombre}${quien ? " · " + quien : ""} · ${r.malas ? r.malas + " observación(es)" : "sin observaciones"}`);
         error.textContent = "";
-        document.getElementById("infoPDFCheck").textContent = `${pdfCheck.nombreArchivo} · ${Math.round(bytes.length / 1024)} KB`;
+        document.getElementById("infoPDFCheck").textContent = `${pdfCheck.nombreArchivo} · ${Math.round(pdfCheck.bytes.length / 1024)} KB${pdfCheck.folio ? " · Folio " + pdfCheck.folio : ""}`;
         document.getElementById("mensajeCheck").textContent = "";
+        prepararHallazgosCheck(r);
         document.getElementById("cajaEnvioCheck").style.display = "block";
         document.getElementById("cajaEnvioCheck").scrollIntoView({ behavior: "smooth" });
       } catch (e) {
@@ -3394,9 +3748,15 @@
       const acc = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
       nuevas.push(acc.length ? `Durante el mes de ${mesTxt} se registra(n) ${acc.length} accidente(s): ${acc.map(a => `${a.categoria || "accidente"} ${a.tipo ? "(" + a.tipo.toLowerCase() + ")" : ""} el ${fechaCLde(a.fecha)}`).join("; ")}. Se adjunta la investigación correspondiente.`
                              : `No se registran accidentes en el mes de ${mesTxt}.`);
+      const cp = cumplimiento(`${k}-01`, `${k}-31`);
+      const rh = resumenHallazgosMes(k);
+      if (rh.registrados || rh.cerrados || rh.abiertos) nuevas.push(`Seguimiento de hallazgos: en el mes se registraron ${rh.registrados} hallazgo(s) y se cerraron ${rh.cerrados}; al cierre del mes quedan ${rh.abiertos} abierto(s)${rh.vencidos ? `, ${rh.vencidos} con plazo vencido` : ""}.`);
+      const rv = resumenVencMes(k);
+      if (rv.total) nuevas.push(`Control de vencimientos (licencias, exámenes, cursos, extintores y documentos): se controlan ${rv.total} registro(s)${rv.vencidos ? `, de los cuales ${rv.vencidos} se encuentran vencido(s) y en gestión de renovación` : ", todos vigentes"}.`);
+      if (cp.total) nuevas.push(`Cumplimiento del programa de prevención de riesgos del mes: se ejecutaron ${cp.hechas} de ${cp.total} actividades programadas (${cp.pct}%).`);
       const actuales = leerFilas("infActividades").filter(a => a.texto);
       // No repetimos lo que ya estaba (si se presiona dos veces)
-      const auto = /^(Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra)/;
+      const auto = /^(Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
       pintarFilas("infActividades", [...nuevas.map(texto => ({ texto })), ...actuales.filter(a => !auto.test(a.texto))]);
       guardarInforme();
     }
@@ -3546,11 +3906,11 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
-    async function guardarRespaldo() {
-      guardarInforme(); guardarFirmasInforme();
-      const aviso = document.getElementById("infRespaldo");
+    async function guardarRespaldo(idAviso = "infRespaldo") {
+      if (infListo) { guardarInforme(); guardarFirmasInforme(); }
+      const aviso = document.getElementById(idAviso);
       aviso.textContent = "Armando el respaldo…";
       try {
         const regs = await operacionBD("readonly", s => s.getAll());
@@ -3559,23 +3919,30 @@
           almacen: Object.fromEntries(CLAVES_RESPALDO.map(c => [c, localStorage.getItem(c)]).filter(([, v]) => v !== null)),
           registros: regs.map(({ id, pdf, ...resto }) => ({ ...resto, pdf: bytesAB64(new Uint8Array(pdf)) }))
         };
+        if (PAQUETE_PROPIO) { try { const irl = await bdPaquete("readonly", s => s.get("irl")); if (irl) datos.paqueteIRL = irl; } catch {} }
+        try {
+          const claves = await bdFotos("readonly", s => s.getAllKeys()), valores = await bdFotos("readonly", s => s.getAll());
+          if (claves.length) datos.fotosHallazgos = claves.map((c, i) => [c, valores[i]]);
+        } catch {}
         const hoy = new Date().toLocaleDateString("sv-SE");
         descargarArchivo(textoABytes(JSON.stringify(datos)), `Respaldo_Prevencion_${hoy}.json`, "application/json");
         guardar("pt_inf_ultimoRespaldo", Date.now());
         aviso.textContent = `✅ Respaldo guardado (Respaldo_Prevencion_${hoy}.json, ${regs.length} archivos). Guárdalo en un pendrive o mándatelo al correo.`;
       } catch (e) { aviso.textContent = "No se pudo armar el respaldo: " + e.message; }
     }
-    async function restaurarRespaldo(input) {
+    async function restaurarRespaldo(input, idAviso = "infRespaldo", pantalla = "informe") {
       const a = input.files[0];
       input.value = "";
       if (!a) return;
-      const aviso = document.getElementById("infRespaldo");
+      const aviso = document.getElementById(idAviso);
       try {
         const d = JSON.parse(await a.text());
         if (d.app !== "prevencion-terreno" || d.tipo !== "respaldo") { aviso.textContent = "Ese archivo no es un respaldo de la app."; return; }
-        if (!confirm(`¿Restaurar el respaldo del ${new Date(d.creado).toLocaleString("es-CL")}? Reemplaza los datos del informe de este equipo (los PDF que ya están no se duplican).`)) return;
+        if (!confirm(`¿Restaurar el respaldo del ${new Date(d.creado).toLocaleString("es-CL")}? Reemplaza los datos de este equipo (los PDF que ya están no se duplican).`)) return;
         infBloqueado = true;
         Object.entries(d.almacen || {}).forEach(([c, v]) => { try { localStorage.setItem(c, v); } catch {} });
+        if (d.paqueteIRL) { try { await bdPaquete("readwrite", s => s.put(d.paqueteIRL, "irl")); } catch {} }
+        for (const [c, v] of d.fotosHallazgos || []) { try { await bdFotos("readwrite", s => s.put(v, c)); } catch {} }
         const existentes = await operacionBD("readonly", s => s.getAll());
         const ya = new Set(existentes.map(r => `${r.tipo}|${r.nombreArchivo}|${r.creado}`));
         let n = 0;
@@ -3584,12 +3951,12 @@
           await operacionBD("readwrite", s => s.put({ ...r, pdf: b64aBytes(r.pdf) }));
           n++;
         }
-        sessionStorage.setItem("pt_abrirInforme", "1");
+        sessionStorage.setItem("pt_abrirPantalla", pantalla);
         aviso.textContent = `✅ Respaldo restaurado (${n} archivos nuevos). Recargando…`;
         setTimeout(() => location.reload(), 800);
       } catch (e) { infBloqueado = false; aviso.textContent = "No se pudo leer el respaldo: " + e.message; }
     }
-    try { if (sessionStorage.getItem("pt_abrirInforme")) { sessionStorage.removeItem("pt_abrirInforme"); setTimeout(() => mostrar("informe"), 300); } } catch {}
+    try { const pa = sessionStorage.getItem("pt_abrirPantalla"); if (pa) { sessionStorage.removeItem("pt_abrirPantalla"); setTimeout(() => mostrar(pa), 300); } } catch {}
 
     /* ----- Pasar registros del celular al PC -----
        El celular arma UN PDF con todos los registros del mes (se puede abrir y leer normal).
@@ -3606,7 +3973,7 @@
         for (const r of regs) {
           const d = await PDFDocument.load(r.pdf);
           const pags = await total.copyPages(d, d.getPageIndices());
-          indice.push({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, desde: total.getPageCount(), paginas: pags.length });
+          indice.push({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", desde: total.getPageCount(), paginas: pags.length });
           pags.forEach(p => total.addPage(p));
         }
         total.setTitle(`Registros de prevención – ${nombreMes(k)}`);
@@ -3647,7 +4014,7 @@
           const pags = await d.copyPages(total, Array.from({ length: r.paginas }, (_, i) => r.desde + i));
           pags.forEach(p => d.addPage(p));
           const pdf = await d.save();
-          await operacionBD("readwrite", s => s.put({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, pdf }));
+          await operacionBD("readwrite", s => s.put({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", pdf }));
           nuevos++;
         }
         msj.textContent = `✅ ${nuevos} registro(s) nuevos de ${nombreMes(info.mes)} cargados${info.registros.length - nuevos ? ` (${info.registros.length - nuevos} ya estaban)` : ""}.`;
@@ -3738,9 +4105,10 @@
       try {
         const bytes = await crearPDF_Informe(infMesActual);
         pdfInforme = { bytes, nombreArchivo: `Informe_Mensual_N${m.numero}_${nombreMes(infMesActual).replace(" ", "_")}.pdf`, asunto: `Informe mensual N°${m.numero} – ${nombreMes(infMesActual)}` };
-        await operacionBD("readwrite", s => s.put({ tipo: "informe", fecha: infMesActual + "-28", asunto: pdfInforme.asunto, detalle: `Informe mensual de gestión preventiva · ${nombreMes(infMesActual)}`, nombreArchivo: pdfInforme.nombreArchivo, creado: Date.now(), pdf: bytes })).catch(() => {});
+        await sellarPDF(pdfInforme, "informe", infMesActual + "-28");
+        await operacionBD("readwrite", s => s.put({ tipo: "informe", fecha: infMesActual + "-28", asunto: pdfInforme.asunto, detalle: `Informe mensual de gestión preventiva · ${nombreMes(infMesActual)}`, nombreArchivo: pdfInforme.nombreArchivo, creado: Date.now(), pdf: pdfInforme.bytes, folio: pdfInforme.folio || "", hash: pdfInforme.hash || "" })).catch(() => {});
         error.textContent = "";
-        document.getElementById("infoPDFInforme").textContent = `${pdfInforme.nombreArchivo} · ${(bytes.length / 1048576).toFixed(1)} MB`;
+        document.getElementById("infoPDFInforme").textContent = `${pdfInforme.nombreArchivo} · ${(pdfInforme.bytes.length / 1048576).toFixed(1)} MB${pdfInforme.folio ? " · Folio " + pdfInforme.folio : ""}`;
         document.getElementById("mensajeInforme").textContent = "";
         document.getElementById("cajaEnvioInforme").style.display = "block";
         document.getElementById("cajaEnvioInforme").scrollIntoView({ behavior: "smooth" });
@@ -4577,10 +4945,13 @@
         const delMes = acc.filter(a => a.fecha.startsWith(f.mes));
         const cat = t => delMes.filter(a => (a.categoria || "").startsWith(t)).length;
         const dias = t => acc.filter(a => (a.categoria || "").startsWith(t)).reduce((s, a) => s + diasEnMes(a, f.mes, k), 0);
-        const fila = [+String(C.safi || "").replace(/\D/g, "") || C.safi, +f.mes.slice(0, 4), +f.mes.slice(5, 7), +String(C.rutEmpresa || "").split("-")[0].replace(/\D/g, ""),
+        const fila = [+String(C.safi || "").replace(/\D/g, "") || C.safi, +f.mes.slice(0, 4), +f.mes.slice(5, 7), (String(C.rutEmpresa || "").split("-")[0].replace(/\D/g, "") ? +String(C.rutEmpresa).split("-")[0].replace(/\D/g, "") : ""),
           C.empresa, C.tipoEmpresa, f.dotF, f.dotM, f.hh, cat("Leve sin"), cat("Leve con"), dias("Leve con"), cat("Grave"), dias("Grave"), cat("Fatal")];
         fila.forEach((v, j) => L.celda(1, String.fromCharCode(65 + j) + (2 + i), v, String.fromCharCode(65 + j) + "2"));
       });
+      // El nombre de la hoja lleva el código SAFI del contrato
+      const nombreHoja = ("IFOS SAFIS " + (C.safi || "")).replace(/[:\\/?*\[\]]/g, "").trim().slice(0, 31);
+      L.archivos["xl/workbook.xml"] = textoABytes(bytesATexto(L.archivos["xl/workbook.xml"]).replace(/(<sheet [^>]*name=")[^"]*(")/, `$1${nombreHoja.replace(/&/g, "&amp;").replace(/"/g, "&quot;")}$2`).replace(/<definedNames>[\s\S]*?<\/definedNames>/, ""));
       return L.guardarLibro();
     }
 
@@ -4806,13 +5177,17 @@
       });
     }
     async function cargarIRLPaquete() {
-      if (PAQUETE_PROPIO) { try { const irl = await bdPaquete("readonly", s => s.get("irl")); if (irl && irl.cargos && Object.keys(irl.cargos).length) window.IRL_DATOS = irl; } catch {} }
-      else if (window.PAQUETE_INCLUIDO && window.PAQUETE_INCLUIDO.irl) window.IRL_DATOS = window.PAQUETE_INCLUIDO.irl;
+      let irl = null;
+      if (PAQUETE_PROPIO) { try { irl = await bdPaquete("readonly", s => s.get("irl")); } catch {} }
+      else if (window.PAQUETE_INCLUIDO && window.PAQUETE_INCLUIDO.irl) irl = window.PAQUETE_INCLUIDO.irl;
+      const n = normalizarIRL(irl);
+      if (n) window.IRL_DATOS = n;
     }
     // Guarda un paquete completo y recarga la app para usarlo
     async function activarPaquete(p, abrirEmpresa = true) {
       const { irl, ...liviano } = p;
-      localStorage.setItem("pt_paquete", JSON.stringify(liviano));
+      try { localStorage.setItem("pt_paquete", JSON.stringify(liviano)); }
+      catch (e) { document.getElementById("msjPaquete").textContent = "No hay espacio en este navegador para el paquete (¿logo muy pesado?). Libera espacio o achica el logo."; return; }
       if (irl) await bdPaquete("readwrite", s => s.put(irl, "irl")); else await bdPaquete("readwrite", s => s.delete("irl"));
       if (abrirEmpresa) sessionStorage.setItem("pt_abrirEmpresa", "1");
       location.reload();
@@ -4902,6 +5277,1434 @@
     document.getElementById("bienvenida").style.display = PAQUETE ? "none" : "block";
     document.getElementById("empresaActiva").textContent = EMPRESA.nombre || "";
     try { if (sessionStorage.getItem("pt_abrirEmpresa")) { sessionStorage.removeItem("pt_abrirEmpresa"); setTimeout(() => mostrar("empresa"), 200); } } catch {}
+
+    /* =====================================================================
+       CALENDARIO: qué se hizo cada día (historial) + PROGRAMA ANUAL de prevención
+       pt_programa       -> [{ id, actividad, tipo, responsable, fecha, repite, hasta, mes }]
+       pt_programa_hecho -> { "id|YYYY-MM-DD": { cuando } }   (✔ de cumplimiento)
+       ===================================================================== */
+    const TIPOS_PROGRAMA = ["Charla", "Capacitación", "Inspección", "Inducción / IRL", "Reunión CPHS", "Simulacro", "Difusión", "Auditoría", "Otro"];
+    const DIAS_LARGO = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+    let programa = leerGuardado("pt_programa", []);
+    let programaHecho = leerGuardado("pt_programa_hecho", {});
+    let calMes = new Date().toLocaleDateString("sv-SE").slice(0, 7);
+    let calDiaSel = new Date().toLocaleDateString("sv-SE");
+    let calRegistros = [];
+    const hoyISO = () => new Date().toLocaleDateString("sv-SE");
+    const fechaD = s => new Date(s + "T12:00:00");
+    const isoD = d => d.toLocaleDateString("sv-SE");
+
+    // Todas las fechas en que toca una actividad entre "desde" y "hasta" (texto AAAA-MM-DD)
+    function ocurrencias(a, desde, hasta) {
+      const res = [], fin = a.hasta || (a.fecha.slice(0, 4) + "-12-31");
+      let d = fechaD(a.fecha), n = 0;
+      while (isoD(d) <= fin && isoD(d) <= hasta && n++ < 400) {
+        if (isoD(d) >= desde) res.push(isoD(d));
+        if (!a.repite) break;
+        if (a.repite === "semana") d.setDate(d.getDate() + 7);
+        else { const meses = a.repite === "mes" ? 1 : a.repite === "3m" ? 3 : 6; const dia = fechaD(a.fecha).getDate(); d = new Date(d.getFullYear(), d.getMonth() + meses, 1, 12); d.setDate(Math.min(dia, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate())); }
+      }
+      return res;
+    }
+    // Una actividad "de mes" se muestra el día 1 y se considera atrasada recién al terminar el mes
+    const venceEl = (a, f) => a.mes ? isoD(new Date(fechaD(f).getFullYear(), fechaD(f).getMonth() + 1, 0, 12)) : f;
+    const estaHecha = (a, f) => !!programaHecho[a.id + "|" + f];
+    function programadasEntre(desde, hasta) {
+      const res = [];
+      for (const a of programa) for (const f of ocurrencias(a, desde, hasta)) res.push({ a, f, hecha: estaHecha(a, f), atrasada: !estaHecha(a, f) && venceEl(a, f) < hoyISO() });
+      return res.sort((x, y) => x.f.localeCompare(y.f));
+    }
+    function cumplimiento(desde, hasta) {
+      const l = programadasEntre(desde, hasta).filter(x => venceEl(x.a, x.f) <= hoyISO() || x.hecha);
+      const hechas = l.filter(x => x.hecha).length;
+      return { total: l.length, hechas, pct: l.length ? Math.round(hechas * 100 / l.length) : 0 };
+    }
+
+    async function iniciarCalendario() {
+      document.getElementById("progTipo").innerHTML = TIPOS_PROGRAMA.map(t => `<option>${t}</option>`).join("");
+      if (!document.getElementById("progFecha").value) document.getElementById("progFecha").value = calDiaSel;
+      try { calRegistros = (await operacionBD("readonly", s => s.getAll())).filter(r => ["charla", "irl", "check", "informe"].includes(r.tipo)); } catch { calRegistros = []; }
+      pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma();
+    }
+    function moverMesCal(paso) {
+      const [a, m] = calMes.split("-").map(Number);
+      calMes = isoD(new Date(a, m - 1 + paso, 1, 12)).slice(0, 7);
+      pintarCalendario();
+    }
+    function irHoyCal() { calMes = hoyISO().slice(0, 7); calDiaSel = hoyISO(); pintarCalendario(); pintarDiaCal(calDiaSel); }
+
+    function pintarCalendario() {
+      const [a, m] = calMes.split("-").map(Number);
+      document.getElementById("calTitulo").textContent = `${MESES[m - 1]} ${a}`;
+      const primero = new Date(a, m - 1, 1, 12), dias = new Date(a, m, 0).getDate();
+      const desplaz = (primero.getDay() + 6) % 7;   // la semana parte el lunes
+      const desde = `${calMes}-01`, hasta = `${calMes}-${String(dias).padStart(2, "0")}`;
+      const prog = programadasEntre(desde, hasta);
+      let celdas = Array(desplaz).fill(`<div class="cal-vacio"></div>`).join("");
+      for (let d = 1; d <= dias; d++) {
+        const f = `${calMes}-${String(d).padStart(2, "0")}`;
+        const regs = calRegistros.filter(r => r.fecha === f);
+        const pr = prog.filter(x => x.f === f);
+        const cuenta = t => regs.filter(r => r.tipo === t).length;
+        const iconos = [["charla", "📋"], ["irl", "📘"], ["check", "✅"]].filter(([t]) => cuenta(t)).map(([t, i]) => `<span>${i}${cuenta(t) > 1 ? cuenta(t) : ""}</span>`).join("")
+          + (hallazgos.some(h => (!h.cerrado && h.plazo === f) || (h.cerrado && h.cerrado.fecha === f)) ? "<span>📌</span>" : "")
+          + (vencimientosEl(f).length ? "<span>⏰</span>" : "");
+        const halF = hallazgosConPlazo(f), halC = hallazgosCerradosEl(f);
+        const puntos = pr.map(x => `<span class="pt ${x.hecha ? "hecho" : x.atrasada ? "atr" : "pend"}"></span>`).join("")
+          + halF.map(h => `<span class="pt ${f < hoyISO() ? "atr" : "pend"}"></span>`).join("") + halC.map(() => `<span class="pt hecho"></span>`).join("");
+        celdas += `<button type="button" class="cal-dia ${f === hoyISO() ? "hoy" : ""} ${f === calDiaSel ? "sel" : ""}" onclick="pintarDiaCal('${f}')">
+          <b>${d}</b><span class="cal-ico">${iconos}</span><span class="cal-pts">${puntos}</span></button>`;
+      }
+      document.getElementById("calGrilla").innerHTML = celdas;
+    }
+
+    // Texto legible de cada registro del historial
+    function describirRegistro(r) {
+      const p = String(r.detalle || "").split(" · ");
+      if (r.tipo === "charla") return `${ETIQUETA_CHARLA} – ${p[0]}${p[1] ? " · " + p[1] : ""}`;
+      if (r.tipo === "irl") { const tipo = p.find(x => /inducci|reinducci|cambio de puesto|nuevos m/i.test(x)); return `IRL de ${p[1] || ""} – ${p[0]}${tipo ? " · " + tipo + (/ingreso/i.test(tipo) ? " (trabajador nuevo)" : "") : ""}`; }
+      if (r.tipo === "check") return `Check list ${p[0]}${p[1] ? " – " + p[1] : ""}${p[2] ? " · " + p[2] : ""}`;
+      if (r.tipo === "informe") return r.asunto;
+      return r.asunto || r.detalle;
+    }
+    const SUGIERE_TIPO = { "Charla": "charla", "Inducción / IRL": "irl", "Inspección": "check" };
+
+    function pintarDiaCal(f) {
+      calDiaSel = f;
+      document.querySelectorAll("#calGrilla .cal-dia").forEach(b => b.classList.toggle("sel", b.getAttribute("onclick").includes(f)));
+      const d = fechaD(f), regs = calRegistros.filter(r => r.fecha === f), prog = programadasEntre(f, f);
+      const ico = { charla: "📋", irl: "📘", check: "✅", informe: "📑" };
+      document.getElementById("calDia").innerHTML = `
+        <h2>${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()].toLowerCase()} de ${d.getFullYear()}</h2>
+        <h3>Realizado</h3>
+        ${regs.length ? regs.map(r => `<div class="cal-item"><span>${ico[r.tipo] || "📄"} ${html(describirRegistro(r))}</span>
+            <button type="button" class="btn btn-secundario" onclick="compartirRegistroCal(${r.id})">Compartir</button></div>`).join("")
+          : `<p class="ayuda" style="margin:0">No hay registros de este día en este equipo.</p>`}
+        <h3>Programa</h3>
+        ${prog.length ? prog.map(x => {
+            const sug = SUGIERE_TIPO[x.a.tipo] && regs.some(r => r.tipo === SUGIERE_TIPO[x.a.tipo]) && !x.hecha;
+            return `<label class="cal-item prog ${x.hecha ? "hecha" : x.atrasada ? "atrasada" : ""}">
+              <span><input type="checkbox" ${x.hecha ? "checked" : ""} onchange="marcarProgramada('${x.a.id}', '${x.f}', this.checked)">
+              <b>${html(x.a.actividad)}</b> <small>${html(x.a.tipo)}${x.a.responsable ? " · " + html(x.a.responsable) : ""}${x.a.mes ? " · durante el mes" : ""}</small>
+              ${x.atrasada ? `<small class="rojo">Atrasada</small>` : ""}${sug ? `<small class="verde">Hay un registro de este día: ¿la marcas como hecha?</small>` : ""}</span></label>`; }).join("")
+          : `<p class="ayuda" style="margin:0">No hay actividades del programa para este día.</p>`}
+        ${(() => { const hf = hallazgosConPlazo(f), hc = hallazgosCerradosEl(f), hn = hallazgos.filter(h => h.fecha === f && h.origen !== "Check list");
+            if (!hf.length && !hc.length && !hn.length) return "";
+            return `<h3>Hallazgos</h3>` + [
+              ...hn.map(h => `<div class="cal-item"><span>🔎 Detectado: ${html(h.desc)}</span></div>`),
+              ...hf.map(h => `<div class="cal-item ${f < hoyISO() ? "atrasada" : ""}"><span>📌 Plazo: ${html(h.desc)}${h.resp ? " · " + html(h.resp) : ""}${f < hoyISO() ? ` <small class="rojo">Vencido</small>` : ""}</span></div>`),
+              ...hc.map(h => `<div class="cal-item hecha"><span>✅ Cerrado: ${html(h.desc)}</span></div>`)].join("")
+              + `<button type="button" class="btn btn-secundario" onclick="mostrar('hallazgos')">Ver hallazgos</button>`; })()}
+        ${vencimientosEl(f).length ? `<h3>Vencimientos</h3>` + vencimientosEl(f).map(v => `<div class="cal-item ${f < hoyISO() ? "atrasada" : ""}"><span>⏰ ${html(v.tipo)} · ${html(v.quien)}</span></div>`).join("")
+            + `<button type="button" class="btn btn-secundario" onclick="mostrar('vencimientos')">Ver vencimientos</button>` : ""}
+        <button type="button" class="btn btn-secundario" style="margin-top:10px" onclick="nuevaActividadDia('${f}')">+ Agregar actividad este día</button>
+        <p class="mensaje" id="msjCalDia"></p>`;
+    }
+    function nuevaActividadDia(f) {
+      document.getElementById("progFecha").value = f;
+      const det = document.getElementById("progForm"); det.open = true;
+      det.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => document.getElementById("progActividad").focus({ preventScroll: true }), 400);
+    }
+    function marcarProgramada(id, f, hecha) {
+      const k = id + "|" + f;
+      if (hecha) programaHecho[k] = { cuando: new Date().toISOString() }; else delete programaHecho[k];
+      guardar("pt_programa_hecho", programaHecho);
+      pintarCalendario(); pintarDiaCal(f); pintarPrograma(); avisoProgramaMenu();
+    }
+    async function compartirRegistroCal(id) {
+      const r = calRegistros.find(x => x.id === id), msj = document.getElementById("msjCalDia");
+      if (!r) return;
+      const datos = { files: [new File([r.pdf], r.nombreArchivo, { type: "application/pdf" })], title: r.asunto, text: r.asunto };
+      if (navigator.canShare && navigator.canShare(datos)) {
+        try { await navigator.share(datos); msj.textContent = "Listo: PDF compartido."; } catch (e) { msj.textContent = e.name === "AbortError" ? "Cancelado." : "No se pudo compartir."; }
+      } else { descargarArchivo(new Uint8Array(r.pdf), r.nombreArchivo, "application/pdf"); msj.textContent = `Se guardó ${r.nombreArchivo} en Descargas.`; }
+    }
+
+    function agregarActividadPrograma() {
+      const msj = document.getElementById("msjProg");
+      const actividad = document.getElementById("progActividad").value.trim(), fecha = document.getElementById("progFecha").value;
+      if (!actividad || !fecha) { msj.textContent = "Escribe la actividad y la fecha."; return; }
+      const repite = document.getElementById("progRepite").value;
+      programa.push({ id: "p" + Date.now().toString(36), actividad, tipo: document.getElementById("progTipo").value, responsable: document.getElementById("progResp").value.trim(),
+        fecha, repite, hasta: repite ? (document.getElementById("progHasta").value || fecha.slice(0, 4) + "-12-31") : "", mes: document.getElementById("progMes").checked });
+      guardar("pt_programa", programa);
+      document.getElementById("progActividad").value = "";
+      msj.textContent = `✅ Agregada: ${actividad}${repite ? " (se repite)" : ""}.`;
+      pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
+    }
+    function quitarActividad(id, boton) {
+      if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
+      programa = programa.filter(a => a.id !== id);
+      for (const k of Object.keys(programaHecho)) if (k.startsWith(id + "|")) delete programaHecho[k];
+      guardar("pt_programa", programa); guardar("pt_programa_hecho", programaHecho);
+      pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
+    }
+    function pintarPrograma() {
+      const a = hoyISO().slice(0, 4), cAnio = cumplimiento(`${a}-01-01`, `${a}-12-31`), cMes = cumplimiento(`${calMes}-01`, `${calMes}-31`);
+      document.getElementById("progCumplimiento").innerHTML = programa.length
+        ? `Cumplimiento ${a} (actividades ya vencidas): <b>${cAnio.hechas} de ${cAnio.total} (${cAnio.pct}%)</b> · ${MESES[+calMes.slice(5) - 1]}: <b>${cMes.hechas} de ${cMes.total}</b>`
+        : "Todavía no hay actividades. Agrégalas una por una o carga tu programa desde Excel.";
+      const rep = { "": "Una vez", semana: "Cada semana", mes: "Cada mes", "3m": "Cada 3 meses", "6m": "Cada 6 meses" };
+      document.getElementById("progLista").innerHTML = [...programa].sort((x, y) => x.fecha.localeCompare(y.fecha)).map(x => `
+        <div class="registro">
+          <div class="tit">${html(x.actividad)}</div>
+          <div class="det">${html(x.tipo)} · ${x.mes ? "Mes de " + MESES[+x.fecha.slice(5, 7) - 1].toLowerCase() : fechaCLde(x.fecha)} · ${rep[x.repite || ""]}${x.repite ? " hasta " + fechaCLde(x.hasta) : ""}${x.responsable ? " · " + html(x.responsable) : ""}</div>
+          <div class="botones" style="grid-template-columns:1fr"><button type="button" class="btn btn-quitar" onclick="quitarActividad('${x.id}', this)">Quitar</button></div>
+        </div>`).join("");
+    }
+
+    // Programa desde Excel: lista con fechas, o carta Gantt con meses marcados con X
+    async function importarProgramaExcel(input) {
+      const a = input.files[0]; input.value = "";
+      const msj = document.getElementById("msjImpProg");
+      if (!a) return;
+      try {
+        if (!window.XLSX) { msj.textContent = "Cargando lector de Excel…"; await cargarScript(URL_SHEETJS); }
+        const libro = XLSX.read(new Uint8Array(await a.arrayBuffer()), { type: "array", cellDates: true });
+        const filas = XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { header: 1, raw: true, defval: "" });
+        const nuevas = leerProgramaFilas(filas, +hoyISO().slice(0, 4));
+        if (!nuevas.length) { msj.textContent = "No encontré actividades. Revisa que haya una columna 'Actividad' y una 'Fecha' (o los meses marcados con X)."; return; }
+        programa.push(...nuevas);
+        guardar("pt_programa", programa);
+        msj.textContent = `✅ Se cargaron ${nuevas.length} actividades del programa.`;
+        pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
+      } catch (e) { msj.textContent = "No se pudo leer el Excel: " + e.message; }
+    }
+    const MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+    function leerProgramaFilas(filas, anio) {
+      const nt = v => normalizar(String(v ?? "")).trim();
+      const iCab = filas.findIndex(f => f.some(c => /actividad|tema|descripcion/.test(nt(c))));
+      if (iCab < 0) return [];
+      const cab = filas[iCab].map(nt);
+      const col = re => cab.findIndex(c => re.test(c));
+      const cAct = col(/actividad|tema|descripcion/), cFecha = col(/^fecha|fecha programada|fecha$/), cTipo = col(/^tipo/), cResp = col(/respons/);
+      const cMeses = MESES_CORTOS.map(m => cab.findIndex(c => c.startsWith(m)));
+      const aFecha = v => {
+        if (v instanceof Date) return isoD(new Date(v.getFullYear(), v.getMonth(), v.getDate(), 12));
+        if (typeof v === "number" && v > 30000) return isoD(new Date(Math.round((v - 25569) * 86400000) + 12 * 3600000));
+        const s = String(v).trim(); let m;
+        if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+        if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        return "";
+      };
+      const tipoDe = (t, act) => TIPOS_PROGRAMA.find(x => normalizar(x).split(" ")[0] && nt(t || act).includes(normalizar(x).split(" ")[0])) || "Otro";
+      const res = []; let n = 0;
+      for (const f of filas.slice(iCab + 1)) {
+        const act = String(f[cAct] ?? "").trim();
+        if (!act) continue;
+        const base = { actividad: act, tipo: tipoDe(cTipo >= 0 ? f[cTipo] : "", act), responsable: cResp >= 0 ? String(f[cResp] ?? "").trim() : "", repite: "", hasta: "" };
+        const fecha = cFecha >= 0 ? aFecha(f[cFecha]) : "";
+        if (fecha) { res.push({ ...base, id: "p" + Date.now().toString(36) + (n++), fecha, mes: false }); continue; }
+        cMeses.forEach((c, i) => { if (c >= 0 && String(f[c] ?? "").trim()) res.push({ ...base, id: "p" + Date.now().toString(36) + (n++), fecha: `${anio}-${String(i + 1).padStart(2, "0")}-01`, mes: true }); });
+      }
+      return res;
+    }
+
+    // Aviso en el menú: lo de hoy y lo atrasado del programa
+    function avisoProgramaMenu() {
+      const caja = document.getElementById("avisoPrograma");
+      if (!caja) return;
+      const hoy = hoyISO(), mesIni = hoy.slice(0, 8) + "01";
+      const deHoy = programadasEntre(hoy, hoy).filter(x => !x.hecha);
+      const atrasadas = programadasEntre(`${hoy.slice(0, 4)}-01-01`, hoy).filter(x => x.atrasada);
+      const delMes = programadasEntre(mesIni, `${hoy.slice(0, 7)}-31`).filter(x => x.a.mes && !x.hecha && !x.atrasada);
+      const halVenc = hallazgos.filter(h => !h.cerrado && h.plazo && h.plazo < hoy), halHoy = hallazgos.filter(h => !h.cerrado && h.plazo === hoy);
+      const venVenc = vencimientos.filter(v => estadoVen(v) === "vencido"), venProx = vencimientos.filter(v => estadoVen(v) === "alerta");
+      if (!deHoy.length && !atrasadas.length && !delMes.length && !halVenc.length && !halHoy.length && !venVenc.length && !venProx.length) { caja.style.display = "none"; return; }
+      caja.style.display = "block";
+      caja.innerHTML = `<b>📅 Pendientes de prevención</b>
+        ${deHoy.length ? `<span>Hoy: ${deHoy.map(x => html(x.a.actividad)).join(", ")}</span>` : ""}
+        ${delMes.length ? `<span>Este mes: ${delMes.map(x => html(x.a.actividad)).join(", ")}</span>` : ""}
+        ${atrasadas.length ? `<span class="rojo">${atrasadas.length} actividad(es) atrasada(s)</span>` : ""}
+        ${halHoy.length ? `<span onclick="event.stopPropagation(); mostrar('hallazgos')">📌 Hallazgos que vencen hoy: ${halHoy.length} →</span>` : ""}
+        ${halVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('hallazgos')">⛔ ${halVenc.length} hallazgo(s) con plazo vencido →</span>` : ""}
+        ${venProx.length ? `<span onclick="event.stopPropagation(); mostrar('vencimientos')">⏰ Por vencer: ${venProx.slice(0, 3).map(v => html(v.tipo + " " + v.quien) + " (" + fechaCLde(v.vence) + ")").join(", ")}${venProx.length > 3 ? " y " + (venProx.length - 3) + " más" : ""} →</span>` : ""}
+        ${venVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('vencimientos')">⛔ ${venVenc.length} documento(s) o certificación(es) vencido(s) →</span>` : ""}`;
+    }
+
+    /* =====================================================================
+       SEGUIMIENTO DE HALLAZGOS
+       Cada hallazgo: qué se encontró, dónde, riesgo, acción, responsable, plazo y cierre.
+       El texto va en localStorage (pt_hallazgos); las fotos en IndexedDB aparte (pesan).
+       ===================================================================== */
+    const ORIGENES_HALLAZGO = ["Inspección en terreno", "Check list", "Charla / ART", "Observación de conducta", "Auditoría / mandante", "Accidente o incidente", "Comité Paritario", "Otro"];
+    let hallazgos = leerGuardado("pt_hallazgos", []);
+    let filtroHal = "abiertos", fotoNuevaHal = null;
+
+    function abrirBDFotos() {
+      return new Promise((ok, falla) => {
+        const p = indexedDB.open("prevencion-hallazgos" + ESPACIO_DATOS, 1);
+        p.onupgradeneeded = () => p.result.createObjectStore("fotos");
+        p.onsuccess = () => ok(p.result);
+        p.onerror = () => falla(p.error);
+      });
+    }
+    async function bdFotos(modo, accion) {
+      const bd = await abrirBDFotos();
+      return new Promise((ok, falla) => {
+        const tx = bd.transaction("fotos", modo);
+        const pedido = accion(tx.objectStore("fotos"));
+        tx.oncomplete = () => { ok(pedido.result); bd.close(); };
+        tx.onerror = () => { falla(tx.error); bd.close(); };
+      });
+    }
+    const fotoHal = async clave => { try { return await bdFotos("readonly", s => s.get(clave)); } catch { return null; } };
+
+    async function comprimirFoto(archivo, lado = 1024, calidad = 0.68) {
+      const img = await createImageBitmap(archivo);
+      const esc = Math.min(1, lado / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      return c.toDataURL("image/jpeg", calidad);
+    }
+
+    const estadoHal = h => h.cerrado ? "cerrado" : (h.plazo && h.plazo < hoyISO() ? "vencido" : "abierto");
+    function textoPlazo(h) {
+      if (h.cerrado) return `Cerrado el ${fechaCLde(h.cerrado.fecha)}`;
+      if (!h.plazo) return "Sin plazo";
+      const dias = Math.round((fechaD(h.plazo) - fechaD(hoyISO())) / 86400000);
+      return dias < 0 ? `Vencido hace ${-dias} día(s) (${fechaCLde(h.plazo)})` : dias === 0 ? "Vence hoy" : `Vence en ${dias} día(s) (${fechaCLde(h.plazo)})`;
+    }
+    const guardarHallazgos = () => guardar("pt_hallazgos", hallazgos);
+
+    function iniciarHallazgos() {
+      const o = document.getElementById("halOrigen");
+      if (!o.options.length) o.innerHTML = ORIGENES_HALLAZGO.map(x => `<option>${x}</option>`).join("");
+      if (!document.getElementById("halPdfMes").value) document.getElementById("halPdfMes").value = hoyISO().slice(0, 7);
+      if (!document.getElementById("halPlazo").value) document.getElementById("halPlazo").value = isoD(new Date(Date.now() + 7 * 86400000));
+      pintarHallazgos();
+    }
+    function filtrarHallazgos(b) {
+      document.querySelectorAll("#halFiltros button").forEach(x => x.classList.toggle("activo", x === b));
+      filtroHal = b.dataset.f; pintarHallazgos();
+    }
+
+    async function pintarHallazgos() {
+      const ab = hallazgos.filter(h => !h.cerrado), ven = ab.filter(h => estadoHal(h) === "vencido");
+      const mes = hoyISO().slice(0, 7), cerrMes = hallazgos.filter(h => h.cerrado && h.cerrado.fecha.startsWith(mes));
+      document.getElementById("halResumen").innerHTML = `
+        <div class="inf-dato"><b>${ab.length}</b><small>Abiertos</small></div>
+        <div class="inf-dato"><b class="${ven.length ? "rojo" : ""}">${ven.length}</b><small>Vencidos</small></div>
+        <div class="inf-dato"><b>${cerrMes.length}</b><small>Cerrados este mes</small></div>`;
+      const b = normalizar(document.getElementById("halBusca").value || "");
+      const lista = hallazgos.filter(h => {
+        const e = estadoHal(h);
+        const pasa = filtroHal === "todos" || (filtroHal === "abiertos" && e !== "cerrado") || (filtroHal === "vencidos" && e === "vencido") || (filtroHal === "cerrados" && e === "cerrado");
+        return pasa && (!b || normalizar(`${h.desc} ${h.lugar} ${h.resp} ${h.accion} ${h.origen}`).includes(b));
+      }).sort((x, y) => (x.cerrado ? 1 : 0) - (y.cerrado ? 1 : 0) || (x.plazo || "9").localeCompare(y.plazo || "9"));
+      const cont = document.getElementById("halLista");
+      if (!lista.length) {
+        cont.innerHTML = `<div class="tarjeta"><p class="ayuda" style="margin:0">${hallazgos.length ? "No hay hallazgos en esta vista." : "Todavía no hay hallazgos. Agrégalos aquí o desde un check list con observaciones."}</p></div>`;
+        return;
+      }
+      cont.innerHTML = lista.map(h => {
+        const e = estadoHal(h);
+        return `<div class="tarjeta hal ${e}" id="hal_${h.id}">
+          <div class="hal-cab"><span class="hal-riesgo r-${normalizar(h.riesgo)}">${html(h.riesgo)}</span><span class="hal-estado">${e === "cerrado" ? "✅ Cerrado" : e === "vencido" ? "⛔ Vencido" : "🟡 Abierto"}</span></div>
+          <div class="tit">${html(h.desc)}</div>
+          <div class="det">${h.lugar ? "📍 " + html(h.lugar) + " · " : ""}${html(h.origen)} · Detectado el ${fechaCLde(h.fecha)}</div>
+          ${h.accion ? `<div class="det"><b>Acción:</b> ${html(h.accion)}</div>` : ""}
+          <div class="det">${h.resp ? "<b>Responsable:</b> " + html(h.resp) + " · " : ""}<span class="${e === "vencido" ? "rojo" : ""}">${textoPlazo(h)}</span></div>
+          ${h.cerrado && h.cerrado.comentario ? `<div class="det"><b>Cierre:</b> ${html(h.cerrado.comentario)}</div>` : ""}
+          <div class="hal-fotos" id="halF_${h.id}"></div>
+          ${h.cerrado ? `<div class="botones">
+              <button type="button" class="btn btn-secundario" onclick="reabrirHallazgo('${h.id}')">Reabrir</button>
+              <button type="button" class="btn btn-quitar" onclick="quitarHallazgo('${h.id}', this)">Quitar</button></div>`
+          : `<details class="exportar hal-cierre"><summary>✅ Cerrar hallazgo</summary>
+              <label>Fecha de cierre</label><input type="date" id="halCF_${h.id}" value="${hoyISO()}">
+              <label>¿Qué se hizo?</label><textarea id="halCC_${h.id}" rows="2" placeholder="Ej: Se instaló señalética y se demarcó el área"></textarea>
+              <label class="btn btn-secundario" style="margin:10px 0 0">📷 Foto del cierre (después)
+                <input type="file" accept="image/*" capture="environment" onchange="fotoCierreHallazgo('${h.id}', this)" hidden></label>
+              <p class="ayuda" id="halCFoto_${h.id}"></p>
+              <button type="button" class="btn btn-principal" onclick="cerrarHallazgo('${h.id}')">Cerrar hallazgo</button>
+            </details>
+            <div class="botones">
+              <label class="btn btn-secundario" style="margin:0">📷 ${h.foto ? "Cambiar foto" : "Agregar foto"}
+                <input type="file" accept="image/*" capture="environment" onchange="fotoHallazgo('${h.id}', this)" hidden></label>
+              <button type="button" class="btn btn-quitar" onclick="quitarHallazgo('${h.id}', this)">Quitar</button></div>`}
+        </div>`;
+      }).join("");
+      for (const h of lista) {
+        const fotos = [];
+        if (h.foto) { const f = await fotoHal(h.id + "|antes"); if (f) fotos.push(`<figure><img src="${f}" alt="Antes"><figcaption>Antes</figcaption></figure>`); }
+        if (h.fotoCierre) { const f = await fotoHal(h.id + "|cierre"); if (f) fotos.push(`<figure><img src="${f}" alt="Después"><figcaption>Después</figcaption></figure>`); }
+        const caja = document.getElementById("halF_" + h.id);
+        if (caja) caja.innerHTML = fotos.join("");
+      }
+    }
+
+    async function fotoNuevoHallazgo(input) {
+      const a = input.files[0]; input.value = "";
+      if (!a) return;
+      try { fotoNuevaHal = await comprimirFoto(a); document.getElementById("halFotoNueva").innerHTML = `<div class="hal-fotos"><figure><img src="${fotoNuevaHal}" alt="Foto"><figcaption>Foto lista</figcaption></figure></div>`; }
+      catch (e) { document.getElementById("msjHal").textContent = "No se pudo leer la foto: " + e.message; }
+    }
+    function nuevoIdHal() { return "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+    async function agregarHallazgo() {
+      const msj = document.getElementById("msjHal"), v = id => document.getElementById(id).value.trim();
+      const desc = v("halDesc");
+      if (!desc) { msj.textContent = "Escribe qué se encontró."; return; }
+      const h = { id: nuevoIdHal(), fecha: hoyISO(), desc, lugar: v("halLugar"), origen: v("halOrigen"), riesgo: v("halRiesgo"), accion: v("halAccion"), resp: v("halResp"), plazo: v("halPlazo"), foto: false, fotoCierre: false, cerrado: null };
+      if (fotoNuevaHal) {
+        try { await bdFotos("readwrite", s => s.put(fotoNuevaHal, h.id + "|antes")); h.foto = true; } catch (e) { msj.textContent = "El hallazgo se guardará sin foto (" + e.message + ")."; }
+      }
+      hallazgos.push(h); guardarHallazgos();
+      ["halDesc", "halAccion"].forEach(id => document.getElementById(id).value = "");
+      fotoNuevaHal = null; document.getElementById("halFotoNueva").innerHTML = "";
+      document.getElementById("halPlazo").value = isoD(new Date(Date.now() + 7 * 86400000));
+      msj.textContent = `✅ Hallazgo guardado${h.plazo ? " con plazo al " + fechaCLde(h.plazo) : ""}.`;
+      pintarHallazgos(); avisoProgramaMenu();
+    }
+    async function fotoHallazgo(id, input) {
+      const a = input.files[0]; input.value = "";
+      const h = hallazgos.find(x => x.id === id);
+      if (!a || !h) return;
+      try {
+        const f = await comprimirFoto(a);
+        await bdFotos("readwrite", s => s.put(f, id + "|antes"));
+        h.foto = true; guardarHallazgos(); pintarHallazgos();
+      } catch (e) { alert("No se pudo guardar la foto: " + e.message); }
+    }
+    const fotosCierrePend = {};
+    async function fotoCierreHallazgo(id, input) {
+      const a = input.files[0]; input.value = "";
+      if (!a) return;
+      try { fotosCierrePend[id] = await comprimirFoto(a); document.getElementById("halCFoto_" + id).textContent = "📷 Foto del cierre lista."; }
+      catch (e) { document.getElementById("halCFoto_" + id).textContent = "No se pudo leer la foto: " + e.message; }
+    }
+    async function cerrarHallazgo(id) {
+      const h = hallazgos.find(x => x.id === id);
+      if (!h) return;
+      const fecha = document.getElementById("halCF_" + id).value || hoyISO();
+      const comentario = document.getElementById("halCC_" + id).value.trim();
+      if (!comentario && !fotosCierrePend[id]) { document.getElementById("halCFoto_" + id).textContent = "Escribe qué se hizo o agrega una foto del cierre."; return; }
+      if (fotosCierrePend[id]) {
+        try { await bdFotos("readwrite", s => s.put(fotosCierrePend[id], id + "|cierre")); h.fotoCierre = true; } catch {}
+        delete fotosCierrePend[id];
+      }
+      h.cerrado = { fecha, comentario };
+      guardarHallazgos(); pintarHallazgos(); avisoProgramaMenu();
+    }
+    function reabrirHallazgo(id) {
+      const h = hallazgos.find(x => x.id === id);
+      if (!h) return;
+      h.cerrado = null; guardarHallazgos(); pintarHallazgos(); avisoProgramaMenu();
+    }
+    async function quitarHallazgo(id, boton) {
+      if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
+      hallazgos = hallazgos.filter(h => h.id !== id); guardarHallazgos();
+      try { await bdFotos("readwrite", s => { s.delete(id + "|antes"); return s.delete(id + "|cierre"); }); } catch {}
+      pintarHallazgos(); avisoProgramaMenu();
+    }
+
+    /* ----- Desde el check list: cada ítem con observación pasa a seguimiento ----- */
+    let ultimoCheckHal = null;
+    function prepararHallazgosCheck(r) {
+      const quien = r.campos.sigla || r.campos.instalacion || r.campos.acargo || r.campos.lugar || "";
+      const malos = [
+        ...r.items.filter(i => i.resp && MALAS.includes(i.resp)).map(i => ({ texto: i.texto, obs: i.obs, resp: i.resp })),
+        ...(r.extintores || []).flatMap((e, k) => e.resp.filter(x => MALAS.includes(x.resp)).map(x => ({ texto: `Extintor ${k + 1} (${e.ubicacion}): ${x.texto}`, obs: x.obs, resp: x.resp })))
+      ];
+      ultimoCheckHal = { r, quien, malos };
+      const caja = document.getElementById("ckHallazgos");
+      if (!caja) return;
+      if (!malos.length) { caja.style.display = "none"; return; }
+      const ya = malos.filter(m => hallazgos.some(h => h.clave === claveCheckHal(r, quien, m))).length;
+      caja.style.display = "block";
+      caja.innerHTML = ya === malos.length
+        ? `<p class="ayuda verde" style="margin:0">📌 Las ${malos.length} observación(es) ya están en Seguimiento de hallazgos.</p>`
+        : `<button type="button" class="btn btn-secundario" onclick="pasarCheckAHallazgos()">📌 Dejar en seguimiento (${malos.length - ya} observación(es))</button>`;
+    }
+    const claveCheckHal = (r, quien, m) => `ck|${r.campos.fecha}|${r.nombre}|${quien}|${m.texto}`;
+    function pasarCheckAHallazgos() {
+      if (!ultimoCheckHal) return;
+      const { r, quien, malos } = ultimoCheckHal;
+      const acc = r.acciones.find(a => a.accion) || {};
+      const plazo = acc.fecha ? acc.fecha.split("/").reverse().join("-") : isoD(new Date(fechaD(r.campos.fecha).getTime() + 7 * 86400000));
+      let n = 0;
+      for (const m of malos) {
+        const clave = claveCheckHal(r, quien, m);
+        if (hallazgos.some(h => h.clave === clave)) continue;
+        hallazgos.push({ id: nuevoIdHal(), clave, fecha: r.campos.fecha, desc: `${m.texto}${m.obs ? ": " + m.obs : ""}`, lugar: [r.nombre, quien].filter(Boolean).join(" – "),
+          origen: "Check list", riesgo: m.resp === "M" || m.resp === "NO" ? "Alto" : "Medio", accion: acc.accion || "", resp: acc.responsable || "", plazo, foto: false, fotoCierre: false, cerrado: null });
+        n++;
+      }
+      guardarHallazgos(); avisoProgramaMenu();
+      document.getElementById("ckHallazgos").innerHTML = `<p class="ayuda verde" style="margin:0">📌 ${n} hallazgo(s) quedaron en seguimiento, con plazo al ${fechaCLde(plazo)}. Ciérralos en "Hallazgos y acciones" cuando se corrijan.</p>`;
+    }
+
+    /* ----- Para el calendario, el menú y el informe ----- */
+    const hallazgosConPlazo = f => hallazgos.filter(h => !h.cerrado && h.plazo === f);
+    const hallazgosCerradosEl = f => hallazgos.filter(h => h.cerrado && h.cerrado.fecha === f);
+    function resumenHallazgosMes(k) {
+      const reg = hallazgos.filter(h => h.fecha.startsWith(k)), cer = hallazgos.filter(h => h.cerrado && h.cerrado.fecha.startsWith(k));
+      const finMes = isoD(new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12));
+      const abiertosFin = hallazgos.filter(h => h.fecha <= finMes && (!h.cerrado || h.cerrado.fecha > finMes));
+      const vencFin = abiertosFin.filter(h => h.plazo && h.plazo < (finMes < hoyISO() ? finMes : hoyISO()));
+      return { registrados: reg.length, cerrados: cer.length, abiertos: abiertosFin.length, vencidos: vencFin.length };
+    }
+
+    /* ----- PDF de seguimiento ----- */
+    async function pdfHallazgos() {
+      const msj = document.getElementById("msjHalPdf"), que = document.getElementById("halPdfQue").value, k = document.getElementById("halPdfMes").value;
+      if (que === "mes" && !k) { msj.textContent = "Elige el mes."; return; }
+      const lista = hallazgos.filter(h => que === "todos" || (que === "abiertos" && !h.cerrado) ||
+        (que === "mes" && (h.fecha.startsWith(k) || (h.cerrado && h.cerrado.fecha.startsWith(k)) || (!h.cerrado && h.fecha <= k + "-31"))))
+        .sort((x, y) => x.fecha.localeCompare(y.fecha));
+      if (!lista.length) { msj.textContent = "No hay hallazgos para ese informe."; return; }
+      msj.textContent = "Generando PDF…";
+      try {
+        const titulo = que === "mes" ? `Seguimiento de hallazgos – ${nombreMes(k)}` : que === "abiertos" ? "Hallazgos abiertos" : "Seguimiento de hallazgos";
+        const bytes = await crearPDF_Hallazgos(lista, titulo, que === "mes" ? k : "");
+        const nombreArchivo = `Hallazgos_${que === "mes" ? k : que}_${hoyISO()}.pdf`;
+        const pdf = { bytes, nombreArchivo, asunto: titulo };
+        const ab = lista.filter(h => !h.cerrado).length;
+        await guardarEnHistorial(null, "hallazgos", pdf, hoyISO(), `${lista.length} hallazgo(s) · ${ab} abierto(s) · ${lista.length - ab} cerrado(s)`);
+        const datos = { files: [new File([pdf.bytes], nombreArchivo, { type: "application/pdf" })], title: titulo, text: titulo };
+        if (navigator.canShare && navigator.canShare(datos)) {
+          try { await navigator.share(datos); msj.textContent = "Listo: PDF compartido (también quedó en el Historial)."; return; }
+          catch (e) { if (e.name === "AbortError") { msj.textContent = "Quedó guardado en el Historial."; return; } }
+        }
+        descargarArchivo(pdf.bytes, nombreArchivo, "application/pdf");
+        msj.textContent = `✅ ${nombreArchivo} · ${Math.round(pdf.bytes.length / 1024)} KB · Folio ${pdf.folio || "—"} (también quedó en el Historial).`;
+      } catch (e) { msj.textContent = "No se pudo generar el PDF: " + e.message; }
+    }
+
+    async function crearPDF_Hallazgos(lista, titulo, k) {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      doc.setTitle(titulo);
+      const fN = await doc.embedFont(StandardFonts.Helvetica), fB = await doc.embedFont(StandardFonts.HelveticaBold);
+      const logo = await doc.embedPng(LOGO_EMPRESA);
+      const A = 595.28, H = 841.89, M = 36, ANCHO = A - 2 * M;
+      const ROJO = rgb(0.72, 0.06, 0.16), GRAFITO = rgb(0.137, 0.157, 0.188), NEGRO = rgb(0.12, 0.16, 0.2), GRIS = rgb(0.4, 0.44, 0.52);
+      const VERDE = rgb(0.07, 0.5, 0.36), AMBAR = rgb(0.71, 0.28, 0.03), LINEA = rgb(0.72, 0.75, 0.8), FONDO = rgb(0.95, 0.96, 0.97);
+      let pag, y;
+      const limpiar = t => String(t ?? "").replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/\t/g, " ").replace(/[^\n\x20-\x7E\xA0-\xFF–—•…]/g, "");
+      function partir(texto, fuente, tam, ancho) {
+        const lineas = [];
+        for (const p of limpiar(texto).split("\n")) {
+          let linea = "";
+          for (let w of p.split(/\s+/).filter(Boolean)) {
+            const prueba = linea ? linea + " " + w : w;
+            if (fuente.widthOfTextAtSize(prueba, tam) <= ancho) { linea = prueba; continue; }
+            if (linea) lineas.push(linea);
+            while (fuente.widthOfTextAtSize(w, tam) > ancho) { let i = w.length; while (i > 1 && fuente.widthOfTextAtSize(w.slice(0, i), tam) > ancho) i--; lineas.push(w.slice(0, i)); w = w.slice(i); }
+            linea = w;
+          }
+          lineas.push(linea);
+        }
+        return lineas;
+      }
+      function nuevaPagina() {
+        pag = doc.addPage([A, H]); y = H - M;
+        pag.drawImage(logo, { x: A - M - 42, y: y - 38, width: 42, height: 42 });
+        pag.drawText(limpiar(titulo.toUpperCase()), { x: M, y: y - 11, size: 11, font: fB, color: NEGRO }); y -= 14;
+        pag.drawText(limpiar(`Programa de Prevención de Riesgos · ${EMPRESA.nombre || ""}`), { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 11;
+        pag.drawText(limpiar(`Emitido el ${fechaCLde(hoyISO())}`), { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS });
+        y = H - M - 48;
+        pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 2, color: ROJO }); y -= 10;
+      }
+      const hayEspacio = alto => { if (y - alto < M + 24) nuevaPagina(); };
+      function seccion(t) {
+        hayEspacio(60); y -= 4;
+        pag.drawRectangle({ x: M, y: y - 16, width: ANCHO, height: 16, color: GRAFITO });
+        pag.drawRectangle({ x: M, y: y - 16, width: 4, height: 16, color: ROJO });
+        pag.drawText(limpiar(t).toUpperCase(), { x: M + 10, y: y - 11.5, size: 9, font: fB, color: rgb(1, 1, 1) });
+        y -= 22;
+      }
+      function parrafo(t, { tam = 8.5, fuente = fN, color = NEGRO } = {}) {
+        for (const l of partir(t, fuente, tam, ANCHO)) { hayEspacio(tam * 1.35); pag.drawText(l, { x: M, y: y - tam, size: tam, font: fuente, color }); y -= tam * 1.35; }
+      }
+      function tabla(columnas, filas, tam = 7.2) {
+        const pad = 3, al = tam * 1.25, anchos = columnas.map(c => c.ancho * ANCHO);
+        const fila = (celdas, esTit) => {
+          const med = celdas.map((c, i) => { const o = typeof c === "object" && c ? c : { texto: c }; return { ...o, l: partir(String(o.texto ?? ""), esTit ? fB : (o.negrita ? fB : fN), tam, anchos[i] - 2 * pad) }; });
+          const alto = Math.max(14, ...med.map(m => m.l.length * al + 2 * pad));
+          if (y - alto < M + 24) { nuevaPagina(); if (!esTit) fila(columnas.map(c => c.titulo), true); }
+          let x = M;
+          med.forEach((m, i) => {
+            pag.drawRectangle({ x, y: y - alto, width: anchos[i], height: alto, borderColor: LINEA, borderWidth: 0.6, ...(esTit ? { color: FONDO } : {}) });
+            let ty = y - pad - tam;
+            m.l.forEach(l => { const tx = columnas[i].centro ? x + (anchos[i] - (esTit || m.negrita ? fB : fN).widthOfTextAtSize(l, tam)) / 2 : x + pad; pag.drawText(l, { x: tx, y: ty, size: tam, font: esTit || m.negrita ? fB : fN, color: m.color || NEGRO }); ty -= al; });
+            x += anchos[i];
+          });
+          y -= alto;
+        };
+        fila(columnas.map(c => c.titulo), true);
+        filas.forEach(f => fila(f, false));
+        y -= 8;
+      }
+
+      nuevaPagina();
+      seccion("1. Resumen");
+      const ab = lista.filter(h => !h.cerrado), ven = ab.filter(h => estadoHal(h) === "vencido");
+      if (k) {
+        const r = resumenHallazgosMes(k);
+        parrafo(`En ${nombreMes(k).toLowerCase()} se registraron ${r.registrados} hallazgo(s) y se cerraron ${r.cerrados}. Al cierre del período quedan ${r.abiertos} abierto(s)${r.vencidos ? `, de ellos ${r.vencidos} con plazo vencido` : ""}.`);
+      } else parrafo(`${lista.length} hallazgo(s): ${ab.length} abierto(s) (${ven.length} con plazo vencido) y ${lista.length - ab.length} cerrado(s).`);
+      const porRiesgo = ["Alto", "Medio", "Bajo"].map(r => `${r}: ${lista.filter(h => h.riesgo === r).length}`).join(" · ");
+      parrafo(`Por nivel de riesgo — ${porRiesgo}`, { color: GRIS, tam: 8 });
+
+      seccion("2. Detalle de hallazgos y acciones correctivas");
+      const COLOR_R = { Alto: ROJO, Medio: AMBAR, Bajo: VERDE };
+      tabla([{ titulo: "N°", ancho: 0.04, centro: true }, { titulo: "Fecha", ancho: 0.09, centro: true }, { titulo: "Hallazgo / lugar", ancho: 0.27 }, { titulo: "Riesgo", ancho: 0.07, centro: true },
+             { titulo: "Acción correctiva", ancho: 0.22 }, { titulo: "Responsable", ancho: 0.12 }, { titulo: "Plazo", ancho: 0.09, centro: true }, { titulo: "Estado", ancho: 0.1, centro: true }],
+        lista.map((h, i) => [String(i + 1), fechaCLde(h.fecha), `${h.desc}${h.lugar ? "\n(" + h.lugar + ")" : ""}`, { texto: h.riesgo, negrita: true, color: COLOR_R[h.riesgo] },
+          h.accion + (h.cerrado && h.cerrado.comentario ? "\nRealizado: " + h.cerrado.comentario : ""), h.resp, fechaCLde(h.plazo),
+          h.cerrado ? { texto: "Cerrado " + fechaCLde(h.cerrado.fecha), color: VERDE, negrita: true } : estadoHal(h) === "vencido" ? { texto: "Vencido", color: ROJO, negrita: true } : { texto: "Abierto", color: AMBAR, negrita: true }]));
+
+      const conFoto = lista.filter(h => h.foto || h.fotoCierre);
+      if (conFoto.length) {
+        seccion("3. Registro fotográfico (antes y después)");
+        const CAJA = (ANCHO - 10) / 2, ALTO = 170;
+        for (const h of conFoto) {
+          const n = lista.indexOf(h) + 1;
+          const titL = partir(`Hallazgo N° ${n}: ${h.desc}`, fB, 8, ANCHO);
+          hayEspacio(ALTO + titL.length * 10 + 24);
+          titL.forEach(l => { pag.drawText(l, { x: M, y: y - 8, size: 8, font: fB, color: NEGRO }); y -= 10; });
+          y -= 2;
+          const pares = [["antes", "Antes", h.foto], ["cierre", "Después (cierre)", h.fotoCierre]];
+          let altoUsado = 0;
+          for (const [j, [suf, et, hay]] of pares.entries()) {
+            const x0 = M + j * (CAJA + 10);
+            const src = hay ? await fotoHal(h.id + "|" + suf) : null;
+            if (src) {
+              const img = await doc.embedJpg(src);
+              const s = Math.min(CAJA / img.width, ALTO / img.height), w = img.width * s, hh = img.height * s;
+              pag.drawImage(img, { x: x0 + (CAJA - w) / 2, y: y - hh, width: w, height: hh });
+              altoUsado = Math.max(altoUsado, hh);
+            } else {
+              pag.drawRectangle({ x: x0, y: y - 40, width: CAJA, height: 40, borderColor: LINEA, borderWidth: 0.6 });
+              pag.drawText(suf === "cierre" && !h.cerrado ? "Pendiente de cierre" : "Sin foto", { x: x0 + 8, y: y - 24, size: 7.5, font: fN, color: GRIS });
+              altoUsado = Math.max(altoUsado, 40);
+            }
+          }
+          y -= altoUsado + 2;
+          pares.forEach(([, et], j) => pag.drawText(et, { x: M + j * (CAJA + 10), y: y - 8, size: 7.5, font: fN, color: GRIS }));
+          y -= 18;
+        }
+      }
+      const pags = doc.getPages();
+      pags.forEach((p, i) => p.drawText(`Página ${i + 1} de ${pags.length}`, { x: A - M - 60, y: M - 14, size: 7, font: fN, color: GRIS }));
+      return await doc.save();
+    }
+
+    /* =====================================================================
+       VENCIMIENTOS: licencias, exámenes, cursos, reinducciones, extintores,
+       revisiones técnicas… Avisa en el menú y en el calendario antes de que venzan.
+       ===================================================================== */
+    const TIPOS_VENC = {
+      "Trabajador": ["Reinducción IRL", "Licencia de conducir", "Examen ocupacional", "Examen preocupacional", "Curso trabajo en altura", "Certificación operador de maquinaria", "Curso de primeros auxilios", "Credencial / acreditación"],
+      "Equipo o vehículo": ["Recarga extintor", "Mantención extintor", "Revisión técnica", "Permiso de circulación", "SOAP", "Certificación de grúa / equipo de levante", "Mantención programada"],
+      "Documento u otro": ["Reglamento interno", "Plan de emergencia", "Contrato / subcontrato", "Acta Comité Paritario", "Certificado de fumigación"]
+    };
+    let vencimientos = leerGuardado("pt_vencimientos", []);
+    let filtroVen = "alerta";
+    const guardarVenc = () => guardar("pt_vencimientos", vencimientos);
+    const diasPara = f => Math.round((fechaD(f) - fechaD(hoyISO())) / 86400000);
+    const estadoVen = v => { const d = diasPara(v.vence); return d < 0 ? "vencido" : d <= (+v.aviso || 30) ? "alerta" : "vigente"; };
+
+    function iniciarVencimientos() {
+      const cat = document.getElementById("venCat");
+      const pintarTipos = () => document.getElementById("venTipos").innerHTML = TIPOS_VENC[cat.value].map(t => `<option value="${html(t)}">`).join("");
+      cat.onchange = pintarTipos; pintarTipos();
+      const nombres = new Set([...(listado?.lista || []).map(p => p.nombre), ...vencimientos.map(v => v.quien)].filter(Boolean));
+      document.getElementById("venQuienes").innerHTML = [...nombres].sort().map(n => `<option value="${html(n)}">`).join("");
+      pintarVencimientos();
+    }
+    function filtrarVenc(b) {
+      document.querySelectorAll("#venFiltros button").forEach(x => x.classList.toggle("activo", x === b));
+      filtroVen = b.dataset.f; pintarVencimientos();
+    }
+    function textoVence(v) {
+      const d = diasPara(v.vence);
+      return d < 0 ? `Venció hace ${-d} día(s) (${fechaCLde(v.vence)})` : d === 0 ? `Vence hoy (${fechaCLde(v.vence)})` : `Vence en ${d} día(s) (${fechaCLde(v.vence)})`;
+    }
+    function pintarVencimientos() {
+      const venc = vencimientos.filter(v => estadoVen(v) === "vencido"), alerta = vencimientos.filter(v => estadoVen(v) === "alerta");
+      document.getElementById("venResumen").innerHTML = `
+        <div class="inf-dato"><b class="${venc.length ? "rojo" : ""}">${venc.length}</b><small>Vencidos</small></div>
+        <div class="inf-dato"><b>${alerta.length}</b><small>Por vencer</small></div>
+        <div class="inf-dato"><b>${vencimientos.length - venc.length - alerta.length}</b><small>Vigentes</small></div>`;
+      const b = normalizar(document.getElementById("venBusca").value || "");
+      const lista = vencimientos.filter(v => {
+        const e = estadoVen(v);
+        return (filtroVen === "todos" || (filtroVen === "alerta" && e !== "vigente") || filtroVen === e) && (!b || normalizar(`${v.quien} ${v.tipo} ${v.nota} ${v.cat}`).includes(b));
+      }).sort((x, y) => x.vence.localeCompare(y.vence));
+      document.getElementById("venLista").innerHTML = lista.length ? lista.map(v => {
+        const e = estadoVen(v);
+        return `<div class="tarjeta hal ven-${e}">
+          <div class="hal-cab"><span class="hal-riesgo">${html(v.cat)}</span><span>${e === "vencido" ? "⛔ Vencido" : e === "alerta" ? "⚠️ Por vencer" : "✅ Vigente"}</span></div>
+          <div class="tit">${html(v.tipo)} · ${html(v.quien)}</div>
+          <div class="det ${e === "vencido" ? "rojo" : ""}">${textoVence(v)}</div>
+          ${v.nota ? `<div class="det">${html(v.nota)}</div>` : ""}
+          ${(v.anteriores || []).length ? `<div class="det"><small>Antes: ${v.anteriores.map(a => "venció " + fechaCLde(a.vence) + (a.renovado ? ", renovado el " + fechaCLde(a.renovado) : "")).join(" · ")}</small></div>` : ""}
+          <details class="exportar hal-cierre"><summary>🔄 Renovar (nueva fecha)</summary>
+            <label>Nuevo vencimiento</label><input type="date" id="venNueva_${v.id}" value="${isoD(new Date(fechaD(v.vence).getFullYear() + 1, fechaD(v.vence).getMonth(), fechaD(v.vence).getDate(), 12))}">
+            <button type="button" class="btn btn-principal" onclick="renovarVencimiento('${v.id}')">Guardar renovación</button>
+          </details>
+          <div class="botones" style="grid-template-columns:1fr"><button type="button" class="btn btn-quitar" onclick="quitarVencimiento('${v.id}', this)">Quitar</button></div>
+        </div>`; }).join("")
+        : `<div class="tarjeta"><p class="ayuda" style="margin:0">${vencimientos.length ? "Nada en esta vista: todo al día 👍" : "Todavía no hay vencimientos. Agrégalos uno por uno, cárgalos desde Excel o agenda las reinducciones de las IRL."}</p></div>`;
+    }
+    function agregarVencimiento() {
+      const msj = document.getElementById("msjVen"), v = id => document.getElementById(id).value.trim();
+      if (!v("venTipo") || !v("venQuien") || !v("venFecha")) { msj.textContent = "Completa qué vence, de quién y la fecha."; return; }
+      vencimientos.push({ id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), cat: v("venCat"), tipo: v("venTipo"), quien: v("venQuien"), vence: v("venFecha"), aviso: +v("venAviso"), nota: v("venNota"), anteriores: [] });
+      guardarVenc();
+      ["venTipo", "venQuien", "venNota"].forEach(id => document.getElementById(id).value = "");
+      msj.textContent = "✅ Guardado. Te avisaré en el menú antes de que venza.";
+      pintarVencimientos(); avisoProgramaMenu();
+    }
+    function renovarVencimiento(id) {
+      const v = vencimientos.find(x => x.id === id), nueva = document.getElementById("venNueva_" + id).value;
+      if (!v || !nueva) return;
+      v.anteriores = [...(v.anteriores || []), { vence: v.vence, renovado: hoyISO() }].slice(-5);
+      v.vence = nueva; guardarVenc(); pintarVencimientos(); avisoProgramaMenu();
+    }
+    function quitarVencimiento(id, boton) {
+      if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
+      vencimientos = vencimientos.filter(v => v.id !== id); guardarVenc(); pintarVencimientos(); avisoProgramaMenu();
+    }
+
+    async function reinduccionesDesdeIRL() {
+      const msj = document.getElementById("msjVenIRL"), meses = +document.getElementById("venMesesIRL").value;
+      let regs = [];
+      try { regs = (await operacionBD("readonly", s => s.getAll())).filter(r => r.tipo === "irl"); } catch {}
+      if (!regs.length) { msj.textContent = "No hay IRL guardadas en este equipo."; return; }
+      const ultima = {};
+      for (const r of regs) {
+        const p = String(r.detalle || "").split(" · "), nombre = (p[1] || "").trim();
+        if (!nombre) continue;
+        const k = normalizar(nombre);
+        if (!ultima[k] || ultima[k].fecha < r.fecha) ultima[k] = { nombre, fecha: r.fecha, cargo: p[0] };
+      }
+      let n = 0, ya = 0;
+      for (const { nombre, fecha, cargo } of Object.values(ultima)) {
+        const d = fechaD(fecha), vence = isoD(new Date(d.getFullYear(), d.getMonth() + meses, d.getDate(), 12));
+        const existe = vencimientos.find(v => v.tipo === "Reinducción IRL" && normalizar(v.quien) === normalizar(nombre));
+        if (existe) { if (existe.vence < vence) { existe.vence = vence; existe.nota = `${cargo} · última IRL el ${fechaCLde(fecha)}`; n++; } else ya++; continue; }
+        vencimientos.push({ id: "v" + Date.now().toString(36) + (n + ya), cat: "Trabajador", tipo: "Reinducción IRL", quien: nombre, vence, aviso: 30, nota: `${cargo} · última IRL el ${fechaCLde(fecha)}`, anteriores: [] });
+        n++;
+      }
+      guardarVenc();
+      msj.textContent = `✅ ${n} reinducción(es) agendada(s)${ya ? `, ${ya} ya estaban` : ""}.`;
+      pintarVencimientos(); avisoProgramaMenu();
+    }
+
+    async function importarVencExcel(input) {
+      const a = input.files[0]; input.value = "";
+      const msj = document.getElementById("msjVenExcel");
+      if (!a) return;
+      try {
+        if (!window.XLSX) { msj.textContent = "Cargando lector de Excel…"; await cargarScript(URL_SHEETJS); }
+        const libro = XLSX.read(new Uint8Array(await a.arrayBuffer()), { type: "array", cellDates: true });
+        const nuevos = leerVencFilas(XLSX.utils.sheet_to_json(libro.Sheets[libro.SheetNames[0]], { header: 1, raw: true, defval: "" }));
+        if (!nuevos.length) { msj.textContent = "No encontré filas. Revisa que haya columnas de nombre (o equipo), documento y vencimiento."; return; }
+        vencimientos.push(...nuevos); guardarVenc();
+        msj.textContent = `✅ Se cargaron ${nuevos.length} vencimiento(s).`;
+        pintarVencimientos(); avisoProgramaMenu();
+      } catch (e) { msj.textContent = "No se pudo leer el Excel: " + e.message; }
+    }
+    function leerVencFilas(filas) {
+      const nt = v => normalizar(String(v ?? "")).trim();
+      const iCab = filas.findIndex(f => f.some(c => /venc/.test(nt(c))) || (f.some(c => /nombre|equipo|patente|trabajador/.test(nt(c))) && f.some(c => /fecha/.test(nt(c)))));
+      if (iCab < 0) return [];
+      const cab = filas[iCab].map(nt), col = re => cab.findIndex(c => re.test(c));
+      const cQuien = col(/nombre|trabajador|equipo|patente|vehiculo|ubicacion/), cTipo = col(/documento|tipo|curso|licencia|examen|certific|item/);
+      let cVence = col(/venc/); if (cVence < 0) cVence = col(/fecha/);
+      if (cQuien < 0 || cVence < 0) return [];
+      const aFecha = v => {
+        if (v instanceof Date) return isoD(new Date(v.getFullYear(), v.getMonth(), v.getDate(), 12));
+        if (typeof v === "number" && v > 30000) return isoD(new Date(Math.round((v - 25569) * 86400000) + 12 * 3600000));
+        const s = String(v).trim(); let m;
+        if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+        if ((m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/))) return `${m[3].length === 2 ? "20" + m[3] : m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+        return "";
+      };
+      const catDe = t => Object.keys(TIPOS_VENC).find(c => TIPOS_VENC[c].some(x => normalizar(x).split(" ")[0] === normalizar(t).split(" ")[0])) || (/extintor|revision|permiso|soap|grua|camion|vehic/.test(normalizar(t)) ? "Equipo o vehículo" : "Trabajador");
+      const res = []; let n = 0;
+      for (const f of filas.slice(iCab + 1)) {
+        const quien = String(f[cQuien] ?? "").trim(), vence = aFecha(f[cVence]);
+        if (!quien || !vence) continue;
+        const tipo = cTipo >= 0 ? String(f[cTipo] ?? "").trim() || "Documento" : (cab[cVence].replace(/venc\w*/, "").trim() || "Documento");
+        res.push({ id: "v" + Date.now().toString(36) + "x" + (n++), cat: catDe(tipo), tipo, quien, vence, aviso: 30, nota: "", anteriores: [] });
+      }
+      return res;
+    }
+
+    /* ----- Para el calendario, el menú y el informe ----- */
+    const vencimientosEl = f => vencimientos.filter(v => v.vence === f);
+    function resumenVencMes(k) {
+      const finMes = isoD(new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12)), corte = finMes < hoyISO() ? finMes : hoyISO();
+      return { total: vencimientos.length, vencidos: vencimientos.filter(v => v.vence < corte).length };
+    }
+
+    /* =====================================================================
+       ASISTENTE DE RIESGOS (sin internet)
+       Lee lo que escribiste en la etapa y sugiere peligros, riesgos, medidas y EPP
+       desde un catálogo: uno general que viene con la app + las ART de tu propio paquete.
+       También avisa lo que parece faltar (ej: hablas de altura y no aparece "caída").
+       No usa inteligencia artificial ni manda nada a internet: compara palabras.
+       ===================================================================== */
+    const CATALOGO_GENERAL = [
+      { tema: "Trabajo en altura", claves: ["altura", "andamio", "escalera", "techumbre", "techo", "arnes", "linea de vida", "plataforma", "borde", "losa", "moldaje"],
+        peligros: ["Trabajo sobre 1,8 m de altura", "Bordes y vanos sin protección"],
+        riesgos: ["Caída a distinto nivel", "Golpeado por caída de objetos o herramientas"],
+        medidas: ["Usar arnés de cuerpo completo con doble cola anclado a punto o línea de vida certificada", "Verificar andamio con tarjeta verde antes de subir", "Instalar barandas, rodapiés y cubrir vanos", "Amarrar herramientas y delimitar zona inferior"],
+        epp: ["Arnés de seguridad con doble cola y absorbedor", "Casco con barbiquejo", "Calzado de seguridad"],
+        avisa: { busca: ["caida", "distinto nivel"], texto: "Hablas de trabajo en altura y no aparece la caída a distinto nivel." } },
+      { tema: "Tránsito vehicular / trabajo en ruta", claves: ["ruta", "calzada", "berma", "transito", "vehiculo", "carretera", "via", "desvio", "senalizacion", "banderero", "paleta", "conos"],
+        peligros: ["Tránsito vehicular de terceros en la vía", "Baja visibilidad (neblina, camanchaca, noche)"],
+        riesgos: ["Atropello por vehículos de terceros", "Choque o colisión"],
+        medidas: ["Instalar señalización temporal según manual de señalización de tránsito antes de iniciar", "Usar banderero o paletero con radio", "No dar la espalda al tránsito y trabajar dentro de la zona protegida", "Vehículo escudo con baliza en el frente de trabajo"],
+        epp: ["Chaleco o geólogo reflectante clase 3", "Casco", "Calzado de seguridad"],
+        avisa: { busca: ["atropello"], texto: "Trabajas en ruta o calzada y no aparece el atropello." } },
+      { tema: "Maquinaria pesada", claves: ["maquina", "maquinaria", "retroexcavadora", "excavadora", "cargador", "motoniveladora", "rodillo", "bulldozer", "camion tolva", "tolva", "aljibe", "operador", "pala"],
+        peligros: ["Maquinaria en movimiento", "Puntos ciegos del operador"],
+        riesgos: ["Atropello o aplastamiento por maquinaria", "Volcamiento de equipo", "Atrapamiento entre partes móviles"],
+        medidas: ["Check list del equipo antes de operar", "Mantener distancia y contacto visual con el operador", "Alarma de retroceso y baliza operativas", "Operador con licencia clase D vigente y autorizado", "Prohibido transitar en el radio de giro"],
+        epp: ["Chaleco reflectante", "Casco", "Protector auditivo", "Calzado de seguridad"],
+        avisa: { busca: ["atropello", "aplastamiento", "atrapamiento"], texto: "Hay maquinaria y no aparece atropello, aplastamiento ni atrapamiento." } },
+      { tema: "Conducción de vehículos", claves: ["conduccion", "conducir", "camioneta", "manejar", "traslado", "desplazamiento", "vehiculo liviano", "chofer"],
+        peligros: ["Conducción en caminos con tránsito, curvas y pendientes", "Fatiga o somnolencia al conducir"],
+        riesgos: ["Choque, colisión o volcamiento", "Atropello a peatones"],
+        medidas: ["Respetar velocidades máximas y usar cinturón de seguridad", "Licencia vigente y check list del vehículo", "Prohibido uso de celular al conducir", "Pausas de descanso en viajes largos"],
+        epp: ["Cinturón de seguridad", "Chaleco reflectante al bajar a la ruta"],
+        avisa: { busca: ["choque", "colision", "volcamiento"], texto: "Hay conducción y no aparece choque, colisión ni volcamiento." } },
+      { tema: "Excavación y zanjas", claves: ["excavacion", "zanja", "talud", "escarpe", "corte de terreno", "pozo", "fundacion"],
+        peligros: ["Paredes de excavación inestables", "Bordes de zanja sin protección"],
+        riesgos: ["Derrumbe o sepultamiento", "Caída a distinto nivel a la excavación"],
+        medidas: ["Entibar o dar talud según tipo de suelo", "Dejar el material excavado a más de 60 cm del borde", "Escalera de acceso y salida", "Delimitar y señalizar el perímetro"],
+        epp: ["Casco", "Calzado de seguridad", "Chaleco reflectante"],
+        avisa: { busca: ["derrumbe", "sepult"], texto: "Hay excavación y no aparece derrumbe o sepultamiento." } },
+      { tema: "Izaje de cargas", claves: ["izaje", "grua", "levante", "eslinga", "rigger", "carga suspendida", "camion pluma", "pluma"],
+        peligros: ["Carga suspendida", "Elementos de izaje en mal estado"],
+        riesgos: ["Golpeado o aplastado por carga suspendida", "Caída de la carga"],
+        medidas: ["Plan de izaje y rigger designado", "Inspeccionar eslingas y grilletes antes de usar", "Nadie bajo la carga suspendida; usar cuerdas guía", "Respetar la tabla de carga del equipo"],
+        epp: ["Casco", "Guantes", "Calzado de seguridad"],
+        avisa: { busca: ["carga suspendida", "aplast", "golpe"], texto: "Hay izaje y no aparece golpe o aplastamiento por carga suspendida." } },
+      { tema: "Soldadura y oxicorte", claves: ["soldadura", "soldar", "oxicorte", "corte con gas", "arco", "esmerilado", "electrodo", "oxigeno", "acetileno"],
+        peligros: ["Radiación del arco eléctrico", "Proyección de partículas incandescentes", "Humos metálicos"],
+        riesgos: ["Quemaduras", "Lesión ocular por radiación o partículas", "Inhalación de humos metálicos", "Incendio"],
+        medidas: ["Retirar materiales combustibles y tener extintor a mano", "Biombos para proteger a terceros", "Ventilación o extracción localizada", "Cilindros amarrados, con válvulas antirretorno"],
+        epp: ["Máscara de soldar", "Guantes de cuero puño largo", "Coleto o chaqueta de cuero", "Respirador para humos metálicos"],
+        avisa: { busca: ["quemadura", "incendio"], texto: "Hay soldadura o corte y no aparece quemadura ni incendio." } },
+      { tema: "Energía eléctrica", claves: ["electrico", "electrica", "tablero electrico", "cable", "extension electrica", "enchufe", "energizado", "electricidad", "instalacion electrica"],
+        peligros: ["Contacto con partes energizadas", "Extensiones y cables en mal estado"],
+        riesgos: ["Contacto eléctrico directo o indirecto (electrocución)", "Incendio de origen eléctrico"],
+        medidas: ["Bloqueo y etiquetado (LOTO) antes de intervenir", "Solo personal autorizado SEC interviene tableros", "Tableros con protección diferencial y tierra", "Revisar extensiones antes de usar"],
+        epp: ["Guantes dieléctricos", "Calzado dieléctrico", "Lentes de seguridad"],
+        avisa: { busca: ["electric", "electrocu"], texto: "Hay electricidad y no aparece el contacto eléctrico." } },
+      { tema: "Herramientas eléctricas y esmeril", claves: ["esmeril", "galletera", "taladro", "sierra", "tronzadora", "herramienta electrica", "rotomartillo", "disco de corte", "cortadora"],
+        peligros: ["Disco o broca girando a alta velocidad", "Proyección de partículas"],
+        riesgos: ["Cortes y amputaciones", "Proyección de partículas a los ojos", "Atrapamiento con partes giratorias"],
+        medidas: ["Herramienta con protector y mango", "Disco adecuado a las RPM de la máquina", "Desenchufar para cambiar disco o broca", "No usar ropa suelta"],
+        epp: ["Careta facial y lentes de seguridad", "Guantes", "Protector auditivo"],
+        avisa: { busca: ["corte", "proyeccion"], texto: "Hay herramientas de corte y no aparecen cortes ni proyección de partículas." } },
+      { tema: "Herramientas manuales", claves: ["herramienta manual", "martillo", "chuzo", "pala", "barreta", "combo", "llave", "alicate", "carretilla"],
+        peligros: ["Uso de herramientas manuales"],
+        riesgos: ["Golpes y cortes en manos", "Sobreesfuerzo"],
+        medidas: ["Revisar el estado de las herramientas antes de usar", "Usar la herramienta adecuada para cada tarea", "Guardar en caja o porta herramientas"],
+        epp: ["Guantes de cabritilla", "Lentes de seguridad"] },
+      { tema: "Manejo manual de carga", claves: ["carga", "levantar", "levantamiento", "traslado de materiales", "sacos", "cargar", "descarga", "acopio", "manual"],
+        peligros: ["Levantamiento y traslado manual de cargas"],
+        riesgos: ["Sobreesfuerzo y lesiones lumbares (trastornos musculoesqueléticos)", "Atrapamiento de manos"],
+        medidas: ["Respetar los límites de peso (25 kg hombres, 20 kg mujeres y menores, según Ley 20.949)", "Levantar flectando las rodillas y con la espalda recta", "Usar ayudas mecánicas o pedir ayuda", "Pausas activas"],
+        epp: ["Guantes", "Calzado de seguridad"],
+        avisa: { busca: ["sobreesfuerzo", "lumbar", "musculoesquel"], texto: "Hay manejo de cargas y no aparece el sobreesfuerzo." } },
+      { tema: "Radiación UV de origen solar", claves: ["sol", "solar", "exterior", "terreno", "aire libre", "radiacion uv", "uv", "intemperie"],
+        peligros: ["Exposición a radiación UV de origen solar"],
+        riesgos: ["Quemaduras solares y daño ocular", "Cáncer de piel a largo plazo", "Golpe de calor"],
+        medidas: ["Aplicar bloqueador FPS 50+ cada 2 horas", "Hidratarse frecuentemente", "Buscar sombra en horario de mayor radiación"],
+        epp: ["Bloqueador solar FPS 50+", "Legionario o cubrenuca", "Lentes con filtro UV", "Ropa manga larga"] },
+      { tema: "Ruido", claves: ["ruido", "compresor", "martillo neumatico", "demoledor", "generador", "vibropisón", "chancado", "planta"],
+        peligros: ["Ruido sobre 85 dB(A)"],
+        riesgos: ["Hipoacusia (pérdida de audición) por exposición a ruido"],
+        medidas: ["Señalizar zonas de ruido y controlar tiempo de exposición", "Evaluación según protocolo PREXOR"],
+        epp: ["Protector auditivo tipo fono o tapón"],
+        avisa: { busca: ["hipoacusia", "ruido", "audic"], texto: "Hay fuentes de ruido y no aparece la hipoacusia." } },
+      { tema: "Polvo y sílice", claves: ["polvo", "silice", "arido", "chancado", "corte de hormigon", "barrido", "excavacion", "tierra", "demolicion", "perforacion"],
+        peligros: ["Polvo en suspensión con sílice"],
+        riesgos: ["Inhalación de polvo (silicosis a largo plazo)", "Proyección de partículas a los ojos"],
+        medidas: ["Humectar el área antes y durante el trabajo", "Corte húmedo o con aspiración", "Evaluación según protocolo PLANESI"],
+        epp: ["Respirador con filtro P100", "Lentes herméticos"] },
+      { tema: "Sustancias químicas", claves: ["quimico", "solvente", "pintura", "diluyente", "aditivo", "combustible", "petroleo", "bencina", "aceite", "emulsion", "imprimacion", "hds", "acido"],
+        peligros: ["Manipulación de sustancias químicas o inflamables"],
+        riesgos: ["Inhalación de vapores", "Contacto con piel y ojos (dermatitis, quemadura química)", "Incendio o explosión"],
+        medidas: ["Revisar la Hoja de Datos de Seguridad (HDS) antes de usar", "Trabajar en lugar ventilado y sin fuentes de ignición", "Envases rotulados y con tapa", "Kit antiderrame disponible"],
+        epp: ["Guantes de nitrilo", "Lentes o antiparras herméticas", "Respirador con filtro para vapores orgánicos"],
+        avisa: { busca: ["inhalacion", "contacto", "quimic"], texto: "Hay sustancias químicas y no aparece inhalación ni contacto." } },
+      { tema: "Asfalto en caliente", claves: ["asfalto", "carpeta", "mezcla asfaltica", "riego", "pavimentadora", "bitumen", "emulsion asfaltica", "imprimacion"],
+        peligros: ["Mezcla asfáltica a alta temperatura", "Vapores de asfalto"],
+        riesgos: ["Quemaduras por contacto o proyección", "Inhalación de vapores"],
+        medidas: ["No tocar ni pararse sobre mezcla caliente", "Ubicarse a favor del viento", "Pausas e hidratación"],
+        epp: ["Guantes térmicos puño largo", "Lentes de seguridad", "Ropa manga larga", "Calzado de seguridad"],
+        avisa: { busca: ["quemadura"], texto: "Hay asfalto caliente y no aparece la quemadura." } },
+      { tema: "Hormigón y cemento", claves: ["hormigon", "hormigonado", "cemento", "mortero", "betonera", "vibrador", "fragua", "radier"],
+        peligros: ["Contacto con cemento fresco", "Equipos de vibrado"],
+        riesgos: ["Dermatitis o quemadura química por cemento", "Proyección de lechada a los ojos"],
+        medidas: ["Evitar contacto directo con la piel; lavar de inmediato", "Revisar extensión y vibrador antes de usar"],
+        epp: ["Botas de goma", "Guantes de nitrilo", "Lentes de seguridad"] },
+      { tema: "Espacio confinado", claves: ["espacio confinado", "camara", "alcantarilla", "estanque", "tunel", "ducto", "pozo", "colector"],
+        peligros: ["Atmósfera con poco oxígeno o gases tóxicos", "Acceso y salida restringidos"],
+        riesgos: ["Asfixia o intoxicación", "Atrapamiento sin rescate oportuno"],
+        medidas: ["Permiso de trabajo y medición de gases antes y durante", "Vigía permanente afuera", "Ventilación forzada", "Plan de rescate"],
+        epp: ["Detector de gases", "Arnés con cuerda de rescate", "Equipo de respiración si corresponde"],
+        avisa: { busca: ["asfixia", "intoxica", "gases"], texto: "Hay espacio confinado y no aparece asfixia o intoxicación." } },
+      { tema: "Incendio y combustibles", claves: ["combustible", "abastecimiento", "petroleo", "bencina", "gas", "incendio", "fuego", "cilindro"],
+        peligros: ["Manipulación de combustibles", "Fuentes de ignición cercanas"],
+        riesgos: ["Incendio o explosión", "Derrame"],
+        medidas: ["Prohibido fumar y usar celular al abastecer", "Extintor PQS cerca del punto de trabajo", "Motor apagado al abastecer", "Bandeja antiderrame"],
+        epp: ["Guantes de nitrilo", "Lentes de seguridad"] },
+      { tema: "Demolición", claves: ["demolicion", "demoler", "picado", "retiro de estructura", "desarme"],
+        peligros: ["Estructuras inestables", "Caída de escombros"],
+        riesgos: ["Golpeado por caída de material", "Derrumbe de estructura", "Inhalación de polvo"],
+        medidas: ["Evaluar la estructura antes de intervenir", "Demoler de arriba hacia abajo", "Delimitar el área y humectar"],
+        epp: ["Casco", "Respirador P100", "Lentes herméticos", "Protector auditivo"] },
+      { tema: "Trabajo nocturno o con baja visibilidad", claves: ["noche", "nocturno", "turno noche", "neblina", "camanchaca", "oscuridad", "baja visibilidad"],
+        peligros: ["Baja visibilidad"],
+        riesgos: ["Atropello por falta de visibilidad", "Caídas por iluminación insuficiente"],
+        medidas: ["Iluminación artificial del frente de trabajo", "Balizas y señalización luminosa", "Ropa reflectante clase 3"],
+        epp: ["Chaleco o geólogo reflectante clase 3", "Linterna frontal"] },
+      { tema: "Condiciones climáticas y altitud", claves: ["viento", "lluvia", "nieve", "frio", "calor", "cordillera", "altitud", "altura geografica", "hipobaria", "tormenta"],
+        peligros: ["Condiciones climáticas adversas", "Exposición a gran altitud (hipobaria)"],
+        riesgos: ["Hipotermia o golpe de calor", "Mal agudo de montaña", "Caídas por superficies resbaladizas"],
+        medidas: ["Suspender trabajos con viento fuerte o tormenta eléctrica", "Ropa adecuada al clima e hidratación", "Evaluación de salud para trabajo en altitud geográfica"],
+        epp: ["Ropa térmica o de agua según clima", "Bloqueador y lentes UV"] },
+      { tema: "Orden y aseo / tránsito a pie", claves: ["orden", "aseo", "bodega", "caminar", "transito peatonal", "piso", "escombro", "patio", "oficina", "instalacion de faena"],
+        peligros: ["Superficies irregulares, materiales en el piso"],
+        riesgos: ["Caída al mismo nivel (tropiezos y resbalones)", "Golpes contra objetos"],
+        medidas: ["Mantener vías de tránsito despejadas", "Retirar escombros y despuntes", "Iluminación adecuada"],
+        epp: ["Calzado de seguridad"] },
+      { tema: "Trabajo de oficina", claves: ["oficina", "computador", "escritorio", "digitacion", "administrativo", "planilla"],
+        peligros: ["Uso prolongado de computador", "Postura sedente prolongada"],
+        riesgos: ["Trastornos musculoesqueléticos de extremidad superior y espalda", "Fatiga visual"],
+        medidas: ["Silla ajustable y pantalla a la altura de los ojos", "Pausas activas cada hora", "Iluminación adecuada"],
+        epp: [] },
+      { tema: "Topografía y mediciones en terreno", claves: ["topografia", "topografo", "estacion total", "nivel", "replanteo", "medicion", "estaca", "alarife"],
+        peligros: ["Trabajo cerca de maquinaria y tránsito", "Terreno irregular"],
+        riesgos: ["Atropello", "Caída al mismo o distinto nivel", "Exposición a radiación UV"],
+        medidas: ["Coordinar con operadores antes de entrar al área de maquinaria", "Vehículo y señalización de resguardo en ruta"],
+        epp: ["Chaleco reflectante", "Bloqueador solar", "Calzado de seguridad"] },
+      { tema: "Riesgos psicosociales y convivencia", claves: ["psicosocial", "acoso", "ley karin", "estres", "turno", "convivencia", "violencia", "maltrato"],
+        peligros: ["Conductas de acoso o violencia en el trabajo", "Carga mental o turnos extensos"],
+        riesgos: ["Daño a la salud mental", "Conflictos interpersonales"],
+        medidas: ["Difundir el protocolo de prevención del acoso (Ley 21.643, Ley Karin) y canales de denuncia", "Respetar pausas y descansos"],
+        epp: [] }
+    ];
+
+    const PALABRAS_VACIAS = new Set("de del la las el los y o a en con por para sin sobre un una uno unos unas que se al su sus es son como mas menos muy ya etc tarea etapa trabajo trabajos realizar realiza".split(" "));
+    const raiz = w => w.length > 5 ? w.slice(0, 5) : w;
+    const fichas = t => normalizar(String(t || "")).replace(/[^a-z0-9ñ ]+/g, " ").split(/\s+/).filter(w => w.length > 2 && !PALABRAS_VACIAS.has(w)).map(raiz);
+    const lineasDe = t => String(t || "").split("\n").map(l => l.replace(/^\s*(?:[•\-–*]|\d+[.)-])\s*/, "").trim()).filter(Boolean);
+
+    // Catálogo propio desde las ART del paquete (lo que tu empresa ya escribió)
+    function catalogoPaquete() {
+      return (DEPARTAMENTOS || []).flatMap(d => (d.etapas || []).map(e => ({
+        tema: `${d.nombre}: ${lineasDe(e.etapa)[0] || ""}`, propio: true,
+        clavesTexto: `${e.etapa} ${e.peligros}`,
+        peligros: lineasDe(e.peligros), riesgos: lineasDe(e.riesgos), medidas: lineasDe(e.medidas), epp: lineasDe(e.epp)
+      })));
+    }
+
+    function sugerirRiesgos(texto, existente = {}, max = 5, minimo = 1) {
+      const f = new Set(fichas(texto)), tn = " " + normalizar(texto) + " ";
+      if (!f.size) return { temas: [], sugerencias: {}, avisos: [] };
+      const pun = [];
+      for (const c of CATALOGO_GENERAL) {
+        let p = 0;
+        for (const k of c.claves) { const kn = normalizar(k); if (kn.includes(" ") ? tn.includes(kn) : f.has(raiz(kn))) p += kn.includes(" ") ? 3 : 2; }
+        if (p >= minimo) pun.push({ c, p });
+      }
+      for (const c of catalogoPaquete()) {
+        const fc = new Set(fichas(c.clavesTexto));
+        let p = 0; f.forEach(w => { if (fc.has(w)) p++; });
+        if (p >= 2) pun.push({ c, p: p + 1 });
+      }
+      pun.sort((a, b) => b.p - a.p);
+      const temas = pun.slice(0, max).map(x => x.c);
+      const ya = campo => normalizar(existente[campo] || "");
+      const tiene = (campo, l) => { const fl = fichas(l); const yn = ya(campo); return fl.length && fl.filter(w => yn.includes(w)).length / fl.length >= 0.6; };
+      const sugerencias = {};
+      for (const campo of ["peligros", "riesgos", "medidas", "epp"]) {
+        const vistos = new Set();
+        sugerencias[campo] = temas.flatMap(c => c[campo] || []).filter(l => { const k = normalizar(l); if (vistos.has(k) || tiene(campo, l)) return false; vistos.add(k); return true; }).slice(0, 8);
+      }
+      const avisos = temas.filter(c => c.avisa && !c.avisa.busca.some(b => ya("riesgos").includes(b) || ya("peligros").includes(b))).map(c => c.avisa.texto);
+      // Lo que "no va": EPP que no corresponde a ningún tema detectado y es muy específico
+      const especificos = { "arnes": "Trabajo en altura", "dielectric": "Energía eléctrica", "mascara de soldar": "Soldadura y oxicorte", "detector de gases": "Espacio confinado" };
+      const temasN = pun.map(x => x.c.tema);
+      for (const [k, tema] of Object.entries(especificos)) if (ya("epp").includes(k) && !temasN.includes(tema) && !f.has(raiz(k)))
+        avisos.push(`Pusiste "${k}" en EPP, pero la etapa no parece de ${tema.toLowerCase()}. Revisa si corresponde.`);
+      return { temas, sugerencias, avisos };
+    }
+
+    // Panel dentro de cada etapa de la ART
+    function abrirAsistenteEtapa(boton) {
+      const div = boton.closest(".etapa"), panel = div.querySelector(".asistente");
+      const val = c => div.querySelector(".e-" + c).value;
+      const texto = val("etapa");
+      if (!texto.trim()) { panel.innerHTML = `<p class="ayuda" style="margin:0">Escribe primero la etapa (qué se va a hacer) y vuelve a tocar 💡.</p>`; panel.style.display = "block"; return; }
+      const r = sugerirRiesgos(texto + " " + val("peligros"), { peligros: val("peligros"), riesgos: val("riesgos"), medidas: val("medidas"), epp: val("epp") });
+      if (!r.temas.length) { panel.innerHTML = `<p class="ayuda" style="margin:0">No reconocí la tarea. Prueba con palabras como: altura, ruta, maquinaria, excavación, soldadura, carga, asfalto, químicos…</p>`; panel.style.display = "block"; return; }
+      const nombres = { peligros: "Peligros", riesgos: "Riesgos", medidas: "Medidas", epp: "EPP" };
+      panel.innerHTML = `<p class="ayuda" style="margin:0 0 6px">Reconocí: <b>${r.temas.map(t => html(t.tema)).join(" · ")}</b>. Toca lo que quieras agregar:</p>
+        ${r.avisos.map(a => `<p class="asis-aviso">⚠️ ${html(a)}</p>`).join("")}
+        ${Object.entries(r.sugerencias).filter(([, l]) => l.length).map(([campo, l]) => `<div class="asis-grupo"><b>${nombres[campo]}</b>
+          ${l.map(x => `<button type="button" class="asis-chip" data-campo="${campo}" data-texto="${html(x)}" onclick="agregarSugerencia(this)">+ ${html(x)}</button>`).join("")}</div>`).join("")
+          || `<p class="ayuda verde" style="margin:0">✅ Ya tienes todo lo que sugiere el catálogo para esta tarea.</p>`}
+        <p class="ayuda" style="margin:6px 0 0;font-size:12px">Sugerencias de un catálogo sin internet: revísalas siempre con tu criterio y la realidad del terreno.</p>`;
+      panel.style.display = "block";
+    }
+    function agregarSugerencia(chip) {
+      const div = chip.closest(".etapa"), t = div.querySelector(".e-" + chip.dataset.campo);
+      const lineas = t.value.split("\n").filter(l => l.trim());
+      const numerada = chip.dataset.campo === "medidas" && lineas.length && /^\s*\d+[.)]/.test(lineas[0]);
+      t.value = (t.value.trim() ? t.value.replace(/\s+$/, "") + "\n" : "") + (numerada ? `${lineas.length + 1}. ` : "• ") + chip.dataset.texto;
+      t.classList.remove("campo-falta");
+      autoAltura(t);
+      abrirAsistenteEtapa(div.querySelector(".btn-asis"));   // actualiza avisos y sugerencias
+    }
+
+    /* =====================================================================
+       LECTOR DE WORD (.docx) PARA IRL — sin internet y sin librerías
+       Un .docx es un ZIP con XML adentro. Lo abrimos, leemos word/document.xml
+       y lo convertimos a los bloques de la IRL: títulos, párrafos, viñetas, tablas e imágenes.
+       Se toma desde "3.- DESCRIPCIÓN…" hasta antes de "12.- DIFUSIÓN DE DOCUMENTOS"
+       (lo que la app ya arma sola: datos del trabajador, PTS, HDS y firmas).
+       ===================================================================== */
+    async function leerZipEntradas(bytes) {
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      let fin = -1;
+      for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { fin = i; break; }
+      if (fin < 0) throw new Error("no es un archivo Word (.docx) válido");
+      const n = dv.getUint16(fin + 10, true);
+      let p = dv.getUint32(fin + 16, true);
+      const entradas = {};
+      for (let k = 0; k < n; k++) {
+        if (dv.getUint32(p, true) !== 0x02014b50) break;
+        const metodo = dv.getUint16(p + 10, true), comp = dv.getUint32(p + 20, true);
+        const ln = dv.getUint16(p + 28, true), le = dv.getUint16(p + 30, true), lc = dv.getUint16(p + 32, true), local = dv.getUint32(p + 42, true);
+        const nombre = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + ln));
+        const ini = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+        entradas[nombre] = { metodo, datos: bytes.subarray(ini, ini + comp) };
+        p += 46 + ln + le + lc;
+      }
+      return entradas;
+    }
+    async function sacarDelZip(e) {
+      if (!e) return null;
+      if (e.metodo === 0) return e.datos;
+      if (e.metodo !== 8) throw new Error("compresión no soportada");
+      if (typeof DecompressionStream === "undefined") throw new Error("este navegador es muy antiguo para leer Word; actualízalo");
+      const flujo = new Blob([e.datos]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return new Uint8Array(await new Response(flujo).arrayBuffer());
+    }
+
+    async function leerIRLdesdeWord(bytes) {
+      const zip = await leerZipEntradas(bytes);
+      const texto = async n => { const d = await sacarDelZip(zip[n]); return d ? new TextDecoder().decode(d) : ""; };
+      const doc = new DOMParser().parseFromString(await texto("word/document.xml"), "application/xml");
+      const rels = new DOMParser().parseFromString(await texto("word/_rels/document.xml.rels") || "<r/>", "application/xml");
+      const W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+      const R = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+      const hijos = (el, nombre) => [...el.childNodes].filter(c => c.namespaceURI === W && c.localName === nombre);
+      const todos = (el, nombre) => [...el.getElementsByTagNameNS(W, nombre)];
+      const negrita = r => { const b = r.getElementsByTagNameNS(W, "rPr")[0]?.getElementsByTagNameNS(W, "b")[0]; if (!b) return false; const v = b.getAttributeNS(W, "val") ?? b.getAttribute("w:val"); return v === null || !["0", "false"].includes(v); };
+      const limpiarCitas = t => t.replace(/\s*\[\d{1,3}(?:\s*,\s*[^\]\n]{1,40})?\]/g, "");   // restos de citas tipo "[58, Instrucción 11]"
+      const textoRun = r => [...r.childNodes].map(c => c.localName === "t" ? c.textContent : c.localName === "tab" ? " " : (c.localName === "br" || c.localName === "cr") ? "\n" : "").join("");
+      const corridas = p => todos(p, "r").map(r => ({ t: textoRun(r), b: negrita(r) }));
+      const textoP = p => limpiarCitas(corridas(p).map(c => c.t).join("")).replace(/[ \u00a0]+/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
+
+      const imagenes = {};
+      async function imagenesDe(el) {
+        const ids = [];
+        for (const blip of el.getElementsByTagNameNS("http://schemas.openxmlformats.org/drawingml/2006/main", "blip")) {
+          const rid = blip.getAttributeNS(R, "embed") || blip.getAttribute("r:embed");
+          const rel = [...rels.getElementsByTagName("Relationship")].find(x => x.getAttribute("Id") === rid);
+          if (!rel) continue;
+          const ruta = "word/" + rel.getAttribute("Target").replace(/^\.?\//, "").replace(/^word\//, "");
+          const datos = await sacarDelZip(zip[ruta]);
+          if (!datos) continue;
+          const ext = ruta.split(".").pop().toLowerCase();
+          let url;
+          if (ext === "png" || ext === "jpg" || ext === "jpeg") {
+            // Achicamos a 300 px: en la IRL van chicas (EPP) y así el paquete no pesa
+            try {
+              const img = await createImageBitmap(new Blob([datos]));
+              const s = Math.min(1, 300 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+              c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+              const cx = c.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height); cx.drawImage(img, 0, 0, c.width, c.height);
+              url = c.toDataURL("image/png");
+            } catch { continue; }
+          } else continue;   // emf/wmf u otros: no se pueden mostrar en el PDF
+          const id = (await huella(textoABytes(url))).slice(0, 10) || ("i" + Object.keys(imagenes).length);
+          imagenes[id] = url; ids.push(id);
+        }
+        return ids;
+      }
+
+      const cuerpo = todos(doc, "body")[0];
+      const bloques = [];
+      let cargo = "", dentro = false;
+      const esTitulo = t => /^\d{1,2}(\.\d{1,2})*\s*\.?\s*-/.test(t) || /^\d{1,2}\.\d{1,2}\.\s/.test(t);
+      const numTitulo = t => +(t.match(/^(\d{1,2})/) || [])[1];
+      const ordenarTitulo = t => t.replace(/^(\d{1,2}(?:\.\d{1,2})*\.?-?)\s*/, "$1 ").replace(/\s+/g, " ").trim();
+      for (const el of [...cuerpo.childNodes]) {
+        if (el.namespaceURI !== W) continue;
+        if (el.localName === "p") {
+          const t = textoP(el);
+          if (!cargo) { const m = t.match(/^CARGO\s*:?\s*(.+)$/i); if (m) { cargo = m[1].trim(); continue; } }
+          if (esTitulo(t)) {
+            const n = numTitulo(t);
+            if (n >= 12 && dentro) break;           // 12.- Difusión de documentos: lo arma la app
+            if (n >= 3 && n < 12) dentro = true;
+            if (dentro) bloques.push({ t: "h", x: ordenarTitulo(t) });
+            continue;
+          }
+          if (!dentro) continue;
+          if (/^(Declaro haber|Entiendo y acepto|Esta actividad considera)/i.test(t)) break;   // declaraciones: las pone la app
+          const ids = el.getElementsByTagNameNS("http://schemas.openxmlformats.org/drawingml/2006/main", "blip").length ? await imagenesDe(el) : [];
+          if (ids.length) { bloques.push({ t: "img", ids }); if (!t) continue; }
+          if (!t) continue;
+          const cs = corridas(el).filter(c => c.t.trim());
+          const vineta = el.getElementsByTagNameNS(W, "numPr").length > 0;
+          const todoNegrita = cs.length && cs.every(c => c.b);
+          if (!vineta && todoNegrita) { bloques.push({ t: "sub", x: t }); continue; }
+          let b = "", x = t;
+          if (!todoNegrita) {
+            const todas = corridas(el); let k = 0;
+            while (k < todas.length && !todas[k].t.trim()) k++;
+            while (k < todas.length && (todas[k].b || !todas[k].t.trim())) { b += todas[k].t; k++; }
+            b = b.replace(/\s+/g, " ").trim();
+            if (b) x = limpiarCitas(todas.slice(k).map(c => c.t).join("")).replace(/[ \u00a0]+/g, " ").replace(/\s+([.,;:])/g, "$1").trim();
+          }
+          bloques.push(vineta ? (b && x ? { t: "li", b, x } : { t: "li", x: t }) : { t: "p", x: t });
+        } else if (el.localName === "tbl" && dentro) {
+          const filas = hijos(el, "tr").map(tr => hijos(tr, "tc").map(tc => hijos(tc, "p").map(textoP).filter(Boolean).join("\n")));
+          const ids = await imagenesDe(el);
+          const conTexto = filas.flat().filter(Boolean).length;
+          if (ids.length && conTexto <= ids.length * 2) { bloques.push({ t: "img", ids }); continue; }
+          if (ids.length) bloques.push({ t: "img", ids });
+          if (filas.length && conTexto) bloques.push({ t: "tabla", f: filas.filter(f => f.some(Boolean)) });
+        }
+      }
+      if (!bloques.length) throw new Error("no encontré el contenido de la IRL (desde \"3.- Descripción…\" hasta \"12.- Difusión…\")");
+      return { cargo, contenido: bloques, imagenes };
+    }
+
+    /* =====================================================================
+       EDITOR DE FORMATOS (dentro de la app)
+       Se trabaja sobre una copia (ED). Nada cambia hasta "Guardar cambios":
+       ahí se arma el paquete completo y se activa igual que uno importado.
+       ===================================================================== */
+    let ED = null, edCambios = [];
+    const IRL_VACIA = () => { const n = normalizarIRL({ cargos: { tmp: {} } }); delete n.cargos.tmp; return { ...n, codigo: "" }; };
+    const slug = t => normalizar(String(t || "")).replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40) || "x";
+    const idLibre = (base, usados) => { let id = slug(base), k = 2; while (usados[id]) id = slug(base) + "_" + k++; return id; };
+    const titulo = t => String(t || "").toLowerCase().replace(/(^|\s)(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
+
+    async function edPreparar() {
+      if (ED) return;
+      if (!window.IRL_DATOS) await cargarIRLPaquete();
+      ED = {
+        charla: structuredClone(PAQ.charla),
+        checklists: structuredClone(CHECKLISTS),
+        irl: window.IRL_DATOS ? structuredClone(window.IRL_DATOS) : IRL_VACIA()
+      };
+    }
+    function edCambio(que) {
+      if (!edCambios.includes(que)) edCambios.push(que);
+      document.getElementById("edBarra").style.display = "block";
+      document.getElementById("edEstado").textContent = `Cambios sin guardar: ${edCambios.join(", ")}.`;
+    }
+    async function edAbrir(sec) {
+      await edPreparar();
+      ({ irl: edPintarIRL, deptos: edPintarDeptos, charla: edPintarCharla, check: edPintarCheck })[sec]();
+    }
+    function edDescartar() { ED = null; edCambios = []; sessionStorage.setItem("pt_abrirEmpresa", "1"); location.reload(); }
+
+    async function edGuardar() {
+      const msj = document.getElementById("msjEditor");
+      const base = PAQUETE ? { ...PAQUETE } : { formato: "prevencion-terreno/paquete", version: 1, id: "mi-empresa", empresa: PAQ.empresa };
+      // imágenes que ya no usa ningún cargo: fuera (el paquete pesa menos)
+      const usadas = new Set(Object.values(ED.irl.cargos).flatMap(c => c.contenido.filter(b => b.t === "img").flatMap(b => b.ids)));
+      ED.irl.imagenes = Object.fromEntries(Object.entries(ED.irl.imagenes || {}).filter(([id]) => usadas.has(id)));
+      const p = { ...base, formato: "prevencion-terreno/paquete", version: 1, nombre: base.nombre || PAQ.empresa.nombre || "Mi empresa",
+        actualizado: hoyISO(), charla: ED.charla, checklists: ED.checklists };
+      if (Object.keys(ED.irl.cargos).length) p.irl = ED.irl; else delete p.irl;
+      msj.textContent = "Guardando…";
+      await activarPaquete(p);
+    }
+
+    /* ---------------- IRL ---------------- */
+    function edPintarIRL() {
+      const i = ED.irl, cargos = Object.entries(i.cargos).sort((a, b) => a[1].nombre.localeCompare(b[1].nombre));
+      const lineas = l => html((l || []).join("\n"));
+      document.getElementById("edIRL").innerHTML = `
+        <p class="ayuda">Sube el Word (.docx) de la IRL de cada cargo: la app toma desde "3.- Descripción…" hasta antes de "12.- Difusión de documentos" (datos, PTS, HDS y firmas los arma sola). Puedes elegir varios Word a la vez.</p>
+        <label class="btn btn-principal" style="margin:0">📄 Agregar IRL desde Word
+          <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onchange="edImportarWord(this)" hidden></label>
+        <p class="mensaje" id="msjEdIRL"></p>
+        ${cargos.length ? cargos.map(([id, c]) => `
+          <div class="ed-item" id="edc_${id}">
+            <div class="dos-col"><input type="text" value="${html(c.nombre)}" onchange="edRenombrarCargo('${id}', this.value)" aria-label="Nombre del cargo">
+              <small class="ayuda" style="align-self:center">${c.contenido.length} bloques${c.archivo ? " · " + html(c.archivo.slice(0, 40)) : ""}</small></div>
+            <div class="ed-botones">
+              <button type="button" class="btn btn-secundario" onclick="edVerCargo('${id}')">👁 Ver</button>
+              <button type="button" class="btn btn-secundario" onclick="edTextoCargo('${id}')">✏️ Editar</button>
+              <button type="button" class="btn btn-secundario" onclick="edRevisarCargo('${id}')">💡 Revisar</button>
+              <label class="btn btn-secundario">📄 Word<input type="file" accept=".docx" onchange="edImportarWord(this, '${id}')" hidden></label>
+              <button type="button" class="btn btn-quitar" onclick="edQuitarCargo('${id}', this)">Quitar</button>
+            </div>
+            <div class="ed-panel" id="edp_${id}" style="display:none"></div>
+          </div>`).join("") : `<p class="ayuda">Todavía no hay IRL cargadas.</p>`}
+        <h3>Listas de la IRL</h3>
+        <label>Procedimientos de trabajo seguro (uno por línea)</label><textarea id="edPTS" rows="4">${lineas(i.pts)}</textarea>
+        <label>Hojas de datos de seguridad (una por línea)</label><textarea id="edHDS" rows="3">${lineas(i.hds)}</textarea>
+        <label>Otros documentos (uno por línea)</label><textarea id="edOtros" rows="3">${lineas(i.otros_docs)}</textarea>
+        <label>Tipos de inducción (uno por línea)</label><textarea id="edTipos" rows="3">${lineas(i.tipos_induccion)}</textarea>
+        <label>Código del formato IRL</label><input type="text" id="edCodigoIRL" value="${html(i.codigo || "")}" placeholder="Ej: RE-SG-05">
+        <button type="button" class="btn btn-secundario" onclick="edAplicarListasIRL()">Aplicar listas</button>`;
+    }
+    const edLineas = id => document.getElementById(id).value.split("\n").map(x => x.trim()).filter(Boolean);
+    function edAplicarListasIRL() {
+      Object.assign(ED.irl, { pts: edLineas("edPTS"), hds: edLineas("edHDS"), otros_docs: edLineas("edOtros"), codigo: document.getElementById("edCodigoIRL").value.trim() });
+      const t = edLineas("edTipos"); if (t.length) ED.irl.tipos_induccion = t;
+      edCambio("IRL"); document.getElementById("msjEdIRL").textContent = "✅ Listas aplicadas (falta Guardar cambios).";
+    }
+    async function edImportarWord(input, idReemplazar) {
+      const archivos = [...input.files]; input.value = "";
+      const msj = document.getElementById("msjEdIRL"), res = [];
+      for (const a of archivos) {
+        msj.textContent = `Leyendo ${a.name}…`;
+        try {
+          const r = await leerIRLdesdeWord(new Uint8Array(await a.arrayBuffer()));
+          Object.assign(ED.irl.imagenes, r.imagenes);
+          const nombre = titulo(r.cargo || a.name.replace(/\.docx$/i, "").replace(/^[\d.\s_-]+/, "").replace(/_/g, " "));
+          let id = idReemplazar || Object.keys(ED.irl.cargos).find(k => normalizar(ED.irl.cargos[k].cargo) === normalizar(r.cargo || nombre));
+          const nuevo = !id;
+          if (nuevo) id = idLibre(nombre, ED.irl.cargos);
+          const antes = ED.irl.cargos[id];
+          ED.irl.cargos[id] = { archivo: a.name, cargo: (r.cargo || nombre).toUpperCase(), nombre: antes ? antes.nombre : nombre, contenido: r.contenido };
+          res.push(`${nuevo ? "➕" : "🔄"} ${ED.irl.cargos[id].nombre} (${r.contenido.length} bloques)`);
+        } catch (e) { res.push(`❌ ${a.name}: ${e.message}`); }
+      }
+      if (res.some(x => !x.startsWith("❌"))) edCambio("IRL");
+      edPintarIRL();
+      document.getElementById("msjEdIRL").innerHTML = res.map(html).join("<br>") + "<br>Revisa con 👁 Ver y luego toca <b>Guardar cambios</b>.";
+    }
+    function edRenombrarCargo(id, v) { if (!v.trim()) return; ED.irl.cargos[id].nombre = v.trim(); edCambio("IRL"); }
+    function edQuitarCargo(id, b) {
+      if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro?"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Quitar"; }, 4000); return; }
+      delete ED.irl.cargos[id]; edCambio("IRL"); edPintarIRL();
+    }
+    function edPanel(id, contenido) {
+      const p = document.getElementById("edp_" + id);
+      const abrir = p.style.display === "none" || p.dataset.modo !== contenido.modo;
+      p.style.display = abrir ? "block" : "none"; p.dataset.modo = contenido.modo;
+      if (abrir) p.innerHTML = contenido.html;
+      return p;
+    }
+    function edVerCargo(id) { edPanel(id, { modo: "ver", html: `<div class="irl-contenido">${htmlBloques(ED.irl.cargos[id].contenido, ED.irl.imagenes)}</div>` }); }
+
+    // Texto simple para editar a mano:  # Título · ## Subtítulo · - viñeta (**negrita:** texto) · | tabla | · [imágenes: …]
+    function bloquesATexto(bl) {
+      return bl.map(b => b.t === "h" ? "# " + b.x : b.t === "sub" ? "## " + b.x : b.t === "li" ? "- " + (b.b ? `**${b.b}** ` : "") + b.x
+        : b.t === "img" ? `[imágenes: ${b.ids.join(" ")}]` : b.t === "tabla" ? b.f.map(f => "| " + f.map(c => String(c).replace(/\|/g, "/").replace(/\n/g, " // ")).join(" | ") + " |").join("\n") : b.x).join("\n\n");
+    }
+    function textoABloques(t) {
+      const out = []; let tabla = null;
+      for (const l0 of t.split("\n")) {
+        const l = l0.trim();
+        if (l.startsWith("|")) { const f = l.replace(/^\||\|$/g, "").split("|").map(c => c.trim().replace(/ \/\/ /g, "\n")); if (!tabla) { tabla = { t: "tabla", f: [] }; out.push(tabla); } tabla.f.push(f); continue; }
+        tabla = null;
+        if (!l) continue;
+        let m;
+        if ((m = l.match(/^\[im[aá]genes:\s*(.*)\]$/i))) out.push({ t: "img", ids: m[1].split(/\s+/).filter(Boolean) });
+        else if (l.startsWith("## ")) out.push({ t: "sub", x: l.slice(3).trim() });
+        else if (l.startsWith("# ")) out.push({ t: "h", x: l.slice(2).trim() });
+        else if ((m = l.match(/^[-•]\s+(?:\*\*(.+?)\*\*\s*)?(.*)$/))) out.push(m[1] ? { t: "li", b: m[1], x: m[2] } : { t: "li", x: m[2] });
+        else out.push({ t: "p", x: l });
+      }
+      return out;
+    }
+    function edTextoCargo(id) {
+      edPanel(id, { modo: "texto", html: `<p class="ayuda" style="margin:6px 0"># Título · ## Subtítulo · - Viñeta (con **Negrita:** al inicio) · | celdas | de tabla | · [imágenes: …] no se toca.</p>
+        <textarea class="ed-texto" id="edt_${id}" rows="16">${html(bloquesATexto(ED.irl.cargos[id].contenido))}</textarea>
+        <button type="button" class="btn btn-principal" onclick="edAplicarTextoCargo('${id}')">Aplicar texto</button>` });
+    }
+    function edAplicarTextoCargo(id) {
+      const bl = textoABloques(document.getElementById("edt_" + id).value);
+      if (!bl.length) return;
+      ED.irl.cargos[id].contenido = bl; edCambio("IRL");
+      edPanel(id, { modo: "ok", html: `<p class="mensaje verde">✅ Texto aplicado: ${bl.length} bloques. Falta Guardar cambios.</p>` });
+    }
+    // Asistente sobre la IRL: compara las tareas (4 y 6) con los riesgos, medidas y EPP (7, 8, 10, 11)
+    function edRevisarCargo(id) {
+      const bl = ED.irl.cargos[id].contenido, sec = {};
+      let n = 0;
+      for (const b of bl) { if (b.t === "h") { n = +(b.x.match(/^(\d+)/) || [])[1] || n; continue; } (sec[n] ||= []).push(b.t === "tabla" ? b.f.flat().join(" ") : (b.b || "") + " " + (b.x || "")); }
+      const txt = (...ns) => ns.flatMap(k => sec[k] || []).join("\n");
+      const r = sugerirRiesgos(txt(4, 6), { peligros: txt(7), riesgos: txt(7, 11), medidas: txt(8, 11), epp: txt(10, 8) }, 8, 4);
+      const lista = (t, l) => l.length ? `<b>${t}</b><ul>${l.map(x => `<li>${html(x)}</li>`).join("")}</ul>` : "";
+      edPanel(id, { modo: "revisar", html: `<div class="asistente">
+        ${r.temas.length ? `<p class="ayuda" style="margin:0 0 6px">Por las tareas del cargo reconocí: <b>${r.temas.map(t => html(t.tema)).join(" · ")}</b>.</p>` : `<p class="ayuda">No reconocí tareas típicas en los puntos 4 y 6.</p>`}
+        ${r.avisos.map(a => `<p class="asis-aviso">⚠️ ${html(a)}</p>`).join("")}
+        ${lista("Riesgos que podrías agregar (punto 7 u 11)", r.sugerencias.riesgos || [])}${lista("Medidas que podrías agregar (punto 8)", r.sugerencias.medidas || [])}${lista("EPP que podrías agregar (punto 10)", r.sugerencias.epp || [])}
+        ${r.temas.length && !r.avisos.length && !Object.values(r.sugerencias).some(l => l.length) ? `<p class="verde" style="margin:0">✅ La IRL ya cubre lo que sugiere el catálogo para estas tareas.</p>` : ""}
+        <p class="ayuda" style="margin:6px 0 0;font-size:12px">Para agregarlos usa ✏️ Editar. Son sugerencias de un catálogo sin internet: decide tú según la realidad de la obra.</p></div>` });
+    }
+
+    /* ---------------- Departamentos (charla y ART) ---------------- */
+    let edDeptoSel = null;
+    function edPintarDeptos() {
+      const ds = ED.charla.departamentos;
+      if (!edDeptoSel || !ds.find(d => d.id === edDeptoSel)) edDeptoSel = ds[0]?.id || null;
+      const d = ds.find(x => x.id === edDeptoSel);
+      document.getElementById("edDeptos").innerHTML = `
+        <div class="dos-col">
+          <select onchange="edDeptoSel = this.value; edPintarDeptos()">${ds.map(x => `<option value="${x.id}" ${x.id === edDeptoSel ? "selected" : ""}>${html((x.icono || "") + " " + x.nombre)}</option>`).join("") || "<option>(sin departamentos)</option>"}</select>
+          <button type="button" class="btn btn-secundario" style="margin:0" onclick="edNuevoDepto()">+ Nuevo departamento</button>
+        </div>
+        ${d ? `<div class="dos-col">
+            <div><label>Nombre</label><input type="text" id="edDNombre" value="${html(d.nombre)}"></div>
+            <div><label>Ícono (emoji)</label><input type="text" id="edDIcono" value="${html(d.icono || "")}" maxlength="4"></div></div>
+          <div class="dos-col">
+            <div><label>Título de la ART</label><input type="text" id="edDTitulo" value="${html(d.titulo || "")}"></div>
+            <div><label>Cargo principal</label><input type="text" id="edDCargo" value="${html(d.cargo || "")}"></div></div>
+          <h3>Etapas de la ART</h3>
+          <p class="ayuda">Cada etapa trae el botón 💡 para sugerir peligros, riesgos, medidas y EPP.</p>
+          <div id="edEtapas"></div>
+          <button type="button" class="btn btn-secundario" onclick="agregarEtapa(document.getElementById('edEtapas'))">+ Agregar etapa</button>
+          <div class="dos-col">
+            <button type="button" class="btn btn-principal" style="margin:0" onclick="edAplicarDepto()">Aplicar a este departamento</button>
+            <button type="button" class="btn btn-quitar" style="margin:0" onclick="edQuitarDepto(this)">Quitar departamento</button></div>
+          <p class="mensaje" id="msjEdDepto"></p>` : `<p class="ayuda">No hay departamentos. Crea el primero.</p>`}`;
+      if (d) { const c = document.getElementById("edEtapas"); (d.etapas || []).forEach(e => agregarEtapa(c, e)); if (!(d.etapas || []).length) agregarEtapa(c); }
+    }
+    function edNuevoDepto() {
+      const nombre = prompt("Nombre del departamento (ej: Laboratorio, Topografía, Taller):");
+      if (!nombre || !nombre.trim()) return;
+      const usados = Object.fromEntries(ED.charla.departamentos.map(d => [d.id, 1]));
+      const d = { id: idLibre(nombre, usados), nombre: nombre.trim(), icono: "🦺", titulo: nombre.trim(), cargo: "", etapas: [] };
+      ED.charla.departamentos.push(d); edDeptoSel = d.id; edCambio("departamentos"); edPintarDeptos();
+    }
+    function edAplicarDepto() {
+      const d = ED.charla.departamentos.find(x => x.id === edDeptoSel), v = id => document.getElementById(id).value.trim();
+      if (!d) return;
+      Object.assign(d, { nombre: v("edDNombre") || d.nombre, icono: v("edDIcono"), titulo: v("edDTitulo") || v("edDNombre"), cargo: v("edDCargo") });
+      d.etapas = [...document.querySelectorAll("#edEtapas .etapa")].map(e => Object.fromEntries(["etapa", "peligros", "riesgos", "medidas", "epp"].map(c => [c, e.querySelector(".e-" + c).value.trim()]))).filter(e => e.etapa);
+      edCambio("departamentos"); edPintarDeptos();
+      document.getElementById("msjEdDepto").textContent = `✅ ${d.nombre}: ${d.etapas.length} etapa(s) aplicadas. Falta Guardar cambios.`;
+    }
+    function edQuitarDepto(b) {
+      if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro?"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Quitar departamento"; }, 4000); return; }
+      ED.charla.departamentos = ED.charla.departamentos.filter(d => d.id !== edDeptoSel); edDeptoSel = null; edCambio("departamentos"); edPintarDeptos();
+    }
+
+    /* ---------------- Textos de la charla ---------------- */
+    function edPintarCharla() {
+      const c = ED.charla, pares = l => html((l || []).map(([a, b]) => `${a} | ${b}`).join("\n"));
+      document.getElementById("edCharla").innerHTML = `
+        <label>Título del formato</label><input type="text" id="edCTitulo" value="${html(c.titulo)}">
+        <label>Tema</label><input type="text" id="edCTema" value="${html(c.tema)}">
+        <label>Checklist de la charla (una línea por punto: Título | Pregunta)</label><textarea id="edCCheck" rows="5">${pares(c.checklist)}</textarea>
+        <label>Preguntas de la ART (Título | Pregunta)</label><textarea id="edCPreg" rows="3">${pares(c.preguntasART)}</textarea>
+        <label>Módulos de la charla (## Título del módulo, y debajo: Punto | Texto)</label>
+        <textarea id="edCMod" rows="8">${html((c.modulos || []).map(m => "## " + m.titulo + "\n" + m.puntos.map(([a, b]) => `${a} | ${b}`).join("\n")).join("\n\n"))}</textarea>
+        <label>Declaración al firmar</label><textarea id="edCDecl" rows="3">${html(c.declaracion)}</textarea>
+        <label class="check-linea"><input type="checkbox" id="edCBloq" ${c.bloqueador ? "checked" : ""}> Registrar entrega de bloqueador solar</label>
+        <label>Notas del bloqueador (una por línea)</label><textarea id="edCNotas" rows="3">${html((c.notasBloqueador || []).join("\n"))}</textarea>
+        <button type="button" class="btn btn-principal" onclick="edAplicarCharla()">Aplicar textos</button>
+        <p class="mensaje" id="msjEdCharla"></p>`;
+    }
+    function edAplicarCharla() {
+      const v = id => document.getElementById(id).value.trim();
+      const pares = id => edLineas(id).map(l => { const [a, ...b] = l.split("|"); return [a.trim(), b.join("|").trim()]; }).filter(([a, b]) => a && b);
+      const modulos = []; let m = null;
+      for (const l of document.getElementById("edCMod").value.split("\n").map(x => x.trim()).filter(Boolean)) {
+        if (l.startsWith("##")) { m = { titulo: l.replace(/^#+\s*/, ""), puntos: [] }; modulos.push(m); continue; }
+        const [a, ...b] = l.split("|"); if (m && b.length) m.puntos.push([a.trim(), b.join("|").trim()]);
+      }
+      Object.assign(ED.charla, { titulo: v("edCTitulo") || ED.charla.titulo, tema: v("edCTema"), checklist: pares("edCCheck"), preguntasART: pares("edCPreg"),
+        modulos: modulos.filter(x => x.puntos.length), declaracion: v("edCDecl") || ED.charla.declaracion, bloqueador: document.getElementById("edCBloq").checked, notasBloqueador: edLineas("edCNotas") });
+      edCambio("charla");
+      document.getElementById("msjEdCharla").textContent = `✅ Aplicado: ${ED.charla.checklist.length} puntos de checklist, ${ED.charla.preguntasART.length} preguntas ART, ${ED.charla.modulos.length} módulos. Falta Guardar cambios.`;
+    }
+
+    /* ---------------- Check list ---------------- */
+    let edListaSel = null;
+    function edPintarCheck() {
+      const { grupos, listas } = ED.checklists;
+      if (!edListaSel || !listas[edListaSel]) edListaSel = Object.keys(listas)[0] || null;
+      const l = listas[edListaSel];
+      const opcGrupos = sel => Object.entries(grupos).map(([id, g]) => `<option value="${id}" ${id === sel ? "selected" : ""}>${html(g.nombre)}</option>`).join("");
+      document.getElementById("edCheck").innerHTML = `
+        <div class="dos-col">
+          <select onchange="edListaSel = this.value; edPintarCheck()">${Object.entries(listas).map(([id, x]) => `<option value="${id}" ${id === edListaSel ? "selected" : ""}>${html(x.nombre)} (${html(grupos[x.grupo]?.nombre || "")})</option>`).join("") || "<option>(sin check list)</option>"}</select>
+          <button type="button" class="btn btn-secundario" style="margin:0" onclick="edNuevaLista()">+ Nueva check list</button>
+        </div>
+        ${l ? `<label>Nombre</label><input type="text" id="edLNombre" value="${html(l.nombre)}">
+          <label>Tipo</label><select id="edLGrupo">${opcGrupos(l.grupo)}</select>
+          <label>Ítems a revisar (uno por línea; "## Sección" para separar). Puedes pegar una columna desde Excel.</label>
+          <textarea id="edLItems" rows="10">${html(l.items.map(it => typeof it === "string" ? it : "## " + it.sec).join("\n"))}</textarea>
+          ${l.porEquipo ? `<p class="ayuda">Esta lista se llena por equipo (ej: un bloque por extintor). Puntos por equipo:</p><textarea id="edLEquipo" rows="4">${html(l.porEquipo.join("\n"))}</textarea>` : ""}
+          <div class="dos-col">
+            <button type="button" class="btn btn-principal" style="margin:0" onclick="edAplicarLista()">Aplicar a esta lista</button>
+            <button type="button" class="btn btn-quitar" style="margin:0" onclick="edQuitarLista(this)">Quitar lista</button></div>
+          <p class="mensaje" id="msjEdLista"></p>` : ""}
+        <details class="exportar"><summary>+ Nuevo tipo de check list (escala, firmas)</summary>
+          <label>Nombre del tipo</label><input type="text" id="edGNombre" placeholder="Ej: Equipos de izaje">
+          <label>Escala de respuesta</label><select id="edGEscala"><option value="si">SÍ / NO / N/A</option><option value="brm">B / R / M / N/A (bueno, reparar, malo)</option></select>
+          <label>Firmas (una por línea; la primera es obligatoria)</label><textarea id="edGFirmas" rows="3">Inspector\nSupervisor</textarea>
+          <label>Código del formato (opcional)</label><input type="text" id="edGCodigo">
+          <label class="check-linea"><input type="checkbox" id="edGAcciones" checked> Incluir acciones correctivas</label>
+          <button type="button" class="btn btn-secundario" onclick="edNuevoGrupo()">Crear tipo</button>
+          <p class="mensaje" id="msjEdGrupo"></p>
+        </details>`;
+    }
+    function edNuevoGrupo() {
+      const nombre = document.getElementById("edGNombre").value.trim(), msj = document.getElementById("msjEdGrupo");
+      if (!nombre) { msj.textContent = "Escribe el nombre del tipo."; return; }
+      const firmas = edLineas("edGFirmas").map((f, i) => [f, i === 0 ? 1 : 0]);
+      const id = idLibre(nombre, ED.checklists.grupos);
+      ED.checklists.grupos[id] = normalizarChecklists({ grupos: { [id]: { nombre, escala: document.getElementById("edGEscala").value === "brm" ? ["B", "R", "M", "N/A"] : ["SÍ", "NO", "N/A"],
+        firmas: firmas.length ? firmas : [["Inspector", 1]], codigo: document.getElementById("edGCodigo").value.trim(), acciones: document.getElementById("edGAcciones").checked } }, listas: {} }).grupos[id];
+      edCambio("check list"); edPintarCheck();
+      document.getElementById("msjEdGrupo") && (document.getElementById("msjEdGrupo").textContent = `✅ Tipo "${nombre}" creado. Ahora crea sus listas.`);
+    }
+    function edNuevaLista() {
+      if (!Object.keys(ED.checklists.grupos).length) {
+        ED.checklists.grupos.general = normalizarChecklists({ grupos: { general: { nombre: "Inspecciones", acciones: true } }, listas: {} }).grupos.general;
+      }
+      const nombre = prompt("Nombre de la check list (ej: Retroexcavadora, Bodega de combustibles):");
+      if (!nombre || !nombre.trim()) return;
+      const id = idLibre(nombre, ED.checklists.listas);
+      ED.checklists.listas[id] = { grupo: edListaSel && ED.checklists.listas[edListaSel] ? ED.checklists.listas[edListaSel].grupo : Object.keys(ED.checklists.grupos)[0], nombre: nombre.trim(), items: [] };
+      edListaSel = id; edCambio("check list"); edPintarCheck();
+    }
+    function edAplicarLista() {
+      const l = ED.checklists.listas[edListaSel];
+      if (!l) return;
+      l.nombre = document.getElementById("edLNombre").value.trim() || l.nombre;
+      l.grupo = document.getElementById("edLGrupo").value;
+      l.items = edLineas("edLItems").map(x => x.startsWith("##") ? { sec: x.replace(/^#+\s*/, "") } : x);
+      if (document.getElementById("edLEquipo")) l.porEquipo = edLineas("edLEquipo");
+      edCambio("check list"); edPintarCheck();
+      document.getElementById("msjEdLista").textContent = `✅ ${l.nombre}: ${l.items.filter(i => typeof i === "string").length} ítems. Falta Guardar cambios.`;
+    }
+    function edQuitarLista(b) {
+      if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro?"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Quitar lista"; }, 4000); return; }
+      delete ED.checklists.listas[edListaSel]; edListaSel = null; edCambio("check list"); edPintarCheck();
+    }
+
+    avisoProgramaMenu();
   </script>
 </body>
 </html>
