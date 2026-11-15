@@ -48,6 +48,8 @@
        En la versión abierta ese archivo no existe y la app parte en blanco. -->
   <script src="paquete-incluido.js"></script>
   <script>
+    // Si alguien mete la app dentro de otra página (para engañar con clics), no se muestra
+    if (window.top !== window.self) { document.documentElement.style.display = "none"; try { window.top.location = window.self.location.href; } catch (e) {} }
     /* Datos separados por versión. Varias versiones pueden estar en el mismo sitio
        (ej. nyklaaz.github.io/prevencion-terreno y nyklaaz.github.io/APR-terreno-libre) y el navegador
        les comparte el almacenamiento. La versión con paquete incluido (empresa) usa los nombres de siempre;
@@ -242,6 +244,9 @@
     /* ===== Check list ===== */
     .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
     .ck-listas:empty { display: none; }
+    .dlg-clave { border: none; border-radius: 14px; padding: 18px; width: min(92vw, 420px); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+    .dlg-clave::backdrop { background: rgba(10, 15, 30, .55); }
+    .dlg-clave input[type=password], .dlg-clave input#dlgClaveInput { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; }
     .ck-lista.activo { border-color: var(--azul, #1d4ed8); box-shadow: 0 0 0 2px rgba(29, 78, 216, .18); }
     .doc-sino { display: grid; grid-template-columns: 1fr minmax(170px, 45%); gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eaecf0; }
     #documentos .opciones input[value="SI"]:checked + span { background: var(--ok); border-color: var(--ok); }
@@ -679,7 +684,7 @@
           <div class="dos-col">
             <button type="button" class="btn btn-principal" onclick="guardarRespaldo('respaldoHist')">💾 Guardar respaldo</button>
             <label class="btn btn-secundario" style="margin:0">♻️ Restaurar
-              <input type="file" accept=".json,application/json" onchange="restaurarRespaldo(this, 'respaldoHist', 'historial')" hidden>
+              <input type="file" accept=".json,.cifrado,application/json,application/octet-stream" onchange="restaurarRespaldo(this, 'respaldoHist', 'historial')" hidden>
             </label>
           </div>
           <p class="ayuda" id="respaldoHist" style="margin-top:6px"></p>
@@ -794,7 +799,7 @@
           <div class="dos-col" style="margin-top:6px">
             <button type="button" class="btn btn-secundario" onclick="guardarRespaldo()">💾 Guardar respaldo</button>
             <label class="btn btn-secundario" style="margin:0">♻️ Restaurar respaldo
-              <input type="file" accept=".json,application/json" onchange="restaurarRespaldo(this)" hidden>
+              <input type="file" accept=".json,.cifrado,application/json,application/octet-stream" onchange="restaurarRespaldo(this)" hidden>
             </label>
           </div>
           <p class="ayuda" id="infRespaldo" style="margin-top:6px"></p>
@@ -1016,6 +1021,9 @@
           <div><label>RUT de la empresa</label><input type="text" id="empRut" placeholder="76.123.456-7"></div>
           <div><label>Tipo</label><select id="empTipo"><option>Contratista</option><option>Subcontratista</option><option>Prestador de Servicios</option></select></div>
         </div>
+        <label>Correo de contacto para datos personales</label>
+        <input type="text" id="empContacto" inputmode="email" autocomplete="off" placeholder="prevencion@empresa.cl">
+        <p class="ayuda">Aparece en la constancia de consentimiento: ahí el trabajador pide acceso, corrección o eliminación de sus datos.</p>
         <button type="button" class="btn btn-principal" onclick="guardarDatosEmpresa()">Guardar datos de la empresa</button>
         <p class="mensaje" id="msjEmpresa"></p>
       </div>
@@ -1030,7 +1038,7 @@
           <p class="ayuda">Cada trabajador lo firma <b>una sola vez</b>: acepta que sus registros se hagan y firmen en la app (Dirección del Trabajo, Dictamen 0789/015).</p>
           <label>Trabajador</label>
           <select id="consTrab" onchange="elegirTrabConsentimiento()"></select>
-          <p class="ayuda" id="consTexto" style="margin-top:8px"></p>
+          <p class="ayuda" id="consTexto" style="margin-top:8px; white-space:pre-line"></p>
           <label>Correo para recibir copias (opcional)</label>
           <input type="text" id="consCorreo" inputmode="email" autocomplete="off" placeholder="nombre@correo.cl">
           <div id="consFirmaTrab"></div>
@@ -1058,6 +1066,28 @@
           <p class="ayuda" style="margin-top:8px">Dirección de regreso que debes registrar en Google: <b id="driveRedirect"></b></p>
           <button type="button" class="btn btn-secundario" onclick="guardarClienteDrive()">Guardar</button>
           <button type="button" class="btn btn-quitar" style="margin-top:8px" onclick="desconectarDrive()">Desconectar Drive en este equipo</button>
+        </details>
+      </div>
+
+      <div class="tarjeta" id="cifCaja">
+        <h2>🔒 Respaldo cifrado</h2>
+        <p class="ayuda">Con una contraseña, el respaldo (.json) y el zip del mes quedan cifrados (AES-256) en el teléfono, en Drive y donde los mandes: sin la contraseña nadie puede abrirlos. La contraseña <b>no se guarda</b>: la app la pide en cada respaldo. <b>Si la olvidas, esos respaldos no se pueden recuperar</b> (los PDF sueltos del Historial y de Drive siguen normales).</p>
+        <p class="mensaje" id="cifEstado"></p>
+        <details class="exportar" id="cifDefinir">
+          <summary id="cifDefinirTit">Definir la contraseña</summary>
+          <div id="cifActualCaja"><label>Contraseña actual</label><input type="password" id="cifActual" autocomplete="off"></div>
+          <label>Contraseña nueva (mínimo 10 caracteres)</label><input type="password" id="cifClave1" autocomplete="new-password">
+          <label>Repítela</label><input type="password" id="cifClave2" autocomplete="new-password">
+          <p class="ayuda">Anótala en un lugar seguro fuera del teléfono (papel en tu casa o un administrador de contraseñas).</p>
+          <button type="button" class="btn btn-principal" onclick="definirClaveRespaldo()">Guardar contraseña</button>
+          <p class="mensaje" id="msjCif"></p>
+        </details>
+        <details class="exportar">
+          <summary>🔓 Abrir un respaldo cifrado (ej: en el PC)</summary>
+          <p class="ayuda">Elige un archivo terminado en <b>.cifrado</b>: con la contraseña, la app lo descifra y lo guarda normal (zip o .json).</p>
+          <label class="btn btn-secundario" style="margin:0">Elegir archivo .cifrado
+            <input type="file" accept=".cifrado,application/octet-stream" onchange="abrirArchivoCifrado(this)" hidden></label>
+          <p class="mensaje" id="msjAbrirCif"></p>
         </details>
       </div>
 
@@ -1363,6 +1393,19 @@
     </section>
   </main>
 
+  <!-- Diálogo para pedir la contraseña de los respaldos (no se guarda en ninguna parte) -->
+  <dialog id="dlgClave" class="dlg-clave">
+    <h2 id="dlgClaveTitulo">Contraseña de respaldo</h2>
+    <p class="ayuda" id="dlgClaveTexto"></p>
+    <input type="password" id="dlgClaveInput" autocomplete="off">
+    <label class="check-linea"><input type="checkbox" onchange="document.getElementById('dlgClaveInput').type = this.checked ? 'text' : 'password'"> Mostrar</label>
+    <p class="error" id="dlgClaveError"></p>
+    <div class="dos-col">
+      <button type="button" class="btn btn-secundario" style="margin:0" id="dlgClaveNo">Cancelar</button>
+      <button type="button" class="btn btn-principal" style="margin:0" id="dlgClaveSi">Aceptar</button>
+    </div>
+  </dialog>
+
   <script>
 
     /* =====================================================================
@@ -1395,7 +1438,7 @@
       for (const [id, g] of Object.entries((ck && ck.grupos) || {})) if (idSeguro(id)) grupos[id] = {
         nombre: g.nombre || id, icono: g.icono || "", escala: g.escala && g.escala.length && g.escala.every(o => ["SÍ", "NO", "N/A", "B", "R", "M"].includes(o)) ? g.escala : ["SÍ", "NO", "N/A"], codigo: g.codigo || "",
         campos: g.campos && g.campos.length && g.campos.every(c => /^\w+$/.test(c[0])) ? g.campos : [["obra", "Obra", 0], ["fecha", "Fecha", 1], ["inspector", "Nombre inspector", 1]],
-        firmas: g.firmas && g.firmas.length ? g.firmas : [["Inspector", 1]], ayuda: g.ayuda || "", acciones: !!g.acciones };
+        firmas: Array.isArray(g.firmas) && g.firmas.length ? g.firmas.map(f => [String((Array.isArray(f) ? f[0] : f) ?? "Firma").slice(0, 80), Array.isArray(f) && f[1] ? 1 : 0]) : [["Inspector", 1]], ayuda: g.ayuda || "", acciones: !!g.acciones };
       for (const [id, l] of Object.entries((ck && ck.listas) || {})) if (idSeguro(id) && grupos[l.grupo]) listas[id] = { ...l, nombre: l.nombre || id, items: l.items || [] };
       return { grupos, listas };
     }
@@ -4241,10 +4284,11 @@
         usados.add(nombre.toLowerCase());
         return { nombre, datos: new Uint8Array(r.pdf) };
       });
-      const nombreZip = `Respaldo_Prevencion_${k}.zip`;
-      const zip = armarZip(archivos);
-      descargarArchivo(zip, nombreZip, "application/zip");
-      alDrive(nombreZip, zip, "application/zip", [DRIVE_RAIZ, k], "respaldo-mes:" + k);
+      let nombreZip = `Respaldo_Prevencion_${k}.zip`, zip = armarZip(archivos), mime = "application/zip", clave = null;
+      try { clave = await contrasenaParaRespaldo(`El zip de ${nombreMes(k)}`); } catch (e) { alert(e.message); return false; }
+      if (clave) { zip = await cifrarBytes(zip, clave); nombreZip += ".cifrado"; mime = "application/octet-stream"; }
+      descargarArchivo(zip, nombreZip, mime);
+      alDrive(nombreZip, zip, mime, [DRIVE_RAIZ, k], "respaldo-mes:" + k);
       if (!confirm(`Se descargó ${nombreZip} con ${regs.length} PDF de ${nombreMes(k)}.\n\n¿Quedó guardado (en el PC o en tu correo)?\n\nSi tocas Aceptar, este mes queda respaldado y sus PDF se borrarán de este equipo cuando termine el mes siguiente.`)) return false;
       const hechos = leerGuardado("pt_respaldoMes", {});
       hechos[k] = momento;
@@ -4305,15 +4349,16 @@
       ["D.S. N° 44 de 2024, art. 15", "Obliga a informar a cada persona trabajadora, previo al inicio de las labores, los riesgos, las medidas preventivas y los métodos de trabajo correctos. No exige un soporte de papel para dejar constancia de ello."],
       ["Dirección del Trabajo, Ord. N° 477 (27-01-2017)", "Los documentos de la relación laboral son instrumentos privados; cuando se requiere la firma del trabajador, basta una firma electrónica simple para la validez del instrumento."],
       ["Dirección del Trabajo, Dictamen N° 0789/015 (16-02-2015)", "Acepta la documentación laboral electrónica, con el consentimiento expreso de las personas trabajadoras y con la documentación disponible para la fiscalización."],
+      ["Ley N° 19.628 y Ley N° 21.719 (protección de datos personales)", "Los datos personales de las personas trabajadoras se tratan solo para la finalidad informada (seguridad y salud en el trabajo), con medidas de seguridad, y su titular puede pedir acceso, rectificación y supresión. La Ley N° 21.719 (publicada el 13-12-2024) reemplaza el régimen de la Ley N° 19.628 desde su entrada en vigencia, fijada para el 1-12-2026 (hay un proyecto de ley para postergarla)."],
       ["Código del Trabajo, art. 456", "El tribunal aprecia la prueba conforme a las reglas de la sana crítica: las fotografías, los folios, las fechas y los respaldos se ponderan en su conjunto."]
     ];
     const RESGUARDOS_APP = [
       "Cada firma se traza en la pantalla en el momento, en presencia de quien registra. La aplicación no guarda firmas para reutilizarlas.",
       "Cada PDF lleva un folio único y su huella digital (SHA-256). El Historial permite verificar si un documento es el original o si fue modificado.",
       "Los registros indican su fecha y hora de emisión. Las fotografías del check list y de los hallazgos quedan incorporadas al documento.",
-      "Copia automática en el Google Drive de la empresa y respaldo mensual con todos los documentos.",
+      "Copia automática en el Google Drive de la empresa y respaldo mensual con todos los documentos. Los respaldos completos se cifran con contraseña (AES-256).",
       "Los documentos se pueden imprimir, compartir y entregar en copia a la persona trabajadora o al fiscalizador cuando lo soliciten.",
-      "Cada persona trabajadora firma una constancia de aceptación expresa del registro electrónico (Dictamen DT N° 0789/015)."
+      "Cada persona trabajadora firma una constancia de aceptación expresa del registro electrónico (Dictamen DT N° 0789/015), que además le informa el tratamiento de sus datos personales."
     ];
     const FUENTES_RESPALDO = [
       "Ley 19.799: bcn.cl/leychile/navegar?idNorma=196640",
@@ -4411,6 +4456,8 @@
 
     /* ----- Constancia de consentimiento (una vez por trabajador) ----- */
     const textoConsentimiento = (p, empresa) => `Yo, ${p.nombre}, RUT ${p.rut}, declaro que acepto expresamente que los registros de seguridad y salud en el trabajo que me corresponda firmar con ${empresa} (charlas y ART, información de riesgos laborales (IRL), entregas de elementos de protección personal, check list y otros) se confeccionen, firmen y guarden en formato electrónico mediante la aplicación Prevención en Terreno, con firma electrónica simple trazada en pantalla (Ley N° 19.799), incluidas las fotografías que formen parte de esos registros. Se me informó que puedo pedir copia de cualquiera de estos documentos, que si no acepto los registros se harán en papel, y que puedo revocar esta aceptación por escrito.`;
+    // Información sobre el tratamiento de datos personales (Ley 19.628 y Ley 21.719)
+    const textoDatosPersonales = empresa => `Tratamiento de datos personales: ${empresa} trata mis datos (nombre, RUT, cargo, firma, fotografías y, cuando corresponda, información de accidentes) solo para cumplir sus obligaciones de seguridad y salud en el trabajo (Ley N° 16.744 y D.S. N° 44). Se guardan en el teléfono del prevencionista y en el Google Drive de la empresa, y se entregan solo al mandante, al organismo administrador o a la autoridad cuando corresponda o lo exijan. Puedo pedir acceso, corrección o eliminación de mis datos cuando proceda, ${EMPRESA.contactoDatos ? "escribiendo a " + EMPRESA.contactoDatos : "solicitándolo al encargado de Prevención de Riesgos de la empresa"}.`;
     let consIniciado = false;
     function pintarConsentimientos() {
       const sel = document.getElementById("consTrab");
@@ -4433,7 +4480,7 @@
     }
     function elegirTrabConsentimiento() {
       const r = document.getElementById("consTrab").value, p = (listado?.lista || []).find(x => claveRut(x.rut) === r);
-      document.getElementById("consTexto").textContent = p ? textoConsentimiento(p, EMPRESA.nombre || "la empresa") : "";
+      document.getElementById("consTexto").textContent = p ? textoConsentimiento(p, EMPRESA.nombre || "la empresa") + "\n\n" + textoDatosPersonales(EMPRESA.nombre || "la empresa") : "";
       const c = r && consentimientos[r];
       document.getElementById("msjCons").textContent = c ? `Ya firmó su consentimiento el ${fechaCLde(c.fecha)} (folio ${c.folio || "—"}). Si lo registras de nuevo, queda uno nuevo.` : "";
     }
@@ -4448,7 +4495,8 @@
       c.parrafo(`Fecha: ${fechaCLde(d.fecha)}`, { tam: 10 });
       c.titulo("Declaración");
       c.parrafo(textoConsentimiento(d.p, EMPRESA.nombre || "la empresa"), { tam: 10 });
-      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 y 3; D.S. N° 44 de 2024, art. 72; Dirección del Trabajo, Dictamen N° 0789/015 y Ord. N° 477.", { tam: 8, color: c.GRIS });
+      c.parrafo(textoDatosPersonales(EMPRESA.nombre || "la empresa"), { tam: 9.5 });
+      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 y 3; D.S. N° 44 de 2024, art. 72; Dirección del Trabajo, Dictamen N° 0789/015 y Ord. N° 477; Ley N° 19.628 y Ley N° 21.719 (protección de datos personales).", { tam: 8, color: c.GRIS });
       c.espacio(140); c.y -= 10;
       const w = (c.ANCHO - 20) / 2;
       const firmas = [[d.firmaT, d.p.nombre, "Persona trabajadora"], [d.firmaP, d.prev, "Registra (Prevención de Riesgos)"]];
@@ -5187,7 +5235,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -5208,12 +5256,14 @@
         const epp = await entregasEPP();   // entregas de EPP con sus firmas (sin el número interno)
         if (epp.length) datos.entregasEPP = epp.map(({ id, ...resto }) => resto);
         const hoy = new Date().toLocaleDateString("sv-SE");
-        const bytesRespaldo = textoABytes(JSON.stringify(datos));
-        descargarArchivo(bytesRespaldo, `Respaldo_Prevencion_${hoy}.json`, "application/json");
-        alDrive(`Respaldo_Prevencion_${hoy}.json`, bytesRespaldo, "application/json", [DRIVE_RAIZ, "Respaldos"], "respaldo-json:" + hoy);
+        let bytesRespaldo = textoABytes(JSON.stringify(datos)), nombre = `Respaldo_Prevencion_${hoy}.json`, mime = "application/json";
+        const clave = await contrasenaParaRespaldo("El respaldo");
+        if (clave) { aviso.textContent = "Cifrando el respaldo…"; bytesRespaldo = await cifrarBytes(bytesRespaldo, clave); nombre += ".cifrado"; mime = "application/octet-stream"; }
+        descargarArchivo(bytesRespaldo, nombre, mime);
+        alDrive(nombre, bytesRespaldo, mime, [DRIVE_RAIZ, "Respaldos"], "respaldo-json:" + hoy);
         guardar("pt_inf_ultimoRespaldo", Date.now());
-        aviso.textContent = `✅ Respaldo guardado (Respaldo_Prevencion_${hoy}.json, ${regs.length} archivos). Guárdalo en un pendrive o mándatelo al correo.`;
-      } catch (e) { aviso.textContent = "No se pudo armar el respaldo: " + e.message; }
+        aviso.textContent = `✅ Respaldo guardado (${nombre}, ${regs.length} archivos)${clave ? ", cifrado con tu contraseña" : ""}. Guárdalo en un pendrive o mándatelo al correo.` + (clave ? "" : " ⚠️ Va SIN cifrar: define una contraseña en Empresa y formatos → Respaldo cifrado.");
+      } catch (e) { aviso.textContent = e.cancelado ? e.message : "No se pudo armar el respaldo: " + e.message; }
     }
     async function restaurarRespaldo(input, idAviso = "infRespaldo", pantalla = "informe") {
       const a = input.files[0];
@@ -5221,7 +5271,14 @@
       if (!a) return;
       const aviso = document.getElementById(idAviso);
       try {
-        const d = JSON.parse(await a.text());
+        let bytes = new Uint8Array(await a.arrayBuffer());
+        if (esCifrado(bytes)) {   // respaldo cifrado: se pide la contraseña con que se hizo (puede ser de otro equipo)
+          let claro = null;
+          const c = await pedirContrasena("🔓 Respaldo cifrado", "Escribe la contraseña con que se hizo este respaldo.", async v => { try { claro = await descifrarBytes(bytes, v); return ""; } catch (e) { return e.message; } });
+          if (c === null || !claro) { aviso.textContent = "Restauración cancelada."; return; }
+          bytes = claro;
+        }
+        const d = JSON.parse(new TextDecoder().decode(bytes));
         if (d.app !== "prevencion-terreno" || d.tipo !== "respaldo") { aviso.textContent = "Ese archivo no es un respaldo de la app."; return; }
         if (!confirm(`¿Restaurar el respaldo del ${new Date(d.creado).toLocaleString("es-CL")}? Reemplaza los datos de este equipo (los PDF que ya están no se duplican).`)) return;
         infBloqueado = true;
@@ -6061,6 +6118,100 @@
        (PLANTILLAS, en plantillas.js) y se llenan celda por celda.
        ===================================================================== */
     const b64aBytes = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
+
+    /* ----- RESPALDO CIFRADO -----
+       AES-256-GCM con una clave derivada de la contraseña (PBKDF2-SHA256, 600.000 vueltas), todo con la
+       criptografía del navegador. Archivo: "PTCIFRADO1" + sal (16) + iv (12) + datos cifrados.
+       La contraseña no se guarda: solo un "verificador" (un texto fijo cifrado) para avisar si se escribió mal. */
+    const CIF_MAGIA = new TextEncoder().encode("PTCIFRADO1"), CIF_VUELTAS = 600000, CIF_PRUEBA = "prevencion-terreno-ok";
+    const cifradoActivo = () => typeof leerGuardado("pt_cifra_verif", null) === "string";
+    const esCifrado = b => b && b.length > CIF_MAGIA.length + 28 && CIF_MAGIA.every((x, i) => b[i] === x);
+    async function claveDeContrasena(contrasena, sal) {
+      const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(contrasena.normalize("NFC")), "PBKDF2", false, ["deriveKey"]);
+      return crypto.subtle.deriveKey({ name: "PBKDF2", salt: sal, iterations: CIF_VUELTAS, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+    }
+    async function cifrarBytes(bytes, contrasena) {
+      const sal = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+      const c = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await claveDeContrasena(contrasena, sal), bytes));
+      const out = new Uint8Array(CIF_MAGIA.length + 28 + c.length);
+      out.set(CIF_MAGIA); out.set(sal, CIF_MAGIA.length); out.set(iv, CIF_MAGIA.length + 16); out.set(c, CIF_MAGIA.length + 28);
+      return out;
+    }
+    async function descifrarBytes(bytes, contrasena) {   // falla si la contraseña no es la correcta o el archivo fue alterado
+      if (!esCifrado(bytes)) throw new Error("el archivo no es un respaldo cifrado de la app");
+      const n = CIF_MAGIA.length, sal = bytes.slice(n, n + 16), iv = bytes.slice(n + 16, n + 28);
+      try { return new Uint8Array(await crypto.subtle.decrypt({ name: "AES-GCM", iv }, await claveDeContrasena(contrasena, sal), bytes.slice(n + 28))); }
+      catch { throw Object.assign(new Error("contraseña incorrecta (o el archivo está dañado)"), { claveMala: true }); }
+    }
+    async function contrasenaCorrecta(c) {
+      try { return new TextDecoder().decode(await descifrarBytes(b64aBytes(leerGuardado("pt_cifra_verif", "")), c)) === CIF_PRUEBA; } catch { return false; }
+    }
+    // Pide una contraseña en un diálogo propio (no en prompt: así no se ve). "revisar" valida antes de cerrar.
+    function pedirContrasena(titulo, texto, revisar) {
+      const d = document.getElementById("dlgClave"), inp = document.getElementById("dlgClaveInput"), err = document.getElementById("dlgClaveError");
+      const si = document.getElementById("dlgClaveSi"), no = document.getElementById("dlgClaveNo");
+      document.getElementById("dlgClaveTitulo").textContent = titulo;
+      document.getElementById("dlgClaveTexto").textContent = texto || "";
+      inp.value = ""; inp.type = "password"; err.textContent = "";
+      d.querySelector("input[type=checkbox]").checked = false;
+      return new Promise(ok => {
+        const cerrar = v => { si.onclick = no.onclick = inp.onkeydown = d.oncancel = null; d.close(); inp.value = ""; ok(v); };
+        const aceptar = async () => {
+          const v = inp.value;
+          if (!v) { err.textContent = "Escribe la contraseña."; return; }
+          if (revisar) { si.disabled = true; err.textContent = "Revisando…"; const malo = await revisar(v); si.disabled = false; if (malo) { err.textContent = malo; inp.select(); return; } }
+          cerrar(v);
+        };
+        si.onclick = aceptar; no.onclick = () => cerrar(null);
+        inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); aceptar(); } };
+        d.oncancel = e => { e.preventDefault(); cerrar(null); };
+        d.showModal(); setTimeout(() => inp.focus(), 50);
+      });
+    }
+    // Para hacer un respaldo: si hay contraseña definida, la pide y la revisa. null = sin cifrado; lanza error si se cancela.
+    async function contrasenaParaRespaldo(que) {
+      if (!cifradoActivo()) return null;
+      const c = await pedirContrasena("🔒 Contraseña de respaldo", `${que} va cifrado. Escribe tu contraseña de respaldo.`, async v => (await contrasenaCorrecta(v)) ? "" : "Esa no es la contraseña de respaldo de este equipo.");
+      if (c === null) throw Object.assign(new Error("Respaldo cancelado: no se escribió la contraseña."), { cancelado: true });
+      return c;
+    }
+    function pintarCifrado() {
+      const est = document.getElementById("cifEstado");
+      if (!est) return;
+      const activo = cifradoActivo();
+      est.innerHTML = activo ? `<span class="verde">✅ Activado: los respaldos se guardan cifrados.</span>` : `<span class="rojo">⚠️ Sin contraseña: los respaldos quedan legibles para cualquiera que los abra.</span>`;
+      document.getElementById("cifDefinirTit").textContent = activo ? "Cambiar la contraseña" : "Definir la contraseña";
+      document.getElementById("cifActualCaja").style.display = activo ? "" : "none";
+    }
+    async function definirClaveRespaldo() {
+      const msj = document.getElementById("msjCif"), v = id => document.getElementById(id).value;
+      if (cifradoActivo() && !(await contrasenaCorrecta(v("cifActual")))) { msj.textContent = "La contraseña actual no es correcta."; return; }
+      if (v("cifClave1").length < 10) { msj.textContent = "La contraseña nueva debe tener al menos 10 caracteres."; return; }
+      if (v("cifClave1") !== v("cifClave2")) { msj.textContent = "Las dos contraseñas nuevas no son iguales."; return; }
+      msj.textContent = "Guardando…";
+      guardar("pt_cifra_verif", bytesAB64(await cifrarBytes(textoABytes(CIF_PRUEBA), v("cifClave1"))));
+      ["cifActual", "cifClave1", "cifClave2"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("cifDefinir").open = false;
+      pintarCifrado();
+      msj.textContent = "";
+      document.getElementById("cifEstado").innerHTML += `<br><small>Desde ahora los respaldos nuevos van cifrados. Los que ya bajaste antes siguen sin cifrar: bórralos o reemplázalos por uno nuevo.</small>`;
+    }
+    // Herramienta para el PC: descifra un .cifrado y lo baja normal
+    async function abrirArchivoCifrado(input) {
+      const a = input.files[0]; input.value = "";
+      const msj = document.getElementById("msjAbrirCif");
+      if (!a) return;
+      try {
+        const bytes = new Uint8Array(await a.arrayBuffer());
+        if (!esCifrado(bytes)) { msj.textContent = "Ese archivo no es un respaldo cifrado de la app."; return; }
+        let datos = null;
+        const c = await pedirContrasena("🔓 Abrir respaldo cifrado", a.name, async v => { try { datos = await descifrarBytes(bytes, v); return ""; } catch (e) { return e.message; } });
+        if (c === null || !datos) { msj.textContent = "Cancelado."; return; }
+        const nombre = a.name.replace(/\.cifrado$/i, "") || "respaldo";
+        descargarArchivo(datos, nombre, /\.zip$/i.test(nombre) ? "application/zip" : "application/json");
+        msj.textContent = `✅ Se guardó ${nombre} sin cifrar. Cuídalo: tiene datos personales.`;
+      } catch (e) { msj.textContent = "No se pudo abrir: " + e.message; }
+    }
     const textoABytes = t => new TextEncoder().encode(t);
     const bytesATexto = b => new TextDecoder().decode(b);
 
@@ -6504,6 +6655,8 @@
       document.getElementById("empNombre").value = EMPRESA.nombre;
       document.getElementById("empRut").value = EMPRESA.rut;
       document.getElementById("empTipo").value = EMPRESA.tipo || "Contratista";
+      document.getElementById("empContacto").value = EMPRESA.contactoDatos || "";
+      pintarCifrado();
       if (!window.IRL_DATOS) await cargarIRLPaquete();
       const nIRL = window.IRL_DATOS ? Object.keys(IRL_DATOS.cargos).length : 0;
       const nCk = Object.keys(CHECKLISTS.listas).length;
@@ -6521,7 +6674,9 @@
 
     async function guardarDatosEmpresa() {
       const p = { ...(PAQUETE || { formato: "prevencion-terreno/paquete", version: 1, id: "mi-empresa" }) };
-      p.empresa = { ...PAQ.empresa, ...(p.empresa || {}), nombre: document.getElementById("empNombre").value.trim(), rut: document.getElementById("empRut").value.trim(), tipo: document.getElementById("empTipo").value };
+      p.empresa = { ...PAQ.empresa, ...(p.empresa || {}), nombre: document.getElementById("empNombre").value.trim(), rut: document.getElementById("empRut").value.trim(), tipo: document.getElementById("empTipo").value,
+        contactoDatos: document.getElementById("empContacto").value.trim().slice(0, 120) };
+      if (p.empresa.contactoDatos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.empresa.contactoDatos)) { document.getElementById("msjEmpresa").textContent = "El correo de contacto no parece válido."; return; }
       if (!p.nombre) p.nombre = p.empresa.nombre;
       p.actualizado = new Date().toLocaleDateString("sv-SE");
       await guardarLiviano(p);
