@@ -244,6 +244,15 @@
     /* ===== Check list ===== */
     .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
     .ck-listas:empty { display: none; }
+    .tr-insignias { display: block; font-size: 12px; margin-top: 2px; }
+    .ficha-dato { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid #eaecf0; font-size: 14px; }
+    .ficha-dato span:last-child { text-align: right; }
+    .vep { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 12px; font-weight: 700; color: white; white-space: nowrap; }
+    .vep1 { background: #12b76a; } .vep2 { background: #66c61c; } .vep4 { background: #f79009; } .vep8 { background: #e8590c; } .vep16 { background: #d92d20; }
+    .mz-fila { background: white; border: 1px solid var(--borde); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 14px; }
+    .mz-fila small { color: #56606b; display: block; margin-top: 4px; }
+    .mz-asis { border-left: 3px solid #1d4ed8; padding-left: 8px; margin-bottom: 10px; }
+    .mz-asis .mz-item { margin: 6px 0; font-size: 13px; }
     .acc-urgente { border-left: 5px solid var(--mal); }
     .acc-urgente p { margin: 0; font-size: 14px; line-height: 1.5; }
     .acc-grav { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
@@ -509,6 +518,12 @@
       </button>
       <button class="menu-btn" onclick="mostrar('documentos')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="menu-txt">Documentos<small>Registro de capacitación y tus propias plantillas</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('personal')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-2.5-5.1"/></svg></span><span class="menu-txt">Trabajadores<small>Ficha: carnet, licencia y sus registros de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('matriz')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></span><span class="menu-txt">Matriz de riesgos<small>Tu IPER: peligros, medidas y VEP por puesto y tarea</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('accidentes')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></span><span class="menu-txt">Accidente: informe flash<small>Información preliminar en terreno y la investigación en Word</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -1118,6 +1133,15 @@
         </details>
       </div>
 
+      <div class="tarjeta">
+        <h2>📊 Matriz de riesgos (IPER)</h2>
+        <p class="ayuda">Carga el Excel de tu matriz (IPER). El 💡 de cada ART te sugiere primero los peligros, riesgos y medidas de TU matriz para ese puesto, y puedes consultarla en terreno sin internet. Queda solo en este equipo (y en el respaldo cifrado). Para cambiarla, edítala en el Excel y vuelve a cargarla.</p>
+        <p class="mensaje" id="mzEstado"></p>
+        <label class="btn btn-secundario" style="margin:0">📥 Cargar la matriz (Excel)
+          <input type="file" accept=".xlsx,.xls" onchange="cargarMatrizExcel(this)" hidden></label>
+        <p class="mensaje" id="msjMz"></p>
+      </div>
+
       <div class="tarjeta" id="cifCaja">
         <h2>🔒 Respaldo cifrado</h2>
         <p class="ayuda">Con una contraseña, el respaldo (.json) y el zip del mes quedan cifrados (AES-256) en el teléfono, en Drive y donde los mandes: sin la contraseña nadie puede abrirlos. La contraseña <b>no se guarda</b>: la app la pide en cada respaldo. <b>Si la olvidas, esos respaldos no se pueden recuperar</b> (los PDF sueltos del Historial y de Drive siguen normales).</p>
@@ -1350,6 +1374,30 @@
         <h2>Accidentes registrados</h2>
         <div id="accLista"></div>
       </div>
+    </section>
+
+    <!-- ========== TRABAJADORES: ficha simple (datos de prevención, carnet y licencia) ========== -->
+    <section id="personal" class="pantalla">
+      <div class="tarjeta" id="fichaCaja" style="display:none"></div>
+      <div class="tarjeta">
+        <input type="search" id="trBuscar" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarTrabajadores()">
+        <p class="ayuda" id="trResumen" style="margin:8px 0 0"></p>
+        <div id="trLista" class="lista-personal"></div>
+      </div>
+    </section>
+
+    <!-- ========== MATRIZ DE RIESGOS (IPER del usuario, consulta sin internet) ========== -->
+    <section id="matriz" class="pantalla">
+      <div class="tarjeta">
+        <p class="ayuda" id="mzInfo"></p>
+        <input type="search" id="mzBuscar" placeholder="🔍 Buscar tarea, peligro o medida (ej: conos, alcantarilla)" oninput="pintarMatriz()">
+        <div class="dos-col" style="margin-top:8px">
+          <select id="mzPuesto" onchange="pintarMatriz()"></select>
+          <select id="mzProc" onchange="pintarMatriz()"></select>
+        </div>
+        <label class="check-linea"><input type="checkbox" id="mzAltos" onchange="pintarMatriz()"> Solo riesgos importantes o intolerables (VEP 8 o más)</label>
+      </div>
+      <div id="mzLista"></div>
     </section>
 
     <!-- ========== DOCUMENTOS BASE (plantillas: registro de capacitación y las propias) ========== -->
@@ -1924,6 +1972,7 @@
       if (colNombre < 0) throw new Error("no encontré la columna NOMBRE");
       const colIngreso = titulos.findIndex(t => t.includes("ingreso"));   // opcional: fecha de ingreso
       const colCargo = titulos.findIndex(t => /^(cargo|funcion|especialidad|oficio)/.test(t));   // opcional
+      const colNac = titulos.findIndex(t => t.includes("nacimiento"));   // opcional: fecha de nacimiento
 
       // Nombres: desde la columna NOMBRE hasta antes de la siguiente columna con título
       // (en tu Excel el segundo nombre está en una columna sin título)
@@ -1937,7 +1986,8 @@
         const nombres = colsNombre.map(i => f[i]).filter(Boolean).join(" ");
         const apellidos = colsApellido.map(i => f[i]).filter(Boolean).join(" ");
         lista.push({ nombre: tipoTitulo(`${nombres} ${apellidos}`.replace(/\s+/g, " ").trim()), rut: formatearRut(rut),
-                     ingreso: colIngreso >= 0 ? fechaISO(f[colIngreso]) : "", cargo: colCargo >= 0 ? String(f[colCargo] ?? "").trim() : "" });
+                     ingreso: colIngreso >= 0 ? fechaISO(f[colIngreso]) : "", cargo: colCargo >= 0 ? String(f[colCargo] ?? "").trim() : "",
+                     ...(colNac >= 0 && fechaISO(f[colNac]) ? { nac: fechaISO(f[colNac]) } : {}) });
       }
       if (lista.length === 0) throw new Error("el archivo no tiene trabajadores con RUT");
 
@@ -2259,7 +2309,9 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores" };
+      if (id === "personal") iniciarTrabajadores();
+      if (id === "matriz") iniciarMatriz();
       if (id === "accidentes") iniciarAccidentes();
       if (id === "documentos") iniciarDocumentos();
       if (id === "irl") iniciarIRL();
@@ -5472,7 +5524,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -5493,6 +5545,7 @@
         const epp = await entregasEPP();   // entregas de EPP con sus firmas (sin el número interno)
         if (epp.length) datos.entregasEPP = epp.map(({ id, ...resto }) => resto);
         const bit = await leerBitacora(); if (bit.length) datos.bitacora = bit;
+        try { const mz = await bdPaquete("readonly", s => s.get("matriz")); if (mz) datos.matriz = mz; } catch {}
         const hoy = new Date().toLocaleDateString("sv-SE");
         let bytesRespaldo = textoABytes(JSON.stringify(datos)), nombre = `Respaldo_Prevencion_${hoy}.json`, mime = "application/json";
         const clave = await contrasenaParaRespaldo("El respaldo");
@@ -5541,6 +5594,7 @@
           await operacionBD("readwrite", s => s.put({ ...resto, pdf: b64aBytes(r.pdf) }));
           n++;
         }
+        if (d.matriz && Array.isArray(d.matriz.filas)) { const mz = matrizValida(d.matriz); if (mz) try { await bdPaquete("readwrite", s => s.put(mz, "matriz")); } catch {} }
         // Bitácora: si este equipo no tiene, se toma la del respaldo (solo eventos con la forma correcta)
         const bitRes = (Array.isArray(d.bitacora) ? d.bitacora : []).filter(e => e && typeof e.t === "string" && typeof e.ev === "string" && typeof e.h === "string" && Object.values(e).every(v => typeof v === "string"));
         if (bitRes.length && !(await leerBitacora()).length) { try { await bdAvisos("readwrite", s => s.put(bitRes.slice(-BITACORA_MAX), "bitacora")); } catch {} }
@@ -6441,7 +6495,7 @@
       bitacora(cambio ? "Contraseña de respaldo cambiada" : "Contraseña de respaldo definida");
       ["cifActual", "cifClave1", "cifClave2"].forEach(id => document.getElementById(id).value = "");
       document.getElementById("cifDefinir").open = false;
-      pintarCifrado();
+      pintarCifrado(); pintarEstadoMatriz();
       msj.textContent = "";
       document.getElementById("cifEstado").innerHTML += `<br><small>Desde ahora los respaldos nuevos van cifrados. Los que ya bajaste antes siguen sin cifrar: bórralos o reemplázalos por uno nuevo.</small>`;
     }
@@ -6909,7 +6963,7 @@
       for (const [id, k] of CAMPOS_EMP_ACC) document.getElementById(id).value = EMPRESA[k] || "";
       if (!EMPRESA.publica) document.getElementById("empPublica").value = "privada";
       if (!EMPRESA.tipoAcc) document.getElementById("empTipoAcc").value = "Contratista";   // del MOP: el MOP es el mandante (principal)
-      pintarCifrado();
+      pintarCifrado(); pintarEstadoMatriz();
       if (!window.IRL_DATOS) await cargarIRLPaquete();
       const nIRL = window.IRL_DATOS ? Object.keys(IRL_DATOS.cargos).length : 0;
       const nCk = Object.keys(CHECKLISTS.listas).length;
@@ -8249,9 +8303,11 @@
       const texto = val("etapa");
       if (!texto.trim()) { panel.innerHTML = `<p class="ayuda" style="margin:0">Escribe primero la etapa (qué se va a hacer) y vuelve a tocar 💡.</p>`; panel.style.display = "block"; return; }
       const r = sugerirRiesgos(texto + " " + val("peligros"), { peligros: val("peligros"), riesgos: val("riesgos"), medidas: val("medidas"), epp: val("epp") });
+      const mz = htmlMatrizEtapa(texto, div, { peligros: val("peligros"), riesgos: val("riesgos"), medidas: val("medidas") });
+      if (!r.temas.length && mz) { panel.innerHTML = mz; panel.style.display = "block"; return; }
       if (!r.temas.length) { panel.innerHTML = `<p class="ayuda" style="margin:0">No reconocí la tarea. Prueba con palabras como: altura, ruta, maquinaria, excavación, soldadura, carga, asfalto, químicos…</p>`; panel.style.display = "block"; return; }
       const nombres = { peligros: "Peligros", riesgos: "Riesgos", medidas: "Medidas", epp: "EPP" };
-      panel.innerHTML = `<p class="ayuda" style="margin:0 0 6px">Reconocí: <b>${r.temas.map(t => html(t.tema)).join(" · ")}</b>. Toca lo que quieras agregar:</p>
+      panel.innerHTML = mz + `<p class="ayuda" style="margin:0 0 6px">${mz ? "<b>Catálogo general</b> · " : ""}Reconocí: <b>${r.temas.map(t => html(t.tema)).join(" · ")}</b>. Toca lo que quieras agregar:</p>
         ${r.avisos.map(a => `<p class="asis-aviso">⚠️ ${html(a)}</p>`).join("")}
         ${Object.entries(r.sugerencias).filter(([, l]) => l.length).map(([campo, l]) => `<div class="asis-grupo"><b>${nombres[campo]}</b>
           ${l.map(x => `<button type="button" class="asis-chip" data-campo="${campo}" data-texto="${html(x)}" onclick="agregarSugerencia(this)">+ ${html(x)}</button>`).join("")}</div>`).join("")
@@ -8397,6 +8453,275 @@
     }
 
     /* =====================================================================
+       TRABAJADORES: ficha simple. Solo lo de prevención: nombres, apellidos, RUT, nacimiento, carnet y licencia.
+       pt_fichas = { rut: { nombres, apPat, apMat, nac } }. El carnet es un vencimiento (tipo "Cédula de identidad")
+       ligado al RUT: avisa a los 60, 30 y 7 días, va al calendario y deja de avisar si sale del listado.
+       ===================================================================== */
+    let fichasTrab = (() => { const f = leerGuardado("pt_fichas", {}); return f && typeof f === "object" ? Object.fromEntries(Object.entries(f).filter(([k, v]) => /^[0-9K]{2,10}$/.test(k) && v && typeof v === "object")) : {}; })();
+    let fichaRut = null;
+    const carnetDe = rut => vencimientos.find(v => v.tipo === "Cédula de identidad" && v.rut === rut);
+    // "Juan Carlos Pérez Soto" -> nombres "Juan Carlos", paterno "Pérez", materno "Soto" (propuesta; se corrige a mano)
+    function partirNombre(n) {
+      const w = String(n || "").trim().split(/\s+/);
+      if (w.length < 3) return { nombres: w[0] || "", apPat: w[1] || "", apMat: "" };
+      return { nombres: w.slice(0, -2).join(" "), apPat: w[w.length - 2], apMat: w[w.length - 1] };
+    }
+    const fichaDe = p => { const r = claveRut(p.rut); return { ...partirNombre(p.nombre), nac: p.nac || "", ...(fichasTrab[r] || {}) }; };
+    async function iniciarTrabajadores() { pintarTrabajadores(); if (fichaRut) abrirFicha(fichaRut); }
+    function insigniasTrabajador(r) {
+      const out = [], car = carnetDe(r), lic = licenciaDe(r);
+      if (car) { const e = estadoVen(car); if (e === "vencido") out.push("🪪 carnet vencido"); else if (e === "alerta") out.push("🪪 carnet por vencer"); }
+      else out.push("🪪 sin fecha de carnet");
+      if (lic) { const e = estadoVen(lic); if (e === "vencido") out.push("🚗 licencia vencida"); else if (e === "alerta") out.push("🚗 licencia por vencer"); }
+      else if (esConductor(r)) out.push("🚗 sin licencia registrada");
+      if (!consentimientos[r]) out.push("✍️ sin consentimiento");
+      return out;
+    }
+    function pintarTrabajadores() {
+      const cont = document.getElementById("trLista");
+      if (!listado?.lista?.length) { cont.innerHTML = `<p class="ayuda" style="padding:12px">Carga primero el listado de personal (en la Charla diaria).</p>`; document.getElementById("trResumen").textContent = ""; return; }
+      const b = normalizar(document.getElementById("trBuscar").value), br = claveRut(b);
+      const lista = listado.lista.slice().sort((x, y) => x.nombre.localeCompare(y.nombre, "es")).filter(p => !b || normalizar(p.nombre).includes(b) || (br.length > 2 && claveRut(p.rut).includes(br)));
+      const pendientes = listado.lista.filter(p => insigniasTrabajador(claveRut(p.rut)).length).length;
+      document.getElementById("trResumen").textContent = `${listado.lista.length} trabajadores · ${pendientes} con algo pendiente`;
+      cont.innerHTML = lista.map(p => { const r = claveRut(p.rut), ins = insigniasTrabajador(r);
+        return `<button type="button" class="persona ${r === fichaRut ? "elegido" : ""}" onclick="abrirFicha('${r}')"><span>${esc(p.nombre)}${ins.length ? `<span class="tr-insignias rojo">${ins.map(esc).join(" · ")}</span>` : `<span class="tr-insignias verde">✅ al día</span>`}</span><small>${esc(p.rut)}</small></button>`; }).join("")
+        || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
+    }
+    async function abrirFicha(r) {
+      const p = (listado?.lista || []).find(x => claveRut(x.rut) === r);
+      if (!p) return;
+      fichaRut = r;
+      const f = fichaDe(p), car = carnetDe(r), lic = licenciaDe(r), ced = consentimientos[r];
+      const regs = (await todosLosRegistros()).filter(x => vigente(x) && registroDeTrabajador(x, p));
+      const irl = regs.filter(x => x.tipo === "irl").sort((a, b) => String(b.fecha).localeCompare(a.fecha))[0];
+      const epp = (await entregasEPP()).filter(e => e.rut === r).sort((a, b) => b.fecha.localeCompare(a.fecha));
+      const acc = accidentes.filter(a => claveRut(a.rut) === r);
+      const otros = vencimientos.filter(v => v.rut === r && v !== car && v !== lic);
+      const estado = v => { const e = estadoVen(v); return e === "vencido" ? `<b class="rojo">vencido</b>` : e === "alerta" ? `<b class="rojo">vence pronto</b>` : "vigente"; };
+      const dato = (a, b) => `<div class="ficha-dato"><span>${a}</span><span>${b}</span></div>`;
+      const edad = f.nac ? aniosDesde(f.nac) + " años" : "";
+      document.getElementById("fichaCaja").style.display = "block";
+      document.getElementById("fichaCaja").innerHTML = `
+        <h2>${esc(p.nombre)}</h2>
+        <p class="ayuda" style="margin-top:-6px">RUT ${esc(p.rut)}${cargosDe(r).length ? " · " + esc(cargosDe(r).join(" · ")) : ""}${p.ingreso ? " · ingreso " + fechaCLde(p.ingreso) : ""}</p>
+        <label>Nombres</label><input type="text" id="fiNombres" value="${esc(f.nombres)}">
+        <div class="dos-col">
+          <div><label>Apellido paterno</label><input type="text" id="fiPat" value="${esc(f.apPat)}"></div>
+          <div><label>Apellido materno</label><input type="text" id="fiMat" value="${esc(f.apMat)}"></div>
+        </div>
+        <div class="dos-col">
+          <div><label>Fecha de nacimiento${edad ? ` <small>(${edad})</small>` : ""}</label><input type="date" id="fiNac" value="${esc(f.nac)}"></div>
+          <div><label>Carnet: vence el</label><input type="date" id="fiCarnet" value="${car ? esc(car.vence) : ""}"></div>
+        </div>
+        ${car ? `<p class="ayuda" style="margin:4px 0 0">Carnet ${estado(car)}${(car.anteriores || []).length ? " · renovado antes: " + car.anteriores.map(a => fechaCLde(a.vence)).join(", ") : ""}. Si lo renovó, cambia la fecha: la anterior queda en el historial.</p>` : ""}
+        <button type="button" class="btn btn-principal" onclick="guardarFicha()">Guardar ficha</button>
+        <p class="mensaje" id="msjFicha"></p>
+        <h3>Licencia de conducir</h3>
+        ${lic ? dato(`Clase ${esc((lic.clases || []).join(", "))}${lic.obtencion ? " · desde " + fechaCLde(lic.obtencion) : ""}`, `control ${fechaCLde(lic.vence)} · ${estado(lic)}`) : `<p class="ayuda" style="margin:0">${esConductor(r) ? "⚠️ Es conductor u operador y no tiene licencia registrada." : "Sin licencia registrada."}</p>`}
+        <button type="button" class="btn btn-secundario" onclick="editarLicenciaDe('${r}')">${lic ? "✏️ Editar o renovar licencia" : "+ Registrar licencia"}</button>
+        <h3>Prevención</h3>
+        ${dato("Consentimiento firma electrónica", ced ? `✅ ${fechaCLde(ced.fecha)}${ced.folio ? " · " + esc(ced.folio) : ""}` : `<b class="rojo">falta</b>`)}
+        ${dato("IRL (Derecho a Saber)", irl ? `${fechaCLde(irl.fecha)} · ${esc(irl.folio || "")}` : `<b class="rojo">sin IRL en este equipo</b>`)}
+        ${dato("Entregas de EPP", epp.length ? `${epp.length} · última ${fechaCLde(epp[0].fecha)}` : "ninguna")}
+        ${dato("Accidentes", acc.length ? acc.map(a => fechaCLde(a.fecha) + " (" + esc(a.categoria) + ")").join(", ") : "ninguno")}
+        ${otros.map(v => dato(esc(v.tipo), `${fechaCLde(v.vence)} · ${estado(v)}`)).join("")}
+        <button type="button" class="btn btn-secundario" onclick="carpetaTrabajador('${r}')">📦 Carpeta del trabajador (zip con sus PDF)</button>
+        <button type="button" class="btn btn-secundario" onclick="document.getElementById('fichaCaja').style.display = 'none'; fichaRut = null; pintarTrabajadores()">Cerrar ficha</button>`;
+      pintarTrabajadores();
+      document.getElementById("fichaCaja").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    // ¿El PDF es de este trabajador? (los registros guardan su RUT o su nombre en el detalle)
+    function registroDeTrabajador(x, p) {
+      const txt = `${x.detalle || ""} ${x.asunto || ""}`, rutTxt = formatearRut(p.rut);
+      return txt.includes(rutTxt) || (x.tipo !== "charla" && x.tipo !== "documento" && normalizar(txt).includes(normalizar(p.nombre)));
+    }
+    function guardarFicha() {
+      const r = fichaRut, p = (listado?.lista || []).find(x => claveRut(x.rut) === r), msj = document.getElementById("msjFicha");
+      if (!p) return;
+      const v = id => document.getElementById(id).value.trim();
+      const nac = v("fiNac"), carnet = v("fiCarnet");
+      if (nac && nac > hoyISO()) { msj.textContent = "La fecha de nacimiento no puede ser futura."; return; }
+      fichasTrab[r] = { nombres: v("fiNombres"), apPat: v("fiPat"), apMat: v("fiMat"), nac };
+      guardar("pt_fichas", fichasTrab);
+      if (carnet) {
+        const c = carnetDe(r);
+        if (c && c.vence !== carnet) { c.anteriores = [...(c.anteriores || []), { vence: c.vence, renovado: hoyISO() }].slice(-5); c.vence = carnet; c.quien = p.nombre; }
+        else if (!c) vencimientos.push({ id: "v" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), cat: "Trabajador", tipo: "Cédula de identidad", quien: p.nombre, rut: r, vence: carnet, aviso: 60, nota: "" });
+        guardarVenc();
+      }
+      bitacora("Ficha del trabajador actualizada", { doc: p.nombre });
+      abrirFicha(r);
+      setTimeout(() => { const m = document.getElementById("msjFicha"); if (m) m.textContent = `✅ Ficha guardada${carnet ? `. Te aviso a los 60, 30 y 7 días antes del ${fechaCLde(carnet)} (mientras siga en el listado).` : "."}`; }, 50);
+    }
+    function editarLicenciaDe(r) {
+      mostrar("vencimientos");
+      const det = document.getElementById("licForm"); det.open = true;
+      setTimeout(() => { const s = document.getElementById("licTrab"); s.value = r; elegirTrabLicencia(); det.scrollIntoView({ behavior: "smooth", block: "start" }); }, 150);
+    }
+    async function carpetaTrabajador(r) {
+      const p = (listado?.lista || []).find(x => claveRut(x.rut) === r), msj = document.getElementById("msjFicha");
+      if (!p) return;
+      const regs = (await todosLosRegistros()).filter(x => registroDeTrabajador(x, p) && x.pdf);
+      if (!regs.length) { msj.textContent = "No hay PDF de este trabajador en este equipo."; return; }
+      const usados = new Set();
+      const archivos = regs.map(x => {
+        let nombre = `${CARPETA_RESPALDO[x.tipo] || "Otros"}/${nombreSeguro(String(x.nombreArchivo || "registro.pdf").replace(/\.pdf$/i, "")) || "registro"}.pdf`;
+        for (let i = 2; usados.has(nombre); i++) nombre = nombre.replace(/( \(\d+\))?\.pdf$/, ` (${i}).pdf`);
+        usados.add(nombre);
+        return { nombre, datos: new Uint8Array(x.pdf) };
+      });
+      const nombreZip = `Carpeta_${slugArchivo(p.nombre)}_${hoyISO()}.zip`;
+      descargarArchivo(armarZip(archivos), nombreZip, "application/zip");
+      bitacora("Carpeta del trabajador exportada", { doc: p.nombre, det: `${regs.length} PDF` });
+      msj.textContent = `✅ Se guardó ${nombreZip} con ${regs.length} PDF. Tiene datos personales: entrégalo solo a quien corresponda.`;
+    }
+
+    /* =====================================================================
+       MATRIZ DE RIESGOS (IPER del usuario)
+       Se lee del Excel (hoja con "Puestos de trabajo" y "Tareas"); el código de partida, el PTS y el procedimiento
+       se completan hacia abajo. Se guarda en este equipo (IndexedDB "prevencion-paquete", clave "matriz").
+       Fila: c (partida), pts, pr (procedimiento), ps (proceso), pu (puesto), t (tarea), pe (peligro), r (riesgo),
+       f (familia ISP), ri (riesgo ISP), ci (código ISP), m (medida), l (requisito legal), v (VEP: el mayor de los 4).
+       ===================================================================== */
+    let MATRIZ = null;
+    const NIVEL_VEP = { 1: "Trivial", 2: "Tolerable", 4: "Moderado", 8: "Importante", 16: "Intolerable" };
+    const insigniaVEP = v => v ? `<span class="vep vep${[16, 8, 4, 2, 1].find(x => v >= x) || 1}">VEP ${v} · ${NIVEL_VEP[[16, 8, 4, 2, 1].find(x => v >= x) || 1]}</span>` : "";
+    function matrizValida(mz) {
+      if (!mz || !Array.isArray(mz.filas)) return null;
+      const s = (x, n = 600) => String(x ?? "").slice(0, n);
+      const filas = mz.filas.filter(f => f && typeof f === "object").slice(0, 20000).map(f => ({ c: s(f.c, 40), pts: s(f.pts, 60), pr: s(f.pr, 200), ps: s(f.ps, 80), pu: s(f.pu, 80), t: s(f.t),
+        pe: s(f.pe), r: s(f.r), f: s(f.f, 120), ri: s(f.ri, 160), ci: s(f.ci, 10), m: s(f.m, 1200), l: s(f.l, 300), v: Math.max(0, Math.min(64, +f.v || 0)) }));
+      return { archivo: s(mz.archivo, 160), hoja: s(mz.hoja, 80), cargada: s(mz.cargada, 30), filas };
+    }
+    async function cargarMatriz() {
+      if (MATRIZ) return MATRIZ;
+      try { MATRIZ = matrizValida(await bdPaquete("readonly", s => s.get("matriz"))); } catch { MATRIZ = null; }
+      return MATRIZ;
+    }
+    cargarMatriz();   // al abrir: así el 💡 de la ART la tiene lista
+    async function pintarEstadoMatriz() {
+      const el = document.getElementById("mzEstado"); if (!el) return;
+      const mz = await cargarMatriz();
+      el.innerHTML = mz ? `✅ Cargada: <b>${html(mz.archivo)}</b> (hoja "${html(mz.hoja)}") · ${mz.filas.length} filas · ${new Set(mz.filas.map(f => f.pr).filter(Boolean)).size} procedimientos · ${new Set(mz.filas.map(f => f.pu).filter(Boolean)).size} puestos · el ${new Date(mz.cargada).toLocaleDateString("es-CL")}`
+        : "Todavía no hay matriz cargada en este equipo.";
+    }
+    // Lee la matriz desde el Excel
+    async function cargarMatrizExcel(input) {
+      const a = input.files[0]; input.value = "";
+      const msj = document.getElementById("msjMz");
+      if (!a) return;
+      msj.textContent = "Leyendo el Excel…";
+      try {
+        if (!window.XLSX) await cargarScript(URL_SHEETJS);
+        const libro = XLSX.read(await a.arrayBuffer(), { type: "array" });
+        const N = x => normalizar(String(x ?? "").replace(/\s+/g, " "));
+        let mejor = null;
+        for (const nombre of libro.SheetNames) {
+          const filas = XLSX.utils.sheet_to_json(libro.Sheets[nombre], { header: 1, raw: false, defval: "" });
+          const h = filas.findIndex(f => f.some(c => N(c).startsWith("puestos de trabajo")) && f.some(c => N(c) === "tareas" || N(c).startsWith("tarea")));
+          if (h < 0) continue;
+          const t = filas[h].map(N), sub = (filas[h + 2] || []).map(N);
+          const col = (prueba) => t.findIndex(prueba);
+          const cols = {
+            c: col(x => x === "codigo"), pts: col(x => x.startsWith("codigo procedimiento")), pr: col(x => x === "procedimiento"), ps: col(x => x === "proceso"),
+            pu: col(x => x.startsWith("puestos de trabajo")), t: col(x => x === "tareas" || x.startsWith("tarea")), pe: col(x => x.startsWith("identificacion de peligro")),
+            r: col(x => x === "riesgo"), f: col(x => x.startsWith("familia de riesgo")), ri: col(x => x.startsWith("riesgo especifico")), ci: col(x => x.startsWith("codigo isp")),
+            m: col(x => x.startsWith("medida de control")), l: col(x => x.startsWith("requisito legal"))
+          };
+          const veps = sub.map((x, i) => x.startsWith("vep") ? i : -1).filter(i => i >= 0);
+          const lista = [];
+          let c = "", pts = "", pr = "";
+          for (const f of filas.slice(h + 3)) {
+            const v = k => cols[k] >= 0 ? String(f[cols[k]] ?? "").replace(/\s+/g, " ").trim() : "";
+            if (v("c")) c = v("c"); if (v("pts")) pts = v("pts"); if (v("pr")) pr = v("pr");
+            if (!v("t") && !v("pe")) continue;
+            lista.push({ c, pts, pr, ps: v("ps"), pu: v("pu"), t: v("t"), pe: v("pe"), r: v("r"), f: v("f"), ri: v("ri"), ci: v("ci"), m: v("m"), l: v("l"),
+              v: Math.max(0, ...veps.map(i => +f[i] || 0)) });
+          }
+          // Si hay varias hojas de matriz, se usa la que trae procedimientos (PTS) y más filas
+          const puntaje = lista.length + (cols.pts >= 0 ? 100000 : 0);
+          if (lista.length && (!mejor || puntaje > mejor.puntaje)) mejor = { hoja: nombre, filas: lista, puntaje };
+        }
+        if (!mejor) { msj.textContent = 'No encontré una hoja con las columnas "Puestos de trabajo" y "Tareas".'; return; }
+        const mz = matrizValida({ archivo: a.name, hoja: mejor.hoja.trim(), cargada: new Date().toISOString(), filas: mejor.filas });
+        await bdPaquete("readwrite", s => s.put(mz, "matriz"));
+        MATRIZ = mz;
+        bitacora("Matriz de riesgos cargada", { det: `${a.name} · hoja ${mz.hoja} · ${mz.filas.length} filas` });
+        msj.textContent = `✅ Matriz cargada desde la hoja "${mz.hoja}".`;
+        pintarEstadoMatriz();
+      } catch (e) { msj.textContent = "No pude leer el Excel: " + e.message; }
+    }
+    // ¿La fila es de este cargo? ("Maestro / Jornal" calza con Maestro y con Jornal; "Todos" calza con todos)
+    function puestoCalza(puesto, cargo) {
+      const p = normalizar(puesto);
+      if (!cargo || !p || p.startsWith("todo")) return true;
+      const raiz = w => w.slice(0, 5);
+      const partesCargo = normalizar(cargo).split(/[\/,]| y /).map(x => x.trim().split(/\s+/)[0]).filter(Boolean).map(raiz);
+      const partesPuesto = p.split(/[\/,]| y /).map(x => x.trim().split(/\s+/)[0]).filter(Boolean).map(raiz);
+      return partesPuesto.some(x => partesCargo.includes(x));
+    }
+    const palabrasClave = t => [...new Set(normalizar(t).replace(/[^a-z0-9ñ ]/g, " ").split(/\s+/).filter(w => w.length >= 4 && !["para", "como", "desde", "hasta", "entre", "sobre", "con", "del", "los", "las", "una", "uso"].includes(w)).map(w => w.slice(0, 5)))];
+    function buscarEnMatriz(texto, cargo, max = 6) {
+      if (!MATRIZ) return [];
+      const claves = palabrasClave(texto);
+      if (!claves.length) return [];
+      // Las palabras raras pesan más que las comunes ("conos" más que "ruta"); lo que calza en la TAREA pesa el doble
+      const textos = MATRIZ.__textos || (MATRIZ.__textos = MATRIZ.filas.map(f => ({ t: normalizar(f.t), o: normalizar(`${f.pe} ${f.pr} ${f.r}`) })));
+      const peso = {};
+      for (const k of claves) { const df = textos.reduce((s, x) => s + (x.t.includes(k) || x.o.includes(k) ? 1 : 0), 0); peso[k] = df ? Math.log((textos.length + 1) / df) : 0; }
+      // Puntaje: palabras que calzan (ponderadas) y un plus si la fila es del puesto del departamento.
+      // Una fila de otro puesto solo entra si calza con 2 o más palabras; y nada que quede muy por debajo de la mejor.
+      let conPuntaje = MATRIZ.filas.map((f, i) => {
+        const hits = claves.filter(k => textos[i].t.includes(k) || textos[i].o.includes(k));
+        const s = hits.reduce((s, k) => s + (textos[i].t.includes(k) ? 2 * peso[k] : peso[k]), 0), mio = puestoCalza(f.pu, cargo);
+        return { f, s: s * (mio ? 1.6 : 1), n: hits.length, mio };
+      }).filter(x => x.s > 0.5 && (x.mio || x.n >= 2));
+      const mejor = Math.max(0, ...conPuntaje.map(x => x.s));
+      conPuntaje = conPuntaje.filter(x => x.s >= mejor * 0.45);
+      conPuntaje.sort((a, b) => (b.s - a.s) || (b.f.v - a.f.v));
+      // Sin repetir el mismo peligro con otras palabras (ej: varias filas de radiación UV)
+      const vistos = new Set(), out = [];
+      for (const x of conPuntaje) { const k = (x.f.ci || "") + "|" + normalizar(x.f.pe).replace(/[^a-z ]/g, "").split(/\s+/).slice(0, 2).join(" "); if (vistos.has(k)) continue; vistos.add(k); out.push(x); if (out.length >= max) break; }
+      return out;
+    }
+    // Sugerencias de TU matriz para una etapa de ART (chips que agregan a peligros, riesgos y medidas)
+    function htmlMatrizEtapa(texto, divEtapa, ya) {
+      if (!MATRIZ || !texto.trim()) return "";
+      const depto = buscarDepto(divEtapa.closest(".art-depto")?.dataset.id);
+      const res = buscarEnMatriz(texto, depto?.cargo);
+      if (!res.length) return "";
+      const tiene = (campo, x) => normalizar(ya[campo] || "").includes(normalizar(x).slice(0, 40));
+      const chip = (campo, x, etq) => x && !tiene(campo, x) ? `<button type="button" class="asis-chip" data-campo="${campo}" data-texto="${html(x)}" onclick="agregarSugerencia(this)">+ ${etq}: ${html(x.length > 70 ? x.slice(0, 70) + "…" : x)}</button>` : "";
+      return `<div class="mz-asis"><p class="ayuda" style="margin:0 0 4px"><b>De tu matriz de riesgos</b>${depto ? " (" + html(depto.cargo) + ")" : ""}:</p>` +
+        res.map(({ f, mio }) => `<div class="mz-item"><b>${html(f.t)}</b> ${insigniaVEP(f.v)}${mio ? "" : ` <small>(${html(f.pu)})</small>`}<br>
+          ${chip("peligros", f.pe, "Peligro")}${chip("riesgos", f.r, "Riesgo")}${chip("medidas", f.m, "Medida")}</div>`).join("") + `</div>`;
+    }
+    // Pantalla de consulta
+    let mzLimite = 60;
+    async function iniciarMatriz() {
+      const mz = await cargarMatriz();
+      document.getElementById("mzInfo").innerHTML = mz ? `${html(mz.archivo)} · ${mz.filas.length} filas · cargada el ${new Date(mz.cargada).toLocaleDateString("es-CL")}`
+        : `Todavía no hay matriz en este equipo. Cárgala en <a href="#" onclick="mostrar('empresa'); return false">Empresa y formatos → Matriz de riesgos</a>.`;
+      if (!mz) { document.getElementById("mzLista").innerHTML = ""; return; }
+      const opc = (lista, todos) => `<option value="">${todos}</option>` + [...new Set(lista.filter(Boolean))].sort((a, b) => a.localeCompare(b, "es")).map(x => `<option value="${html(x)}">${html(x)}</option>`).join("");
+      const sp = document.getElementById("mzPuesto"), sr = document.getElementById("mzProc"), vp = sp.value, vr = sr.value;
+      sp.innerHTML = opc(mz.filas.map(f => f.pu), "Todos los puestos"); sp.value = vp;
+      sr.innerHTML = opc(mz.filas.map(f => f.pr), "Todos los procedimientos"); sr.value = vr;
+      mzLimite = 60; pintarMatriz();
+    }
+    function pintarMatriz() {
+      if (!MATRIZ) return;
+      const b = normalizar(document.getElementById("mzBuscar").value), pu = document.getElementById("mzPuesto").value, pr = document.getElementById("mzProc").value, altos = document.getElementById("mzAltos").checked;
+      const lista = MATRIZ.filas.filter(f => (!pu || f.pu === pu) && (!pr || f.pr === pr) && (!altos || f.v >= 8) && (!b || normalizar(`${f.t} ${f.pe} ${f.r} ${f.m} ${f.pr} ${f.pu} ${f.ri}`).includes(b)));
+      document.getElementById("mzLista").innerHTML = `<p class="ayuda">${lista.length} fila(s)</p>` + lista.slice(0, mzLimite).map(f => `<div class="mz-fila">
+          <b>${html(f.t)}</b> ${insigniaVEP(f.v)}
+          <small>${html(f.pu)}${f.pr ? " · " + html(f.pr) : ""}${f.pts ? " · " + html(f.pts) : ""}</small>
+          <div style="margin-top:6px"><b>Peligro:</b> ${html(f.pe)}<br><b>Riesgo:</b> ${html(f.r)}${f.ri ? ` <small style="display:inline">(${html(f.ci)} ${html(f.ri)})</small>` : ""}<br><b>Medida:</b> ${html(f.m)}${f.l ? `<br><small>Requisito legal: ${html(f.l)}</small>` : ""}</div>
+        </div>`).join("") + (lista.length > mzLimite ? `<button type="button" class="btn btn-secundario" onclick="mzLimite += 60; pintarMatriz()">Mostrar más (${lista.length - mzLimite} restantes)</button>` : "");
+    }
+
+    /* =====================================================================
        ACCIDENTES: informe flash (formato de las bases, en Word con las firmas) + copia PDF con folio
        + investigación en Word con todo lo que la app ya sabe (se termina en el PC: árbol de causas y medidas).
        Las plantillas Word van EN BLANCO en plantillas.js (PLANTILLAS_WORD); los datos de la empresa, del equipo.
@@ -8453,6 +8778,7 @@
       const c = id => document.getElementById(id);
       c("accNombre").value = p.nombre; c("accRut").value = formatearRut(p.rut); c("accCargo").value = cargosDe(r)[0] || p.cargo || "";
       c("accIngreso").value = p.ingreso || leerGuardado("pt_ingreso", {})[r] || "";
+      c("accNac").value = (fichasTrab[r] && fichasTrab[r].nac) || p.nac || c("accNac").value;
     }
     function datosFormAcc() {
       const c = id => document.getElementById(id).value.trim();
