@@ -244,6 +244,7 @@
     /* ===== Check list ===== */
     .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
     .ck-listas:empty { display: none; }
+    .cero-caja { border-left: 5px solid var(--mal); }
     .tr-insignias { display: block; font-size: 12px; margin-top: 2px; }
     .ficha-dato { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid #eaecf0; font-size: 14px; }
     .ficha-dato span:last-child { text-align: right; }
@@ -1211,6 +1212,17 @@
           </div>
         </div>
         <p class="mensaje" id="msjEditor"></p>
+      </div>
+
+      <div class="tarjeta cero-caja">
+        <h2>🧹 Empezar de cero</h2>
+        <p class="ayuda">Borra de <b>este equipo</b> todos los registros (charlas, IRL, check list, EPP, documentos, accidentes, hallazgos, vencimientos, consentimientos, fichas, informes, historial y bitácora) y <b>conserva la configuración</b>: formatos, datos de la empresa y del representante, Google Drive, contraseña de respaldo, matriz de riesgos, datos del contrato, programa anual y nombres recordados.</p>
+        <p class="ayuda">No borra nada de tu Google Drive (esa carpeta la borras tú, si corresponde). Si tienes algo real, primero guarda un respaldo.</p>
+        <label class="check-linea"><input type="checkbox" id="ceroListado"> Conservar el listado de personal y sus cargos</label>
+        <label>Para confirmar, escribe <b>BORRAR</b></label>
+        <input type="text" id="ceroConfirma" autocomplete="off" autocapitalize="characters">
+        <button type="button" class="btn btn-quitar" onclick="empezarDeCero()">🧹 Borrar los registros y empezar de cero</button>
+        <p class="mensaje" id="msjCero"></p>
       </div>
     </section>
 
@@ -8450,6 +8462,29 @@
       }
       if (!bloques.length) throw new Error("no encontré el contenido de la IRL (desde \"3.- Descripción…\" hasta \"12.- Difusión…\")");
       return { cargo, contenido: bloques, imagenes };
+    }
+
+    /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
+    const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar"];
+    const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
+    const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
+    async function empezarDeCero() {
+      const msj = document.getElementById("msjCero");
+      if (document.getElementById("ceroConfirma").value.trim().toUpperCase() !== "BORRAR") { msj.textContent = 'Escribe BORRAR para confirmar.'; return; }
+      if (!confirm("¿Borrar TODOS los registros de este equipo? Esto no se puede deshacer (la configuración se mantiene).")) return;
+      msj.textContent = "Borrando…";
+      const conservar = new Set([...CONSERVAR_SIEMPRE, ...(document.getElementById("ceroListado").checked ? CONSERVAR_LISTADO : [])]);
+      const claves = [];
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(ESPACIO_DATOS + "pt_")) claves.push(k.slice(ESPACIO_DATOS.length)); }
+      claves.filter(k => !conservar.has(k)).forEach(k => { try { localStorage.removeItem(k); } catch {} });
+      // Registros (historial), entregas de EPP, fotos de hallazgos, bitácora y cola de Drive. La matriz y las IRL del paquete se quedan.
+      for (const bd of ["prevencion-terreno" + ESPACIO_DATOS, "prevencion-epp" + ESPACIO_DATOS, "prevencion-hallazgos" + ESPACIO_DATOS, BD_AVISOS]) await borrarBD(bd);
+      try { sessionStorage.removeItem("pt_doc_borrador"); } catch {}
+      await bitacora("Empezar de cero", { det: `registros borrados en este equipo${conservar.has("pt_listado") ? " (se conservó el listado)" : ""}` });
+      msj.textContent = "✅ Listo: la app quedó limpia. Recargando…";
+      sessionStorage.setItem("pt_abrirEmpresa", "1");
+      setTimeout(() => location.reload(), 800);
     }
 
     /* =====================================================================
