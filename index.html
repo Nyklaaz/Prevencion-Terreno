@@ -407,6 +407,8 @@
     .menu-btn[onclick*="'historial'"] .menu-ico { background: var(--grad-cielo); }
     .menu-flecha { color: var(--azul); }
     #filtrosHist { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .dos-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .dos-col > *, input[type=date], input[type=time] { min-width: 0; max-width: 100%; }
     .lic-clases { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px 8px; }
     .lic-clases .check-linea { margin-top: 6px; }   /* 6 filtros: dos filas de 3 en el celular */
 
@@ -2138,8 +2140,9 @@
             asunto: `Charla Diaria + ART – ${parte.arts.map(x => x.nombre).join(" / ")} – Ruta ${r.ruta} – ${r.fechaCL}`,
             depto: a.id, asistentes: parte.trabajadores.length
           };
-          // Si se vuelve a generar, se reemplaza el mismo registro del historial (por departamento)
-          idsHistCharla[a.id] = await guardarEnHistorial(idsHistCharla[a.id] ?? null, "charla", pdf, r.fecha,
+          // Solo se reemplaza si es la MISMA charla corregida (mismo departamento y fecha); otro día es un registro nuevo
+          const claveCh = a.id + "|" + r.fecha;
+          idsHistCharla[claveCh] = await guardarEnHistorial(idsHistCharla[claveCh] ?? null, "charla", pdf, r.fecha,
             `${a.nombre} · ${parte.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
           nuevos.push(pdf);
         }
@@ -2828,7 +2831,9 @@
           nombreArchivo: `IRL_${limpio(r.cargoNombre)}_${limpio(r.nombre)}_${r.fecha}.pdf`,
           asunto: `IRL – ${[r.cargoNombre, ...r.adicionales.map(a => a.nombre)].join(" + ")} – ${r.nombre} – ${r.fechaCL}`
         };
-        idHistIRL = await guardarEnHistorial(idHistIRL, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}${r.adicionales.length ? " · también: " + r.adicionales.map(a => a.nombre).join(", ") : ""} · ${IRL_DATOS.tipos_induccion[r.tipo] || ""}`);
+        // Solo se reemplaza si es la MISMA IRL corregida (mismo trabajador, cargo y fecha); otra persona es un registro nuevo
+        const claveIRL = claveRut(r.rut) + "|" + r.cargoId + "|" + r.fecha;
+        idHistIRL = idsHistIRL[claveIRL] = await guardarEnHistorial(idsHistIRL[claveIRL] ?? null, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}${r.adicionales.length ? " · también: " + r.adicionales.map(a => a.nombre).join(", ") : ""} · ${IRL_DATOS.tipos_induccion[r.tipo] || ""}`);
         error.textContent = "";
         document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(pdfIRL.bytes.length / 1024)} KB${pdfIRL.folio ? " · Folio " + pdfIRL.folio : ""}`;
         document.getElementById("mensajeIRL").textContent = "";
@@ -3151,7 +3156,8 @@
        una "bodega" del navegador que sí aguanta archivos grandes).
        Si algo falla aquí, el PDF igual se genera y se comparte normal.
        ===================================================================== */
-    let idHistIRL = null;   // si se vuelve a generar, se reemplaza el mismo registro
+    let idHistIRL = null;   // la última IRL generada
+    const idsHistIRL = {};  // trabajador|cargo|fecha -> id del registro (para reemplazar solo la misma IRL corregida)
     let filtroHist = "todos";
     let regsMemoria = {};                         // registros en memoria, para compartir al instante
 
@@ -3275,7 +3281,7 @@
         let folio = "";
         try { const d = await PDFLib.PDFDocument.load(bytes, { updateMetadata: false, ignoreEncryption: true }); folio = ((d.getKeywords() || "").match(/folio:([\w-]+)/) || [])[1] || ""; } catch {}
         const regs = await operacionBD("readonly", s => s.getAll());
-        const igual = h && regs.find(r => r.hash === h);
+        const igual = h && regs.find(r => r.hash === h || r.hashCopia === h);
         const delFolio = folio && regs.find(r => r.folio === folio);
         const ficha = r => `<br><b>${html(r.asunto)}</b><br>Folio ${html(r.folio)} · generado el ${new Date(r.creado).toLocaleString("es-CL")}<br><small>Huella: ${html((r.hash || "").slice(0, 16))}…</small>`;
         if (igual) caja.innerHTML = `<span class="verde">✅ Documento original, sin modificaciones.</span>${ficha(igual)}`;
@@ -3340,6 +3346,7 @@
       instalaciones: ["inspector"], senalizacion: ["inspector", "revisor"]
     };
     let ckGrupo = null, ckId = null, pdfCheck = null, idHistCheck = null;
+    const idsHistCheck = {};   // lista|datos -> id del registro
     let ckFotos = [];                                      // [{ img: "data:image/jpeg…", texto }]
     const MAX_FOTOS_CHECK = 6;
     let ckUltimos = leerGuardado("pt_check_ult", {});    // datos del último check list de cada tipo
@@ -3584,7 +3591,9 @@
           nombreArchivo: `CheckList_${limpio(r.nombre)}${quien ? "_" + limpio(quien) : ""}_${r.campos.fecha}.pdf`,
           asunto: `Check list ${r.nombre}${quien ? " – " + quien : ""} – ${r.fechaCL}`
         };
-        idHistCheck = await guardarEnHistorial(idHistCheck, "check", pdfCheck, r.campos.fecha,
+        // Solo se reemplaza si es el MISMO check list corregido (misma lista y mismos datos: patente, fecha, obra…)
+        const claveCk = ckId + "|" + JSON.stringify(r.campos);
+        idHistCheck = idsHistCheck[claveCk] = await guardarEnHistorial(idsHistCheck[claveCk] ?? null, "check", pdfCheck, r.campos.fecha,
           `${r.nombre}${quien ? " · " + quien : ""} · ${r.malas ? r.malas + " observación(es)" : "sin observaciones"}`);
         error.textContent = "";
         document.getElementById("infoPDFCheck").textContent = `${pdfCheck.nombreArchivo} · ${Math.round(pdfCheck.bytes.length / 1024)} KB${pdfCheck.folio ? " · Folio " + pdfCheck.folio : ""}`;
@@ -4714,7 +4723,7 @@
       const marcados = new Set(infMeses[k]?.anexosHist || []);
       const etiqueta = { charla: "Charla", irl: "IRL", check: "Check list", informe: "Informe" };
       document.getElementById("infAnexosHist").innerHTML = regs.filter(r => r.tipo !== "informe").map(r =>
-        `<label class="check-linea"><input type="checkbox" value="${r.id}" ${marcados.has(r.id) ? "checked" : ""}> ${fechaCLde(r.fecha)} · ${etiqueta[r.tipo] || r.tipo}: ${html(r.detalle || r.asunto)}</label>`).join("")
+        `<label class="check-linea"><input type="checkbox" value="${r.id}" ${marcados.has(r.id) ? "checked" : ""}> ${fechaCLde(r.fecha)} · ${html(etiqueta[r.tipo] || r.tipo)}: ${html(r.detalle || r.asunto)}</label>`).join("")
         || `<p class="ayuda" style="margin:0">No hay registros de este mes en este equipo.</p>`;
     }
 
@@ -4949,7 +4958,8 @@
         const existentes = await operacionBD("readonly", s => s.getAll());
         const ya = new Set(existentes.map(r => `${r.tipo}|${r.nombreArchivo}|${r.creado}`));
         let n = 0;
-        for (const r of d.registros || []) {
+        for (const r of Array.isArray(d.registros) ? d.registros : []) {
+          if (!r || !/^[a-z]{2,12}$/.test(r.tipo || "") || typeof r.pdf !== "string") continue;   // registro con forma rara: se ignora
           if (ya.has(`${r.tipo}|${r.nombreArchivo}|${r.creado}`)) continue;
           const { id, ...resto } = r;   // el número del registro lo pone este equipo, no el respaldo
           await operacionBD("readwrite", s => s.put({ ...resto, pdf: b64aBytes(r.pdf) }));
@@ -5012,13 +5022,15 @@
         const existentes = await operacionBD("readonly", s => s.getAll());
         const ya = new Set(existentes.map(r => r.nombreArchivo + "|" + r.creado));
         let nuevos = 0;
-        for (const r of info.registros) {
+        for (const r of Array.isArray(info.registros) ? info.registros : []) {
+          if (!r || !/^[a-z]{2,12}$/.test(r.tipo || "") || !Number.isInteger(r.desde) || !Number.isInteger(r.paginas) || r.paginas < 1) continue;
           if (ya.has(r.nombreArchivo + "|" + r.creado)) continue;
           const d = await PDFDocument.create();
           const pags = await d.copyPages(total, Array.from({ length: r.paginas }, (_, i) => r.desde + i));
           pags.forEach(p => d.addPage(p));
-          const pdf = await d.save();
-          await operacionBD("readwrite", s => s.put({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", pdf }));
+          if (r.folio) d.setKeywords(["prevencion-terreno", "folio:" + r.folio]);   // el folio sigue siendo verificable en el PC
+          const pdf = await d.save(), hashCopia = await huella(pdf);   // la copia separada en el PC también se reconoce como original
+          await operacionBD("readwrite", s => s.put({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", hashCopia, pdf }));
           nuevos++;
         }
         msj.textContent = `✅ ${nuevos} registro(s) nuevos de ${nombreMes(info.mes)} cargados${info.registros.length - nuevos ? ` (${info.registros.length - nuevos} ya estaban)` : ""}.`;
