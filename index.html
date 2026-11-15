@@ -244,6 +244,11 @@
     /* ===== Check list ===== */
     .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
     .ck-listas:empty { display: none; }
+    .acc-urgente { border-left: 5px solid var(--mal); }
+    .acc-urgente p { margin: 0; font-size: 14px; line-height: 1.5; }
+    .acc-grav { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+    .acc-fila { padding: 10px 0; border-bottom: 1px solid #eaecf0; }
+    .acc-fila .dos-col { margin-top: 6px; }
     .registro.reemplazado { opacity: .72; }
     .hist-reemplazado, .hist-corrige { font-size: 13px; font-weight: 600; margin: 2px 0 4px; }
     .hist-reemplazado { color: #b54708; } .hist-corrige { color: #1d4ed8; }
@@ -505,6 +510,9 @@
       <button class="menu-btn" onclick="mostrar('documentos')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="menu-txt">Documentos<small>Registro de capacitación y tus propias plantillas</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+      <button class="menu-btn" onclick="mostrar('accidentes')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></span><span class="menu-txt">Accidente: informe flash<small>Información preliminar en terreno y la investigación en Word</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
       <button class="menu-btn" onclick="mostrar('chequeo')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
@@ -666,6 +674,7 @@
           <button type="button" data-f="hallazgos" onclick="filtrarHist(this)">Hallazgos</button>
           <button type="button" data-f="epp" onclick="filtrarHist(this)">EPP</button>
           <button type="button" data-f="documento" onclick="filtrarHist(this)">Documentos</button>
+          <button type="button" data-f="accidente" onclick="filtrarHist(this)">Accidentes</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
@@ -1034,6 +1043,33 @@
           <div><label>RUT de la empresa</label><input type="text" id="empRut" placeholder="76.123.456-7"></div>
           <div><label>Tipo</label><select id="empTipo"><option>Contratista</option><option>Subcontratista</option><option>Prestador de Servicios</option></select></div>
         </div>
+        <details class="exportar" id="empAccCaja">
+          <summary>🚑 Datos para los informes de accidentes</summary>
+          <p class="ayuda">Van en el informe flash y en la investigación. Se guardan solo en este equipo (no en la página pública de la app).</p>
+          <div class="dos-col">
+            <div><label>Representante legal</label><input type="text" id="empRep"></div>
+            <div><label>RUT del representante</label><input type="text" id="empRepRut" onchange="this.value = formatearRut(this.value)"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Teléfono</label><input type="text" id="empFono" inputmode="tel"></div>
+            <div><label>Correo</label><input type="text" id="empMail" inputmode="email"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Dirección</label><input type="text" id="empDir"></div>
+            <div><label>Comuna</label><input type="text" id="empComuna"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Actividad económica</label><input type="text" id="empActividad" placeholder="Construcción"></div>
+            <div><label>Organismo administrador</label><input type="text" id="empOrganismo" placeholder="ACHS"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Empresa</label><select id="empPublica"><option value="privada">Privada</option><option value="publica">Pública</option></select></div>
+            <div><label>Tipo de empresa (en la investigación)</label><select id="empTipoAcc"><option>Contratista</option><option>Principal</option><option>Subcontratista</option><option>Prestadora de servicios</option></select></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Promedio anual de trabajadores</label><input type="text" id="empPromedio" inputmode="numeric"></div>
+          </div>
+        </details>
         <label>Correo de contacto para datos personales</label>
         <input type="text" id="empContacto" inputmode="email" autocomplete="off" placeholder="prevencion@empresa.cl">
         <p class="ayuda">Aparece en la constancia de consentimiento: ahí el trabajador pide acceso, corrección o eliminación de sus datos.</p>
@@ -1215,6 +1251,104 @@
           <button class="btn btn-secundario" onclick="otroCheck(true)">Otro check list igual (mismos datos)</button>
           <button class="btn btn-secundario" onclick="otroCheck(false)">Elegir otro tipo de check list</button>
         </div>
+      </div>
+    </section>
+
+    <!-- ========== ACCIDENTE: INFORME FLASH (formato de las bases) + INVESTIGACIÓN EN WORD ========== -->
+    <section id="accidentes" class="pantalla">
+      <div class="tarjeta acc-urgente">
+        <h2>⚠️ Primero lo primero</h2>
+        <p><b>1.</b> Atención inmediata del trabajador y traslado al organismo administrador.<br>
+           <b>2.</b> DIAT al organismo administrador dentro de 24 horas (art. 76, Ley 16.744).<br>
+           <b>3.</b> Si es <b>grave o fatal</b>: suspender la faena afectada y avisar de inmediato a la Inspección del Trabajo y a la SEREMI de Salud (art. 76, Ley 16.744).</p>
+      </div>
+      <form id="formAcc" onsubmit="generarFlash(event)" novalidate>
+        <div class="tarjeta">
+          <h2>1. Accidentado</h2>
+          <select id="accTrab" onchange="elegirAccidentado2()"></select>
+          <label>Nombre completo *</label><input type="text" id="accNombre">
+          <div class="dos-col">
+            <div><label>RUT *</label><input type="text" id="accRut" placeholder="12.345.678-9" onchange="this.value = formatearRut(this.value)"></div>
+            <div><label>Profesión u oficio (cargo)</label><input type="text" id="accCargo"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Fecha de nacimiento</label><input type="date" id="accNac"></div>
+            <div><label>Nacionalidad</label><input type="text" id="accNacionalidad" placeholder="Chilena"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Sexo</label><select id="accSexo"><option value="">—</option><option>Masculino</option><option>Femenino</option></select></div>
+            <div><label>Fecha de ingreso</label><input type="date" id="accIngreso"></div>
+          </div>
+          <label>Fecha de contrato</label><input type="date" id="accContrato">
+        </div>
+        <div class="tarjeta">
+          <h2>2. El accidente</h2>
+          <div class="dos-col">
+            <div><label>Fecha *</label><input type="date" id="accFecha"></div>
+            <div><label>Hora *</label><input type="time" id="accHora"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Horas trabajadas ese día</label><input type="text" inputmode="decimal" id="accHorasTrab"></div>
+            <div><label>Tipo</label><select id="accTipo"><option>Del trabajo</option><option>De trayecto</option></select></div>
+          </div>
+          <label>Gravedad *</label>
+          <div class="acc-grav" id="accGrav">
+            <label class="check-linea"><input type="radio" name="accCat" value="Leve sin tiempo perdido (ATP)"> Leve, sin tiempo perdido</label>
+            <label class="check-linea"><input type="radio" name="accCat" value="Leve con tiempo perdido (CTP)"> Leve, con reposo</label>
+            <label class="check-linea"><input type="radio" name="accCat" value="Grave"> Grave</label>
+            <label class="check-linea"><input type="radio" name="accCat" value="Fatal"> Fatal</label>
+          </div>
+          <p class="error" id="accAvisoGrave" style="display:none">Accidente grave o fatal: suspende la faena afectada y avisa de inmediato a la Inspección del Trabajo y a la SEREMI de Salud.</p>
+          <h3>Lugar</h3>
+          <div class="dos-col">
+            <div><label>Ruta / sector</label><input type="text" id="accRuta" placeholder="Ruta C-33"></div>
+            <div><label>Km</label><input type="text" id="accKm" inputmode="decimal"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>Sitio / referencia</label><input type="text" id="accSitio"></div>
+            <div><label>Comuna</label><input type="text" id="accComuna"></div>
+          </div>
+          <label>Testigos (uno por línea)</label><textarea id="accTestigos" rows="2" oninput="autoAltura(this)"></textarea>
+        </div>
+        <div class="tarjeta">
+          <h2>3. Descripción</h2>
+          <label>¿Qué estaba haciendo y qué pasó? *</label><textarea id="accQue" rows="3" oninput="autoAltura(this)" placeholder="Alrededor de las 10:00 horas, el trabajador se encontraba…"></textarea>
+          <label>EPP que usaba y condiciones del lugar</label><textarea id="accEpp" rows="2" oninput="autoAltura(this)"></textarea>
+          <label>¿Qué se hizo después?</label><textarea id="accDespues" rows="2" oninput="autoAltura(this)" placeholder="Fue trasladado de inmediato a…"></textarea>
+          <div class="dos-col">
+            <div><label>Parte del cuerpo afectada *</label><input type="text" id="accParte"></div>
+            <div><label>Agente involucrado *</label><input type="text" id="accAgente"></div>
+          </div>
+          <label>Actividad que realizaba *</label><input type="text" id="accActividad">
+          <label>Centro asistencial de traslado</label><input type="text" id="accCentro" placeholder="ACHS Copiapó">
+        </div>
+        <div class="tarjeta">
+          <h2>4. Firmas</h2>
+          <div class="dos-col">
+            <div><label>Quien investiga *</label><input type="text" id="accInvNombre"></div>
+            <div><label>Cargo</label><input type="text" id="accInvCargo" placeholder="Prevencionista"></div>
+          </div>
+          <div id="accFirmaInv"></div>
+          <label class="check-linea"><input type="checkbox" id="accSinCphs" onchange="document.getElementById('accCphsCaja').style.display = this.checked ? 'none' : ''"> El representante del CPHS firma después (o no hay comité)</label>
+          <div id="accCphsCaja"><label>Representante CPHS</label><input type="text" id="accCphsNombre"><div id="accFirmaCphs"></div></div>
+          <p class="error" id="errorAcc"></p>
+          <button type="submit" class="btn btn-principal">Generar informe flash</button>
+        </div>
+      </form>
+      <div class="tarjeta" id="cajaAcc" style="display:none">
+        <h2>✅ Informe flash listo</h2>
+        <p class="ayuda" id="infoAcc"></p>
+        <div class="acciones">
+          <button class="btn btn-principal" onclick="compartirFlashWord()">📤 Compartir el flash (Word, formato de las bases)</button>
+          <button class="btn btn-secundario" onclick="compartirFlashPDF()">📄 Compartir copia PDF con folio</button>
+          <button class="btn btn-secundario" onclick="descargarInvestigacion(accActualId)">📝 Investigación (Word para terminar en el PC)</button>
+          <p class="mensaje" id="msjAcc"></p>
+          <button class="btn btn-secundario" onclick="nuevoAccidente()">Registrar otro accidente</button>
+        </div>
+      </div>
+      <div class="tarjeta">
+        <h2>Accidentes registrados</h2>
+        <div id="accLista"></div>
       </div>
     </section>
 
@@ -2125,7 +2259,8 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash" };
+      if (id === "accidentes") iniciarAccidentes();
       if (id === "documentos") iniciarDocumentos();
       if (id === "irl") iniciarIRL();
       if (id === "historial") { pintarHistorial(); pintarBitacora(); }
@@ -3309,7 +3444,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC" };
     function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3320,7 +3455,7 @@
       return [...h].map(x => x.toString(16).padStart(2, "0")).join("");
     }
     // Documentos que se firman en el momento, delante de quien registra (el informe reutiliza firmas: no va)
-    const FIRMA_PRESENCIAL = ["charla", "irl", "check", "epp", "consentimiento", "documento"];
+    const FIRMA_PRESENCIAL = ["charla", "irl", "check", "epp", "consentimiento", "documento", "accidente"];
     let versionAppCache = "";
     async function versionApp() {
       if (versionAppCache) return versionAppCache;
@@ -3404,7 +3539,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : "📋"} ${html(r.asunto)}</div>
           ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
           ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
@@ -4340,7 +4475,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -5337,7 +5472,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -6771,6 +6906,9 @@
       document.getElementById("empRut").value = EMPRESA.rut;
       document.getElementById("empTipo").value = EMPRESA.tipo || "Contratista";
       document.getElementById("empContacto").value = EMPRESA.contactoDatos || "";
+      for (const [id, k] of CAMPOS_EMP_ACC) document.getElementById(id).value = EMPRESA[k] || "";
+      if (!EMPRESA.publica) document.getElementById("empPublica").value = "privada";
+      if (!EMPRESA.tipoAcc) document.getElementById("empTipoAcc").value = "Contratista";   // del MOP: el MOP es el mandante (principal)
       pintarCifrado();
       if (!window.IRL_DATOS) await cargarIRLPaquete();
       const nIRL = window.IRL_DATOS ? Object.keys(IRL_DATOS.cargos).length : 0;
@@ -6790,7 +6928,8 @@
     async function guardarDatosEmpresa() {
       const p = { ...(PAQUETE || { formato: "prevencion-terreno/paquete", version: 1, id: "mi-empresa" }) };
       p.empresa = { ...PAQ.empresa, ...(p.empresa || {}), nombre: document.getElementById("empNombre").value.trim(), rut: document.getElementById("empRut").value.trim(), tipo: document.getElementById("empTipo").value,
-        contactoDatos: document.getElementById("empContacto").value.trim().slice(0, 120) };
+        contactoDatos: document.getElementById("empContacto").value.trim().slice(0, 120),
+        ...Object.fromEntries(CAMPOS_EMP_ACC.map(([id, k]) => [k, document.getElementById(id).value.trim().slice(0, 160)])) };
       if (p.empresa.contactoDatos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.empresa.contactoDatos)) { document.getElementById("msjEmpresa").textContent = "El correo de contacto no parece válido."; return; }
       if (!p.nombre) p.nombre = p.empresa.nombre;
       p.actualizado = new Date().toLocaleDateString("sv-SE");
@@ -8255,6 +8394,272 @@
       }
       if (!bloques.length) throw new Error("no encontré el contenido de la IRL (desde \"3.- Descripción…\" hasta \"12.- Difusión…\")");
       return { cargo, contenido: bloques, imagenes };
+    }
+
+    /* =====================================================================
+       ACCIDENTES: informe flash (formato de las bases, en Word con las firmas) + copia PDF con folio
+       + investigación en Word con todo lo que la app ya sabe (se termina en el PC: árbol de causas y medidas).
+       Las plantillas Word van EN BLANCO en plantillas.js (PLANTILLAS_WORD); los datos de la empresa, del equipo.
+       pt_accidentes guarda cada accidente con sus firmas (solo para volver a armar ESE mismo documento).
+       ===================================================================== */
+    const CAMPOS_EMP_ACC = [["empRep", "repNombre"], ["empRepRut", "repRut"], ["empFono", "fono"], ["empMail", "correo"], ["empDir", "direccion"], ["empComuna", "comuna"],
+      ["empActividad", "actividad"], ["empOrganismo", "organismo"], ["empPublica", "publica"], ["empPromedio", "promedioTrab"], ["empTipoAcc", "tipoAcc"]];
+    let accidentes = listaGuardada("pt_accidentes", a => idSeguroTxt(a.id) && /^\d{4}-\d{2}-\d{2}$/.test(a.fecha || "") && typeof a.nombre === "string");
+    let accActualId = null, accFirmasIniciadas = false;
+    const idsHistAcc = {};
+    const MESES_MIN = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const fechaLarga = f => { const d = fechaD(f); return `${d.getDate()} de ${MESES_MIN[d.getMonth()]} de ${d.getFullYear()}`; };
+    const fechaGuion = f => f ? String(f).split("-").reverse().join("-") : "";
+    function edadEn(nac, f) {
+      if (!nac) return "";
+      const a = fechaD(nac), b = fechaD(f); let e = b.getFullYear() - a.getFullYear();
+      if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) e--;
+      return e >= 0 ? `${e} años` : "";
+    }
+    function antiguedadEn(ingreso, f) {
+      if (!ingreso) return "";
+      const dias = Math.round((fechaD(f) - fechaD(ingreso)) / 86400000);
+      if (dias < 0) return "";
+      if (dias < 60) return `${dias} día${dias === 1 ? "" : "s"}`;
+      const meses = Math.floor(dias / 30.44);
+      return meses < 24 ? `${meses} meses` : `${Math.floor(meses / 12)} años`;
+    }
+
+    function iniciarAccidentes() {
+      if (!accFirmasIniciadas) {
+        accFirmasIniciadas = true;
+        document.getElementById("accFirmaInv").innerHTML = htmlFirma("Firma de quien investiga");
+        document.getElementById("accFirmaCphs").innerHTML = htmlFirma("Firma representante CPHS");
+        activarFirmas();
+        document.getElementById("accGrav").addEventListener("change", () => {
+          const v = document.querySelector('input[name="accCat"]:checked')?.value || "";
+          document.getElementById("accAvisoGrave").style.display = /Grave|Fatal/.test(v) ? "" : "none";
+        });
+        ["input", "change"].forEach(ev => document.getElementById("formAcc").addEventListener(ev, e => e.target.classList?.remove("campo-falta")));
+      }
+      const sel = document.getElementById("accTrab"), v = sel.value;
+      sel.innerHTML = `<option value="">Elige al trabajador del listado (o escribe sus datos abajo)…</option>` + (listado?.lista || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es")).map(p => `<option value="${claveRut(p.rut)}">${html(p.nombre)}</option>`).join("");
+      sel.value = v;
+      const c = id => document.getElementById(id), rec = leerGuardado("pt_acc_recordar", {});
+      if (!c("accFecha").value) c("accFecha").value = hoyISO();
+      for (const [id, k] of [["accInvNombre", "inv"], ["accInvCargo", "invCargo"], ["accCentro", "centro"], ["accRuta", "ruta"], ["accComuna", "comuna"], ["accCphsNombre", "cphs"]])
+        if (!c(id).value && typeof rec[k] === "string") c(id).value = rec[k];
+      if (!c("accInvNombre").value) c("accInvNombre").value = leerGuardado("pt_epp_prev", "") || "";
+      pintarAccidentes();
+    }
+    function elegirAccidentado2() {
+      const r = document.getElementById("accTrab").value, p = (listado?.lista || []).find(x => claveRut(x.rut) === r);
+      if (!p) return;
+      const c = id => document.getElementById(id);
+      c("accNombre").value = p.nombre; c("accRut").value = formatearRut(p.rut); c("accCargo").value = cargosDe(r)[0] || p.cargo || "";
+      c("accIngreso").value = p.ingreso || leerGuardado("pt_ingreso", {})[r] || "";
+    }
+    function datosFormAcc() {
+      const c = id => document.getElementById(id).value.trim();
+      return { nombre: c("accNombre"), rut: formatearRut(c("accRut")), cargo: c("accCargo"), nac: c("accNac"), nacionalidad: c("accNacionalidad"), sexo: c("accSexo"),
+        ingreso: c("accIngreso"), contrato: c("accContrato"), fecha: c("accFecha"), hora: c("accHora"), horasTrab: c("accHorasTrab"), tipo: c("accTipo"),
+        categoria: document.querySelector('input[name="accCat"]:checked')?.value || "", ruta: c("accRuta"), km: c("accKm"), sitio: c("accSitio"), comuna: c("accComuna"),
+        testigos: c("accTestigos"), que: c("accQue"), epp: c("accEpp"), despues: c("accDespues"), parte: c("accParte"), agente: c("accAgente"), actividad: c("accActividad"),
+        centro: c("accCentro"), invNombre: c("accInvNombre"), invCargo: c("accInvCargo") || "Prevencionista", sinCphs: document.getElementById("accSinCphs").checked, cphsNombre: c("accCphsNombre") };
+    }
+    const lugarAcc = a => [a.ruta, a.km ? "Km " + a.km : "", a.sitio].filter(Boolean).join(", ");
+    function descripcionAcc(a) {
+      const partes = [a.que, a.epp, a.despues].filter(Boolean);
+      partes.push(...[["Parte del cuerpo afectada", a.parte], ["Agente involucrado", a.agente], ["Actividad que realizaba", a.actividad],
+        ["Hora aproximada del accidente", a.hora ? a.hora + " horas" : ""], ["Centro asistencial de traslado", a.centro]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}.`));
+      return partes.join("\n\n");
+    }
+    async function generarFlash(ev) {
+      ev.preventDefault();
+      const error = document.getElementById("errorAcc"), a = datosFormAcc();
+      const falla = (texto, id) => { error.textContent = texto; const el = document.getElementById(id); if (el) { el.classList.add("campo-falta"); el.scrollIntoView({ behavior: "smooth", block: "center" }); } };
+      if (!a.nombre) return falla("Falta el nombre del accidentado.", "accNombre");
+      if (!rutValido(a.rut)) return falla("El RUT no es válido: revísalo.", "accRut");
+      if (!a.fecha) return falla("Falta la fecha del accidente.", "accFecha");
+      if (!a.hora) return falla("Falta la hora del accidente.", "accHora");
+      if (!a.categoria) return falla("Marca la gravedad del accidente.", "accGrav");
+      if (!a.que) return falla("Describe qué estaba haciendo y qué pasó.", "accQue");
+      for (const [k, id, t] of [["parte", "accParte", "la parte del cuerpo afectada"], ["agente", "accAgente", "el agente involucrado"], ["actividad", "accActividad", "la actividad que realizaba"]])
+        if (!a[k]) return falla(`Falta ${t}.`, id);
+      if (!a.invNombre) return falla("Falta el nombre de quien investiga.", "accInvNombre");
+      const cI = document.querySelector("#accFirmaInv canvas"), cC = document.querySelector("#accFirmaCphs canvas");
+      if (!cI.dataset.firmado) { cI.closest(".firma").classList.add("falta"); return falla("Falta la firma de quien investiga.", "accFirmaInv"); }
+      if (!a.sinCphs && (!a.cphsNombre || !cC.dataset.firmado)) return falla('Falta el nombre y la firma del representante del CPHS (o marca "firma después").', "accCphsNombre");
+      const firma = c => ({ png: c.toDataURL("image/png"), w: c.width, h: c.height });
+      a.firmaInv = firma(cI); a.firmaCphs = a.sinCphs ? null : firma(cC);
+      a.id = accActualId || "acc" + Date.now().toString(36);
+      a.creado = Date.now();
+      error.textContent = "Armando el informe flash…";
+      try {
+        // Copia PDF con folio (queda en el Historial y en Drive)
+        const pdf = { bytes: await crearPDF_Flash(a), nombreArchivo: `Informe_flash_${slugArchivo(a.nombre)}_${a.fecha}.pdf`, asunto: `Informe flash de accidente – ${a.nombre} – ${fechaCLde(a.fecha)}` };
+        idsHistAcc[a.id] = await guardarEnHistorial(idsHistAcc[a.id] ?? null, "accidente", pdf, a.fecha, `${a.nombre} · ${a.categoria} · ${lugarAcc(a) || a.comuna}`, { accidente: a.id });
+        a.folio = pdf.folio || "";
+        // Registro del accidente (para la investigación) y para el informe mensual
+        accidentes = accidentes.filter(x => x.id !== a.id).concat(a);
+        guardar("pt_accidentes", accidentes);
+        alInformeMensual(a);
+        guardar("pt_acc_recordar", { inv: a.invNombre, invCargo: a.invCargo, centro: a.centro, ruta: a.ruta, comuna: a.comuna, cphs: a.cphsNombre });
+        accActualId = a.id;
+        // El Word del flash: mismo formato de las bases, con las firmas
+        const word = await wordFlash(a);
+        alDrive(`Informe_flash_${slugArchivo(a.nombre)}_${a.fecha}.docx`, word, TIPO_DOCX, [DRIVE_RAIZ, a.fecha.slice(0, 7), "Accidentes"], "flash:" + a.id);
+        bitacora("Informe flash de accidente", { doc: `${a.nombre} · ${fechaCLde(a.fecha)} · ${a.categoria}`, folio: a.folio });
+        error.textContent = "";
+        document.getElementById("infoAcc").textContent = `Folio ${a.folio || "—"} · quedó en el Historial${driveConfigurado() ? " y se sube a tu Drive (Word y PDF)" : ""} y en el registro de accidentes del informe mensual. Si corriges algo y lo generas de nuevo, sale una versión corregida.`;
+        document.getElementById("msjAcc").textContent = "";
+        document.getElementById("cajaAcc").style.display = "block";
+        document.getElementById("cajaAcc").scrollIntoView({ behavior: "smooth" });
+        pintarAccidentes();
+      } catch (e) { error.textContent = "No se pudo armar el informe: " + e.message; }
+    }
+    // El accidente queda en el registro del informe mensual (una sola vez; si se corrige, se actualiza)
+    function alInformeMensual(a) {
+      const fila = { nombre: a.nombre, rut: a.rut, cargo: a.cargo, sexo: a.sexo === "Femenino" ? "F" : a.sexo === "Masculino" ? "M" : "", fecha: a.fecha, categoria: a.categoria,
+        tipo: a.tipo, parte: a.parte, inicio: /ATP/.test(a.categoria) ? "" : a.fecha, alta: "", descripcion: a.que.slice(0, 400), medidas: "" };
+      infListas.accidentes = infListas.accidentes || [];
+      const i = infListas.accidentes.findIndex(x => claveRut(x.rut) === claveRut(a.rut) && x.fecha === a.fecha);
+      if (i >= 0) infListas.accidentes[i] = { ...infListas.accidentes[i], ...fila, inicio: infListas.accidentes[i].inicio || fila.inicio, alta: infListas.accidentes[i].alta, medidas: infListas.accidentes[i].medidas || "" };
+      else infListas.accidentes.push(fila);
+      guardar("pt_inf_listas", infListas);
+      if (infListo) pintarFilas("infAccidentes", infListas.accidentes);
+    }
+
+    // ----- Word: llena una plantilla (texto en {{campos}} y firmas como imagen) -----
+    const TIPO_DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    const xmlEsc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    async function llenarWord(b64, valores, firmas = {}) {
+      const entradas = await leerZipEntradas(b64aBytes(b64)), extra = [], dec = new TextDecoder();
+      let doc = dec.decode(await sacarDelZip(entradas["word/document.xml"]));
+      let rels = dec.decode(await sacarDelZip(entradas["word/_rels/document.xml.rels"]));
+      let n = 0;
+      for (const [k, f] of Object.entries(firmas)) {
+        const re = new RegExp(`<w:r\\b(?:(?!</w:r>)[\\s\\S])*?\\{\\{${k}\\}\\}(?:(?!</w:r>)[\\s\\S])*?</w:r>`);
+        if (!f || !f.png) { doc = doc.replace(re, ""); continue; }
+        n++;
+        const rid = "rIdFirmaApp" + n, cx = 1500000, cy = Math.min(650000, Math.round(cx * (f.h || 1) / (f.w || 3))), idPr = 9000 + n;
+        extra.push({ nombre: `word/media/firma_app${n}.png`, datos: b64aBytes(f.png.split(",")[1]) });
+        rels = rels.replace("</Relationships>", `<Relationship Id="${rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/firma_app${n}.png"/></Relationships>`);
+        doc = doc.replace(re, `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${idPr}" name="Firma ${n}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${idPr}" name="firma_app${n}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`);
+      }
+      doc = doc.replace(/<w:t>/g, '<w:t xml:space="preserve">');
+      // Cada línea del valor es un PÁRRAFO nuevo con el mismo formato (un salto de línea dentro de un párrafo
+      // justificado estira las palabras en Word). Así también las viñetas de testigos quedan una por persona.
+      const SALTO = "\u0001";
+      doc = doc.replace(/<w:p\b(?:(?!<\/w:p>)[\s\S])*?<\/w:p>/g, par => {
+        if (!par.includes("{{")) return par;
+        let out = par.replace(/\{\{([a-z_]+)\}\}/g, (m, k) => xmlEsc(valores[k] ?? "").replace(/\r?\n/g, SALTO));
+        if (!out.includes(SALTO)) return out;
+        const pPr = (out.match(/<w:pPr>[\s\S]*?<\/w:pPr>/) || [""])[0];
+        const run = out.match(new RegExp(`<w:r\\b(?:(?!</w:r>)[^${SALTO}])*${SALTO}`));
+        const rPr = run ? ((run[0].match(/<w:rPr>[\s\S]*?<\/w:rPr>/) || [""])[0]) : "";
+        return out.split(SALTO).join(`</w:t></w:r></w:p><w:p>${pPr}<w:r>${rPr}<w:t xml:space="preserve">`);
+      });
+      const archivos = [];
+      for (const [nombre, e] of Object.entries(entradas)) {
+        if (nombre.endsWith("/")) continue;
+        archivos.push({ nombre, datos: nombre === "word/document.xml" ? textoABytes(doc) : nombre === "word/_rels/document.xml.rels" ? textoABytes(rels) : await sacarDelZip(e) });
+      }
+      return armarZip(archivos.concat(extra));
+    }
+    const valoresEmpresa = () => ({ emp_razon: EMPRESA.nombre || "", emp_rut: EMPRESA.rut || "", emp_rep: EMPRESA.repNombre || "", emp_rep_rut: EMPRESA.repRut || "",
+      emp_fono: EMPRESA.fono || "", emp_email: EMPRESA.correo || "", emp_actividad: EMPRESA.actividad || "Construcción", emp_organismo: EMPRESA.organismo || "",
+      emp_direccion: EMPRESA.direccion || "", emp_comuna: EMPRESA.comuna || "" });
+    async function wordFlash(a) {
+      return llenarWord(PLANTILLAS_WORD.flash, { ...valoresEmpresa(), acc_nombre: a.nombre, acc_rut: a.rut, testigos: a.testigos,
+        lugar: [lugarAcc(a), a.comuna ? "Comuna de " + a.comuna : ""].filter(Boolean).join(", ") + ".", fecha_larga: fechaLarga(a.fecha) + ".",
+        descripcion: descripcionAcc(a), investiga_nombre: a.invNombre, cphs_nombre: a.cphsNombre && !a.sinCphs ? a.cphsNombre : "" },
+        { firma_investiga: a.firmaInv, firma_cphs: a.firmaCphs });
+    }
+    async function wordInvestigacion(a) {
+      // En la investigación: Contratista por defecto (el MOP es la empresa principal o mandante). Es aparte del
+      // "Tipo" del informe mensual MOP, que puede usar otra denominación.
+      const tipo = EMPRESA.tipoAcc || "Contratista", marca = (cond) => cond ? "_X_" : "___";
+      const g = a.categoria || "";
+      return llenarWord(PLANTILLAS_WORD.investigacion, { ...valoresEmpresa(),
+        n_trab: String(listado?.lista?.length || ""), prom_trab: EMPRESA.promedioTrab || "",
+        te_principal: marca(tipo === "Principal"), te_contratista: marca(tipo === "Contratista"), te_sub: marca(tipo === "Subcontratista"), te_prestadora: marca(/Prestador/i.test(tipo)),
+        ep_publica: EMPRESA.publica === "publica" ? "__X__" : "______", ep_privada: EMPRESA.publica === "publica" ? "______" : "__X__",
+        acc_nombre: a.nombre, acc_rut: a.rut, acc_nac: fechaGuion(a.nac), acc_nacionalidad: a.nacionalidad, acc_oficio: a.cargo, acc_edad: edadEn(a.nac, a.fecha),
+        acc_sexo: a.sexo, acc_ingreso: fechaCLde(a.ingreso), acc_contrato: fechaCLde(a.contrato), acc_categoria: "Trabajador dependiente", acc_antiguedad: antiguedadEn(a.ingreso, a.fecha),
+        fecha: fechaGuion(a.fecha), dia: DIAS[fechaD(a.fecha).getDay()], hora: a.hora ? a.hora + " hrs" : "", horas_trab: a.horasTrab, lugar: lugarAcc(a), comuna_lugar: a.comuna,
+        g_leve: /Leve/.test(g) ? "X" : "_", g_grave: g === "Grave" ? "X" : "_", g_fatal: g === "Fatal" ? "X" : "_",
+        descripcion: descripcionAcc(a), hechos: "", inv_nombre: a.invNombre, inv_cargo: a.invCargo, fecha_emision: fechaGuion(hoyISO()) });
+    }
+    async function compartirWord(bytes, nombre, titulo) {
+      const msj = document.getElementById("msjAcc"), datos = { files: [new File([bytes], nombre, { type: TIPO_DOCX })], title: titulo, text: titulo };
+      if (navigator.canShare && navigator.canShare(datos)) {
+        try { await navigator.share(datos); msj.textContent = "Listo: compartido."; return; } catch (e) { if (e.name === "AbortError") { msj.textContent = "Cancelado."; return; } }
+      }
+      descargarArchivo(bytes, nombre, TIPO_DOCX);
+      msj.textContent = `Se guardó ${nombre} en Descargas.`;
+    }
+    const accPorId = id => accidentes.find(x => x.id === id);
+    async function compartirFlashWord(id = accActualId) {
+      const a = accPorId(id); if (!a) return;
+      try { await compartirWord(await wordFlash(a), `Informe_flash_${slugArchivo(a.nombre)}_${a.fecha}.docx`, `Informe flash – ${a.nombre}`); }
+      catch (e) { document.getElementById("msjAcc").textContent = "No se pudo armar el Word: " + e.message; }
+    }
+    async function compartirFlashPDF(id = accActualId) {
+      const a = accPorId(id), r = a && (await todosLosRegistros()).find(x => x.tipo === "accidente" && x.accidente === a.id && vigente(x));
+      if (!r) { document.getElementById("msjAcc").textContent = "No encontré la copia PDF en el Historial."; return; }
+      await compartirPDFEPP(new Uint8Array(r.pdf), r.nombreArchivo, r.asunto, document.getElementById("msjAcc"));
+    }
+    async function descargarInvestigacion(id) {
+      const a = accPorId(id); if (!a) return;
+      try {
+        const nombre = `Investigacion_accidente_${slugArchivo(a.nombre)}_${a.fecha}.docx`, bytes = await wordInvestigacion(a);
+        await compartirWord(bytes, nombre, `Investigación de accidente – ${a.nombre}`);
+        alDrive(nombre, bytes, TIPO_DOCX, [DRIVE_RAIZ, a.fecha.slice(0, 7), "Accidentes"], "investigacion:" + a.id);
+        bitacora("Investigación de accidente (Word)", { doc: `${a.nombre} · ${fechaCLde(a.fecha)}` });
+      } catch (e) { document.getElementById("msjAcc").textContent = "No se pudo armar la investigación: " + e.message; }
+    }
+    function pintarAccidentes() {
+      const cont = document.getElementById("accLista");
+      const lista = accidentes.slice().sort((x, y) => y.fecha.localeCompare(x.fecha) || y.creado - x.creado);
+      cont.innerHTML = lista.map(a => `<div class="acc-fila"><b>${html(fechaCLde(a.fecha))} · ${html(a.nombre)}</b><br><small>${html(a.categoria)} · ${html(lugarAcc(a) || a.comuna || "")}${a.folio ? " · Folio " + html(a.folio) : ""}</small>
+          <div class="dos-col"><button type="button" class="btn btn-secundario" style="margin:0" onclick="accActualId = '${a.id}'; compartirFlashWord('${a.id}')">📤 Flash (Word)</button>
+          <button type="button" class="btn btn-secundario" style="margin:0" onclick="descargarInvestigacion('${a.id}')">📝 Investigación</button></div></div>`).join("")
+        || `<p class="ayuda" style="margin:0">No hay accidentes registrados en este equipo.</p>`;
+    }
+    function nuevoAccidente() {
+      accActualId = null;
+      document.getElementById("formAcc").reset();
+      document.querySelectorAll("#formAcc .firma .btn-limpiar").forEach(limpiarFirma);
+      document.getElementById("cajaAcc").style.display = "none";
+      document.getElementById("accAvisoGrave").style.display = "none";
+      document.getElementById("accCphsCaja").style.display = "";
+      iniciarAccidentes();
+      window.scrollTo(0, 0);
+    }
+    // Copia PDF del flash (mismo contenido, con folio y verificable)
+    async function crearPDF_Flash(a) {
+      const c = await nuevoPDFSimple("INFORMACIÓN PRELIMINAR DE ACCIDENTE (INFORME FLASH)", `${LINEA_EMPLEADOR || EMPRESA.nombre || ""} · Fecha del accidente ${fechaCLde(a.fecha)}`);
+      c.titulo("Antecedentes de la empresa");
+      c.parrafo(`Razón social: ${EMPRESA.nombre || ""} · RUT ${EMPRESA.rut || ""}`, { tam: 9.5 });
+      if (EMPRESA.repNombre) c.parrafo(`Representante legal: ${EMPRESA.repNombre}${EMPRESA.repRut ? " · RUT " + EMPRESA.repRut : ""}`, { tam: 9.5 });
+      if (EMPRESA.fono || EMPRESA.correo) c.parrafo([EMPRESA.fono ? "Fono: " + EMPRESA.fono : "", EMPRESA.correo ? "Email: " + EMPRESA.correo : ""].filter(Boolean).join(" · "), { tam: 9.5 });
+      c.titulo("Antecedentes del accidentado");
+      c.parrafo(`Nombre: ${a.nombre} · RUT ${a.rut}${a.cargo ? " · " + a.cargo : ""}`, { tam: 9.5 });
+      c.parrafo(`Fecha: ${fechaLarga(a.fecha)}, ${a.hora} horas · ${a.tipo} · ${a.categoria}`, { tam: 9.5 });
+      c.parrafo(`Lugar: ${[lugarAcc(a), a.comuna ? "Comuna de " + a.comuna : ""].filter(Boolean).join(", ")}`, { tam: 9.5 });
+      if (a.testigos) c.parrafo(`Testigos: ${a.testigos.split("\n").filter(Boolean).join(", ")}`, { tam: 9.5 });
+      c.titulo("Descripción del accidente");
+      c.parrafo(descripcionAcc(a), { tam: 9.5 });
+      c.espacio(140); c.y -= 10;
+      const w = (c.ANCHO - 20) / 2, firmas = [[a.firmaInv, a.invNombre, "Quien investiga"], [a.firmaCphs, a.sinCphs ? "" : a.cphsNombre, "Representante CPHS"]];
+      for (let i = 0; i < 2; i++) {
+        const [f, nombre, rol] = firmas[i], x = c.M + i * (w + 20);
+        if (f && f.png) { const im = await c.doc.embedPng(f.png), k = Math.min((w - 20) / im.width, 70 / im.height); c.pag.drawImage(im, { x: x + (w - im.width * k) / 2, y: c.y - 80, width: im.width * k, height: im.height * k }); }
+        c.pag.drawLine({ start: { x, y: c.y - 86 }, end: { x: x + w, y: c.y - 86 }, thickness: 0.8, color: c.GRIS });
+        const t1 = textoPDF(nombre || "(firma pendiente)"), t2 = textoPDF(rol);
+        c.pag.drawText(t1, { x: x + Math.max(0, (w - c.fB.widthOfTextAtSize(t1, 9)) / 2), y: c.y - 98, size: 9, font: c.fB, color: c.NEGRO });
+        c.pag.drawText(t2, { x: x + (w - c.fN.widthOfTextAtSize(t2, 8)) / 2, y: c.y - 110, size: 8, font: c.fN, color: c.GRIS });
+      }
+      c.y -= 120;
+      c.parrafo("Copia de respaldo del informe flash. El formato oficial de las bases se entrega en Word.", { tam: 7.5, color: c.GRIS });
+      c.pie();
+      return await c.doc.save();
     }
 
     /* =====================================================================
