@@ -407,6 +407,7 @@
     .menu-btn[onclick*="'historial'"] .menu-ico { background: var(--grad-cielo); }
     .menu-flecha { color: var(--azul); }
     #filtrosHist { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .version-app { text-align: center; margin: 4px 0 24px; }
     .dos-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
     .dos-col > *, input[type=date], input[type=time] { min-width: 0; max-width: 100%; }
     .lic-clases { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px 8px; }
@@ -1039,6 +1040,7 @@
         </div>
         <p class="mensaje" id="msjPaquete"></p>
       </div>
+      <p class="ayuda version-app" id="versionApp"></p>
 
       <div class="tarjeta" id="editorFormatos">
         <h2>Editor de formatos</h2>
@@ -2005,7 +2007,7 @@
       if (id === "historial") pintarHistorial();
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
-      if (id === "empresa") { pintarEmpresa(); pintarDrive(); }
+      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); }
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
@@ -4265,6 +4267,13 @@
       const volver = sessionStorage.getItem("pt_drive_volver"); sessionStorage.removeItem("pt_drive_volver");
       if (volver && /^[a-z]+$/.test(volver)) setTimeout(() => mostrar(volver), 300);
     })();
+    async function pintarVersion() {
+      const caja = document.getElementById("versionApp");
+      if (!caja) return;
+      let version = "";
+      try { const k = (await caches.keys()).filter(c => c.startsWith("prevencion:" + new URL("./", location.href).href)).sort().pop(); version = k ? k.split(":").pop() : ""; } catch {}
+      caja.textContent = version ? `Versión ${version} · ${navigator.onLine ? "con internet: se actualiza sola al abrir" : "sin internet: se actualizará cuando haya señal"}` : "Versión: se mostrará después de abrir la app una vez con internet.";
+    }
     function desconectarDrive() {
       const t = driveToken(); sessionStorage.removeItem("pt_drive_token");
       if (t) fetch("https://oauth2.googleapis.com/revoke?token=" + encodeURIComponent(t), { method: "POST" }).catch(() => {});
