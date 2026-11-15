@@ -242,6 +242,14 @@
     /* ===== Check list ===== */
     .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
     .ck-listas:empty { display: none; }
+    .ck-lista.activo { border-color: var(--azul, #1d4ed8); box-shadow: 0 0 0 2px rgba(29, 78, 216, .18); }
+    .doc-sino { display: grid; grid-template-columns: 1fr minmax(170px, 45%); gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #eaecf0; }
+    #documentos .opciones input[value="SI"]:checked + span { background: var(--ok); border-color: var(--ok); }
+    #documentos .opciones input[value="NO"]:checked + span { background: var(--mal); border-color: var(--mal); }
+    #documentos .opciones input[value="NA"]:checked + span { background: #667085; border-color: #667085; }
+    .ed-bloque-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .ed-bloque-top .btn-limpiar { margin-left: 4px; min-width: 32px; }
+    .ed-bloque-top span { white-space: nowrap; flex-shrink: 0; }
     .ck-lista { padding: 12px; border: 1px solid var(--borde); border-radius: 8px; background: white; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; font-family: inherit; color: inherit; display: flex; justify-content: space-between; gap: 8px; }
     .ck-lista small { color: #56606b; font-weight: 400; white-space: nowrap; }
     .ck-lista.activo { border: 2px solid var(--principal); background: var(--suave); }
@@ -484,6 +492,9 @@
       <button class="menu-btn" onclick="mostrar('epp')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 0 1 16 0z"/><path d="M12 7v3M3 15h18v2H3z"/></svg></span><span class="menu-txt">Entrega de EPP<small>Hoja de cargos con firma del trabajador y de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+      <button class="menu-btn" onclick="mostrar('documentos')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="menu-txt">Documentos<small>Registro de capacitación y tus propias plantillas</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
       <button class="menu-btn" onclick="mostrar('chequeo')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
@@ -644,11 +655,12 @@
           <button type="button" data-f="check" onclick="filtrarHist(this)">Check list</button>
           <button type="button" data-f="hallazgos" onclick="filtrarHist(this)">Hallazgos</button>
           <button type="button" data-f="epp" onclick="filtrarHist(this)">EPP</button>
+          <button type="button" data-f="documento" onclick="filtrarHist(this)">Documentos</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
           <summary>📦 Pasar los registros del mes al PC (para el informe mensual)</summary>
-          <p class="ayuda">Arma un solo PDF con todas las charlas, IRL y check list del mes. Mándatelo por correo o WhatsApp y en el PC cárgalo en "Informe mensual".</p>
+          <p class="ayuda">Arma un solo PDF con todas las charlas, IRL, check list y documentos (capacitaciones) del mes. Mándatelo por correo o WhatsApp y en el PC cárgalo en "Informe mensual".</p>
           <div class="dos-col"><input type="month" id="expMes"><button type="button" class="btn btn-principal" onclick="exportarRegistrosMes()">Exportar</button></div>
           <p class="ayuda" style="margin-top:12px">Respaldo: baja un zip con todos los PDF del mes elegido, ordenados en carpetas. Este equipo guarda el mes actual y el anterior; lo más antiguo que ya respaldaste se borra solo.</p>
           <button type="button" class="btn btn-secundario" onclick="respaldarMesElegido()">💾 Descargar respaldo (zip) del mes</button>
@@ -1084,6 +1096,10 @@
           <summary>✅ Check list</summary>
           <div id="edCheck"></div>
         </details>
+        <details class="exportar ed-sec" ontoggle="if (this.open) edAbrir('docs')">
+          <summary>📄 Documentos base (plantillas)</summary>
+          <div id="edDocs"></div>
+        </details>
         <div class="ed-barra" id="edBarra" style="display:none">
           <p class="ayuda" id="edEstado" style="margin:0 0 8px"></p>
           <div class="dos-col">
@@ -1155,6 +1171,34 @@
           <p class="mensaje" id="mensajeCheck"></p>
           <button class="btn btn-secundario" onclick="otroCheck(true)">Otro check list igual (mismos datos)</button>
           <button class="btn btn-secundario" onclick="otroCheck(false)">Elegir otro tipo de check list</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== DOCUMENTOS BASE (plantillas: registro de capacitación y las propias) ========== -->
+    <section id="documentos" class="pantalla">
+      <div class="tarjeta">
+        <h2>¿Qué documento vas a hacer?</h2>
+        <div id="docPlantillas" class="ck-listas"></div>
+        <p class="ayuda" style="margin-top:10px">Para crear tus propias plantillas: Empresa y formatos → Editor de formatos → Documentos base.</p>
+      </div>
+      <form id="formDoc" onsubmit="generarDocumento(event)" novalidate style="display:none">
+        <div id="docBorrador"></div>
+        <div id="docCuerpo"></div>
+        <div class="tarjeta" id="docPrograma" style="display:none"></div>
+        <div class="tarjeta">
+          <p class="error" id="errorDoc"></p>
+          <button type="submit" class="btn btn-principal">Revisar y generar PDF</button>
+        </div>
+      </form>
+      <div class="tarjeta" id="cajaEnvioDoc" style="display:none; margin-top:16px">
+        <h2>✅ Documento listo</h2>
+        <p class="ayuda" id="infoPDFDoc"></p>
+        <div class="acciones">
+          <button class="btn btn-principal" onclick="compartirDoc()">📤 Compartir PDF (correo, WhatsApp…)</button>
+          <button class="btn btn-secundario" onclick="guardarPDFDoc()">💾 Guardar PDF en el teléfono</button>
+          <p class="mensaje" id="mensajeDoc"></p>
+          <button class="btn btn-secundario" onclick="nuevoDocumento()">Hacer otro documento</button>
         </div>
       </div>
     </section>
@@ -2025,7 +2069,8 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos" };
+      if (id === "documentos") iniciarDocumentos();
       if (id === "irl") iniciarIRL();
       if (id === "historial") pintarHistorial();
       if (id === "chequeo") iniciarCheck();
@@ -3208,10 +3253,10 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON" };
-    function nuevoFolio(tipo, fecha) {
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC" };
+    function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
-      return `${PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
+      return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
     }
     async function huella(bytes) {
       if (!crypto.subtle) return "";
@@ -3222,7 +3267,7 @@
     async function sellarPDF(pdf, tipo, fecha) {
       try {
         const { PDFDocument, StandardFonts, rgb } = PDFLib;
-        const folio = nuevoFolio(tipo, fecha);
+        const folio = nuevoFolio(tipo, fecha, pdf.prefijo);
         const d = await PDFDocument.load(pdf.bytes, { updateMetadata: false });
         const f = await d.embedFont(StandardFonts.Helvetica);
         for (const pag of d.getPages()) pag.drawText(`Folio ${folio} · verificable en la app Prevención en Terreno (Historial > Verificar documento)`, { x: 36, y: 11, size: 6, font: f, color: rgb(0.45, 0.48, 0.55) });
@@ -3234,10 +3279,10 @@
       return pdf;
     }
 
-    async function guardarEnHistorial(idAnterior, tipo, pdf, fecha, detalle) {
+    async function guardarEnHistorial(idAnterior, tipo, pdf, fecha, detalle, extra = {}) {
       await sellarPDF(pdf, tipo, fecha);
       try {
-        const registro = { tipo, fecha, detalle, asunto: pdf.asunto, nombreArchivo: pdf.nombreArchivo,
+        const registro = { ...extra, tipo, fecha, detalle, asunto: pdf.asunto, nombreArchivo: pdf.nombreArchivo,
                            creado: Date.now(), pdf: pdf.bytes, folio: pdf.folio || "", hash: pdf.hash || "" };
         if (idAnterior) {
           registro.id = idAnterior;
@@ -3284,7 +3329,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : "📋"} ${html(r.asunto)}</div>
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
@@ -4166,7 +4211,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -4946,10 +4991,10 @@
       const regs = (await registrosDelMes(k)).filter(r => r.tipo !== "anexo");
       const n = t => regs.filter(r => r.tipo === t).length;
       document.getElementById("infResumenHist").textContent = regs.length
-        ? `En este equipo hay ${n("charla")} charla(s), ${n("irl")} IRL y ${n("check")} check list de ${nombreMes(k)}.`
+        ? `En este equipo hay ${n("charla")} charla(s), ${n("irl")} IRL, ${n("check")} check list y ${n("documento")} documento(s) de ${nombreMes(k)}.`
         : `En este equipo no hay registros de ${nombreMes(k)}. Cárgalos desde el celular con el botón de abajo.`;
       const marcados = new Set(infMeses[k]?.anexosHist || []);
-      const etiqueta = { charla: "Charla", irl: "IRL", check: "Check list", informe: "Informe" };
+      const etiqueta = { charla: "Charla", irl: "IRL", check: "Check list", informe: "Informe", documento: "Documento" };
       document.getElementById("infAnexosHist").innerHTML = regs.filter(r => r.tipo !== "informe").map(r =>
         `<label class="check-linea"><input type="checkbox" value="${r.id}" ${marcados.has(r.id) ? "checked" : ""}> ${fechaCLde(r.fecha)} · ${html(etiqueta[r.tipo] || r.tipo)}: ${html(r.detalle || r.asunto)}</label>`).join("")
         || `<p class="ayuda" style="margin:0">No hay registros de este mes en este equipo.</p>`;
@@ -4974,6 +5019,13 @@
         const obs = ck.reduce((s, r) => s + (+(String(r.detalle).match(/(\d+) observaci/) || [])[1] || 0), 0);
         nuevas.push(`Se realizaron ${ck.length} inspecciones con check list: ${contar(ck.map(r => String(r.detalle).split(" · ")[0]))}. ${obs ? `Se detectaron ${obs} ítem(s) con observación, gestionados según lo registrado en cada check list.` : "No se detectaron observaciones."}`);
       }
+      const cap = regs.filter(r => r.tipo === "documento" && r.plantilla === "capacitacion");
+      if (cap.length) {
+        const asis = cap.reduce((s, r) => s + (+r.asistentes || 0), 0), hp = cap.reduce((s, r) => s + (+r.horasPersona || 0), 0);
+        nuevas.push(`${cap.length === 1 ? "Se realizó 1 capacitación" : `Se realizaron ${cap.length} capacitaciones`}: ${cap.map(r => String(r.detalle).split(" · ")[1] || r.asunto).join("; ")}${asis ? `, con un total de ${asis} asistencias` : ""}${hp ? ` y ${decimalCL(hp)} horas-persona de capacitación` : ""}.`);
+      }
+      const otrosDocs = regs.filter(r => r.tipo === "documento" && r.plantilla !== "capacitacion");
+      if (otrosDocs.length) nuevas.push(`Se emitieron ${otrosDocs.length} documento(s) de prevención: ${contar(otrosDocs.map(r => String(r.detalle).split(" · ")[0]))}.`);
       const acc = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
       nuevas.push(acc.length ? `Durante el mes de ${mesTxt} se registra(n) ${acc.length} accidente(s): ${acc.map(a => `${a.categoria || "accidente"} ${a.tipo ? "(" + a.tipo.toLowerCase() + ")" : ""} el ${fechaCLde(a.fecha)}`).join("; ")}. Se adjunta la investigación correspondiente.`
                              : `No se registran accidentes en el mes de ${mesTxt}.`);
@@ -4985,7 +5037,7 @@
       if (cp.total) nuevas.push(`Cumplimiento del programa de prevención de riesgos del mes: se ejecutaron ${cp.hechas} de ${cp.total} actividades programadas (${cp.pct}%).`);
       const actuales = leerFilas("infActividades").filter(a => a.texto);
       // No repetimos lo que ya estaba (si se presiona dos veces)
-      const auto = /^(Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
+      const auto = /^(Se realiz(?:ó 1|aron \d+) capacitaci|Se emitieron \d+ documento|Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
       pintarFilas("infActividades", [...nuevas.map(texto => ({ texto })), ...actuales.filter(a => !auto.test(a.texto))]);
       guardarInforme();
     }
@@ -5135,7 +5187,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -5206,7 +5258,7 @@
     async function exportarRegistrosMes() {
       const k = document.getElementById("expMes").value, msj = document.getElementById("mensajeHist");
       if (!k) { msj.textContent = "Elige el mes a exportar."; return; }
-      const regs = (await registrosDelMes(k)).filter(r => ["charla", "irl", "check"].includes(r.tipo));
+      const regs = (await registrosDelMes(k)).filter(r => ["charla", "irl", "check", "documento"].includes(r.tipo));
       if (!regs.length) { msj.textContent = `No hay registros de ${nombreMes(k)} en este teléfono.`; return; }
       msj.textContent = "Armando el archivo…";
       try {
@@ -5215,7 +5267,7 @@
         for (const r of regs) {
           const d = await PDFDocument.load(r.pdf);
           const pags = await total.copyPages(d, d.getPageIndices());
-          indice.push({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", desde: total.getPageCount(), paginas: pags.length });
+          indice.push({ plantilla: r.plantilla || "", asistentes: r.asistentes || 0, horasPersona: r.horasPersona || 0, tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", desde: total.getPageCount(), paginas: pags.length });
           pags.forEach(p => total.addPage(p));
         }
         total.setTitle(`Registros de prevención – ${nombreMes(k)}`);
@@ -5258,7 +5310,7 @@
           pags.forEach(p => d.addPage(p));
           if (r.folio) d.setKeywords(["prevencion-terreno", "folio:" + r.folio]);   // el folio sigue siendo verificable en el PC
           const pdf = await d.save(), hashCopia = await huella(pdf);   // la copia separada en el PC también se reconoce como original
-          await operacionBD("readwrite", s => s.put({ tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", hashCopia, pdf }));
+          await operacionBD("readwrite", s => s.put({ ...(r.tipo === "documento" ? { plantilla: idSeguroTxt(r.plantilla) ? r.plantilla : "", asistentes: +r.asistentes || 0, horasPersona: +r.horasPersona || 0 } : {}), tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", hashCopia, pdf }));
           nuevos++;
         }
         msj.textContent = `✅ ${nuevos} registro(s) nuevos de ${nombreMes(info.mes)} cargados${info.registros.length - nuevos ? ` (${info.registros.length - nuevos} ya estaban)` : ""}.`;
@@ -6464,7 +6516,7 @@
       if (window.PAQUETE_INCLUIDO) quitar.textContent = "Volver a los formatos incluidos";
       const dato = (v, t) => `<div class="inf-dato"><b>${v}</b><small>${t}</small></div>`;
       document.getElementById("empResumen").innerHTML = dato(DEPARTAMENTOS.length, "Departamentos (charla y ART)") + dato(CHECKLIST.length, "Puntos del checklist de la charla") +
-        dato(nCk, "Check list") + dato(nIRL, "IRL por cargo");
+        dato(nCk, "Check list") + dato(nIRL, "IRL por cargo") + dato(Object.keys(plantillasDoc()).length, "Plantillas de documentos");
     }
 
     async function guardarDatosEmpresa() {
@@ -6575,7 +6627,7 @@
     async function iniciarCalendario() {
       document.getElementById("progTipo").innerHTML = TIPOS_PROGRAMA.map(t => `<option>${t}</option>`).join("");
       if (!document.getElementById("progFecha").value) document.getElementById("progFecha").value = calDiaSel;
-      try { calRegistros = (await operacionBD("readonly", s => s.getAll())).filter(r => ["charla", "irl", "check", "informe"].includes(r.tipo)); } catch { calRegistros = []; }
+      try { calRegistros = (await operacionBD("readonly", s => s.getAll())).filter(r => ["charla", "irl", "check", "informe", "documento"].includes(r.tipo)); } catch { calRegistros = []; }
       pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma();
     }
     function moverMesCal(paso) {
@@ -6598,7 +6650,7 @@
         const regs = calRegistros.filter(r => r.fecha === f);
         const pr = prog.filter(x => x.f === f && !x.a.mes);
         const cuenta = t => regs.filter(r => r.tipo === t).length;
-        const iconos = [["charla", "📋"], ["irl", "📘"], ["check", "✅"]].filter(([t]) => cuenta(t)).map(([t, i]) => `<span>${i}${cuenta(t) > 1 ? cuenta(t) : ""}</span>`).join("")
+        const iconos = [["charla", "📋"], ["irl", "📘"], ["check", "✅"], ["documento", "📄"]].filter(([t]) => cuenta(t)).map(([t, i]) => `<span>${i}${cuenta(t) > 1 ? cuenta(t) : ""}</span>`).join("")
           + (hallazgos.some(h => (!h.cerrado && h.plazo === f) || (h.cerrado && h.cerrado.fecha === f)) ? "<span>📌</span>" : "")
           + (vencimientosEl(f).length ? "<span>⏰</span>" : "");
         const halF = hallazgosConPlazo(f), halC = hallazgosCerradosEl(f);
@@ -6636,7 +6688,9 @@
       if (r.tipo === "informe") return r.asunto;
       return r.asunto || r.detalle;
     }
-    const SUGIERE_TIPO = { "Charla": "charla", "Inducción / IRL": "irl", "Inspección": "check" };
+    const SUGIERE_TIPO = { "Charla": "charla", "Inducción / IRL": "irl", "Inspección": "check", "Capacitación": "documento" };
+    // ¿Este registro del historial cumple una actividad de ese tipo? (Capacitación = registro de capacitación)
+    const registroCumple = (r, tipoProg) => r.tipo === SUGIERE_TIPO[tipoProg] && (tipoProg !== "Capacitación" || r.plantilla === "capacitacion");
 
     function pintarDiaCal(f) {
       calDiaSel = f;
@@ -6649,7 +6703,7 @@
               <b>${html(x.a.actividad)}</b> <small>${html(x.a.tipo)}${x.a.responsable ? " · " + html(x.a.responsable) : ""}${x.a.nota ? " · " + html(x.a.nota) : x.a.frecuencia ? " · " + html(x.a.frecuencia) : ""}</small>
               ${x.a.detalle ? `<small class="cal-detalle">${html(x.a.detalle)}</small>` : ""}
               ${x.atrasada ? `<small class="rojo">Atrasada</small>` : ""}${sug ? `<small class="verde">${sug}</small>` : ""}</span></label>`;
-      const ico = { charla: "📋", irl: "📘", check: "✅", informe: "📑" };
+      const ico = { charla: "📋", irl: "📘", check: "✅", informe: "📑", documento: "📄" };
       document.getElementById("calDia").innerHTML = `
         <h2>${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()].toLowerCase()} de ${d.getFullYear()}</h2>
         <h3>Realizado</h3>
@@ -6657,13 +6711,13 @@
             <button type="button" class="btn btn-secundario" onclick="compartirRegistroCal(${r.id})">Compartir</button></div>`).join("")
           : `<p class="ayuda" style="margin:0">No hay registros de este día en este equipo.</p>`}
         <h3>Programa</h3>
-        ${prog.length ? prog.map(x => itemProg(x, SUGIERE_TIPO[x.a.tipo] && regs.some(r => r.tipo === SUGIERE_TIPO[x.a.tipo]) && !x.hecha ? "Hay un registro de este día: ¿la marcas como hecha?" : "")).join("")
+        ${prog.length ? prog.map(x => itemProg(x, SUGIERE_TIPO[x.a.tipo] && regs.some(r => registroCumple(r, x.a.tipo)) && !x.hecha ? "Hay un registro de este día: ¿la marcas como hecha?" : "")).join("")
           : `<p class="ayuda" style="margin:0">No hay actividades con fecha fija este día.</p>`}
         ${delMes.length ? `<details class="exportar" id="calDelMes" ${delMes.some(x => !x.hecha) && f.slice(0, 7) <= hoyISO().slice(0, 7) ? "open" : ""}>
             <summary>📅 Del mes de ${MESES[d.getMonth()].toLowerCase()}: ${delMes.filter(x => x.hecha).length} de ${delMes.length} hechas</summary>
             <p class="ayuda" style="margin:4px 0">Se pueden hacer cualquier día del mes. Marca el ticket cuando se cumpla.</p>
             ${delMes.map(x => {
-              const n = SUGIERE_TIPO[x.a.tipo] ? regsMes.filter(r => r.tipo === SUGIERE_TIPO[x.a.tipo]).length : 0;
+              const n = SUGIERE_TIPO[x.a.tipo] ? regsMes.filter(r => registroCumple(r, x.a.tipo)).length : 0;
               return itemProg(x, n && !x.hecha ? `En este mes hay ${n} registro(s) de ${x.a.tipo.toLowerCase()} en el historial: ¿la marcas como hecha?` : ""); }).join("")}
             ${delMes.some(x => !x.hecha) ? `<button type="button" class="btn btn-secundario" onclick="marcarTodoMes('${ini}', this)">✓ Marcar todas las del mes como hechas</button>` : ""}
           </details>` : ""}
@@ -7934,6 +7988,538 @@
     }
 
     /* =====================================================================
+       DOCUMENTOS BASE: plantillas para crear documentos (registro de capacitación y las propias)
+       Cada plantilla es una lista de "bloques" (sección, texto, fecha, horario, lista SÍ/NO, asistentes con firma,
+       fotos, firma…). La del registro de capacitación viene con la app; las propias van en el paquete (Editor de formatos).
+       El borrador (sin firmas ni fotos) queda en pt_doc_borrador por si te interrumpen.
+       ===================================================================== */
+    const TIPOS_BLOQUE = {
+      sec: "Título de sección", fijo: "Texto fijo (instrucciones o declaración)", texto: "Texto corto", largo: "Texto largo",
+      fecha: "Fecha", hora: "Hora", horario: "Horario (inicio y término)", numero: "Número", opciones: "Elegir una opción",
+      sino: "Lista SÍ / NO / N/A", trabajador: "Trabajador del listado", asistentes: "Asistentes con firma", fotos: "Fotos", firma: "Firma"
+    };
+    const PLANTILLA_CAPACITACION = {
+      nombre: "Registro de capacitación", titulo: "REGISTRO DE CAPACITACIÓN", codigo: "", prefijo: "CAP", icono: "🎓", programa: "Capacitación", incluida: true,
+      bloques: [
+        { t: "sec", txt: "1. Antecedentes" },
+        { t: "texto", et: "Tema de la capacitación", oblig: true, principal: true },
+        { t: "largo", et: "Objetivo" },
+        { t: "fecha", et: "Fecha", oblig: true },
+        { t: "horario", et: "Horario", oblig: true },
+        { t: "texto", et: "Lugar", recordar: true },
+        { t: "opciones", et: "Modalidad", ops: ["Teórica", "Práctica", "Teórico-práctica"] },
+        { t: "texto", et: "Relator", oblig: true, recordar: true },
+        { t: "texto", et: "Cargo o empresa del relator", recordar: true },
+        { t: "sec", txt: "2. Contenidos tratados" },
+        { t: "largo", et: "Contenidos", oblig: true },
+        { t: "sec", txt: "3. Asistentes" },
+        { t: "asistentes", et: "Asistentes", eval: "opcional", decl: "Al firmar, la persona trabajadora declara haber asistido a esta capacitación y haber comprendido sus contenidos." },
+        { t: "sec", txt: "Fotos de respaldo (opcional)" },
+        { t: "fotos", et: "Fotos" },
+        { t: "sec", txt: "4. Firmas" },
+        { t: "firma", et: "Relator", nombreDe: "Relator" },
+        { t: "firma", et: "Prevención de Riesgos", omitir: "El relator es el mismo prevencionista (una sola firma)" }
+      ]
+    };
+    // Revisa una plantilla (del paquete o de un respaldo): solo tipos conocidos y textos; si no sirve, null
+    function normalizarPlantilla(p) {
+      if (!p || typeof p !== "object" || !Array.isArray(p.bloques)) return null;
+      const txt = (x, max = 300) => String(x ?? "").slice(0, max);
+      const lista = x => (Array.isArray(x) ? x : []).map(y => txt(y, 200).trim()).filter(Boolean).slice(0, 60);
+      let hayAsis = false;
+      const bloques = p.bloques.filter(b => b && TIPOS_BLOQUE[b.t]).filter(b => b.t !== "asistentes" || (!hayAsis && (hayAsis = true))).slice(0, 80).map(b => {
+        const n = { t: b.t };
+        if (b.t === "sec" || b.t === "fijo") n.txt = txt(b.txt, 2000);
+        else n.et = txt(b.et || TIPOS_BLOQUE[b.t], 120);
+        if (b.oblig) n.oblig = true;
+        if (b.principal) n.principal = true;
+        if (b.recordar) n.recordar = true;
+        if (b.t === "opciones" || b.t === "sino") n.ops = lista(b.ops);
+        if (b.t === "asistentes") { n.eval = ["no", "opcional", "si"].includes(b.eval) ? b.eval : "no"; n.decl = txt(b.decl, 1000); }
+        if (b.t === "firma") { if (b.omitir) n.omitir = txt(b.omitir, 160); if (b.nombreDe) n.nombreDe = txt(b.nombreDe, 120); }
+        if (b.t === "trabajador" && b.firma) n.firma = true;
+        return n;
+      });
+      if (!bloques.length) return null;
+      return { nombre: txt(p.nombre, 80).trim() || "Documento", titulo: txt(p.titulo || p.nombre, 120).trim() || "DOCUMENTO", codigo: txt(p.codigo, 60).trim(),
+        prefijo: /^[A-Z]{2,4}$/.test(p.prefijo || "") ? p.prefijo : "DOC", icono: txt(p.icono, 8), programa: TIPOS_PROGRAMA.includes(p.programa) ? p.programa : "", bloques };
+    }
+    function normalizarDocumentos(d) {
+      const plantillas = {};
+      for (const [id, p] of Object.entries((d && d.plantillas) || {})) { const n = /^[\w-]+$/.test(id) && normalizarPlantilla(p); if (n) plantillas[id] = n; }
+      return { plantillas };
+    }
+    // Las del paquete y, si el paquete no la reemplaza, la de capacitación que trae la app
+    function plantillasDoc() {
+      const propias = normalizarDocumentos(PAQUETE && PAQUETE.documentos).plantillas;
+      return { ...(propias.capacitacion ? {} : { capacitacion: PLANTILLA_CAPACITACION }), ...propias };
+    }
+
+    let docPid = null, docPl = null, docFotos = [], pdfDoc = null, docGuardando = false;
+    const idsHistDoc = {};   // plantilla|fecha|tema -> id en el historial (para reemplazar solo el mismo documento corregido)
+    const MAX_FOTOS_DOC = 4;
+    const claveRecordar = b => (b.t === "firma" ? "firma:" : "") + b.et;
+    const slugArchivo = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 50) || "documento";
+
+    function iniciarDocumentos() {
+      const pls = plantillasDoc();
+      document.getElementById("docPlantillas").innerHTML = Object.entries(pls).map(([id, p]) =>
+        `<button type="button" class="ck-lista ${id === docPid ? "activo" : ""}" data-id="${esc(id)}" onclick="elegirPlantillaDoc('${esc(id)}')">${esc((p.icono || "📄") + " " + p.nombre)}<small>${p.codigo ? esc(p.codigo) : p.incluida ? "incluida" : "propia"}</small></button>`).join("");
+      if (docPid && !pls[docPid]) { docPid = null; document.getElementById("formDoc").style.display = "none"; }
+    }
+
+    // ---------- Armar el formulario ----------
+    function htmlBloqueDoc(b, i) {
+      const n = `b${i}`, ob = b.oblig ? " *" : "";
+      switch (b.t) {
+        case "sec": return "";
+        case "fijo": return `<p class="ayuda doc-fijo">${html(b.txt).replace(/\n/g, "<br>")}</p>`;
+        case "texto": return `<label>${html(b.et)}${ob}</label><input type="text" name="${n}">`;
+        case "largo": return `<label>${html(b.et)}${ob}</label><textarea name="${n}" rows="3" oninput="autoAltura(this)"></textarea>`;
+        case "fecha": return `<label>${html(b.et)}${ob}</label><input type="date" name="${n}" onchange="pintarProgramaDoc()">`;
+        case "hora": return `<label>${html(b.et)}${ob}</label><input type="time" name="${n}">`;
+        case "horario": return `<label>${html(b.et)}${ob}</label><div class="dos-col"><div><small>Inicio</small><input type="time" name="${n}_ini"></div><div><small>Término</small><input type="time" name="${n}_fin"></div></div>`;
+        case "numero": return `<label>${html(b.et)}${ob}</label><input type="text" inputmode="decimal" name="${n}">`;
+        case "opciones": return `<label>${html(b.et)}${ob}</label><select name="${n}"><option value="">Elige…</option>${b.ops.map(o => `<option>${html(o)}</option>`).join("")}</select>`;
+        case "sino": return `<label>${html(b.et)}${ob}</label>` + b.ops.map((it, k) => `<div class="doc-sino" data-n="${n}_${k}"><span>${html(it)}</span><div class="opciones">${["SI", "NO", "NA"].map(v =>
+          `<label><input type="radio" name="${n}_${k}" value="${v}"><span>${v === "SI" ? "SÍ" : v === "NA" ? "N/A" : "NO"}</span></label>`).join("")}</div></div>`).join("");
+        case "trabajador": return `<label>${html(b.et)}${ob}</label>
+          <select class="doc-trab-sel" data-n="${n}" onchange="elegirTrabDoc(this)"><option value="">Elige del listado…</option>${(listado?.lista || []).slice().sort((a, c) => a.nombre.localeCompare(c.nombre, "es")).map(p => `<option value="${claveRut(p.rut)}">${html(p.nombre)}</option>`).join("")}</select>
+          <div class="dos-col" style="margin-top:6px"><div><small>Nombre</small><input type="text" name="${n}_nom"></div><div><small>RUT</small><input type="text" name="${n}_rut" placeholder="12.345.678-9" onchange="this.value = formatearRut(this.value)"></div></div>
+          <small>Cargo</small><input type="text" name="${n}_cargo">
+          ${b.firma ? `<div class="doc-firma" data-i="${i}">${htmlFirma("Firma del trabajador")}</div>` : ""}`;
+        case "asistentes": return `
+          ${b.decl ? `<p class="ayuda">${html(b.decl)}</p>` : ""}
+          ${b.eval === "opcional" ? `<label class="check-linea"><input type="checkbox" id="docEvalOn" onchange="pintarEvalDoc()"> Registrar evaluación de cada asistente (aprobado / reprobado)</label>` : ""}
+          ${listado?.lista?.length ? `<input type="search" id="docBuscar" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarPersonasDoc()" style="margin-top:10px">
+            <div id="docPersonas" class="lista-personal"></div>`
+            : `<p class="aviso-vacio" style="margin-top:10px">No hay listado de personal en este equipo (se carga en la Charla diaria). Puedes agregar a los asistentes a mano.</p>`}
+          <button type="button" class="btn btn-secundario" onclick="agregarAsistenteDoc()">+ Agregar a alguien a mano</button>
+          <h3 id="docTitAsis">Asistentes (0)</h3>
+          <div id="docAsistentes"></div>`;
+        case "fotos": return `<div id="docFotos" class="fotos"></div>
+          <label class="btn btn-secundario" id="btnFotoDoc" style="margin-top:8px">📷 Agregar foto<input type="file" accept="image/*" onchange="agregarFotoDoc(this)" hidden></label>`;
+        case "firma": return `<div class="doc-firma" data-i="${i}">
+          ${b.omitir ? `<label class="check-linea"><input type="checkbox" name="${n}_omit" onchange="this.closest('.doc-firma').querySelector('.doc-firma-caja').style.display = this.checked ? 'none' : ''"> ${html(b.omitir)}</label>` : ""}
+          <div class="doc-firma-caja"><label>Nombre (${html(b.et)})</label><input type="text" name="${n}_nom" ${b.nombreDe ? `data-de="${html(b.nombreDe)}"` : ""}>${htmlFirma("Firma " + b.et)}</div></div>`;
+      }
+      return "";
+    }
+    function elegirPlantillaDoc(id) {
+      const pl = plantillasDoc()[id];
+      if (!pl) return;
+      docPid = id; docPl = pl; docFotos = []; pdfDoc = null;
+      document.querySelectorAll("#docPlantillas .ck-lista").forEach(b => b.classList.toggle("activo", b.dataset.id === id));
+      // Cada "sec" abre una tarjeta nueva; lo que va antes de la primera queda en una tarjeta sin título
+      let out = "", abierta = false;
+      pl.bloques.forEach((b, i) => {
+        if (b.t === "sec" || !abierta) { if (abierta) out += "</div>"; out += `<div class="tarjeta">${b.t === "sec" ? `<h2>${html(b.txt)}</h2>` : ""}`; abierta = true; }
+        out += htmlBloqueDoc(b, i);
+      });
+      document.getElementById("docCuerpo").innerHTML = out + (abierta ? "</div>" : "");
+      document.getElementById("formDoc").style.display = "";
+      document.getElementById("cajaEnvioDoc").style.display = "none";
+      document.getElementById("errorDoc").textContent = "";
+      const form = document.getElementById("formDoc");
+      // Valores por defecto: fecha de hoy y lo recordado (lugar, relator…; nombres de quien firma)
+      pl.bloques.forEach((b, i) => { if (b.t === "fecha") form.elements[`b${i}`].value = hoyISO(); });
+      const rec = leerGuardado("pt_doc_recordar", {})[id] || {};
+      // Lo recordado va por etiqueta (no por posición): si se reordena la plantilla, cada dato cae en su campo
+      pl.bloques.forEach((b, i) => { const v = rec[claveRecordar(b)], el = form.elements[b.t === "firma" ? `b${i}_nom` : `b${i}`]; if (typeof v === "string" && el && (b.recordar || b.t === "firma")) el.value = v; });
+      pl.bloques.forEach((b, i) => { if (b.t === "firma" && !b.nombreDe && !form.elements[`b${i}_nom`].value) form.elements[`b${i}_nom`].value = leerGuardado("pt_epp_prev", "") || leerGuardado("pt_relator", {}).nombre || ""; });
+      sincronizarNombresDoc();
+      docDefectos = valoresFormDoc();
+      restaurarBorradorDoc();
+      pintarPersonasDoc(); pintarFotosDoc(); actualizarAsistentesDoc(); pintarProgramaDoc();
+      activarFirmas();
+      document.querySelectorAll("#docCuerpo textarea").forEach(autoAltura);
+      document.getElementById("docCuerpo").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    // Firma con "nombreDe": el nombre se copia del campo con esa etiqueta (ej: Relator)
+    function sincronizarNombresDoc() {
+      if (!docPl) return;
+      const form = document.getElementById("formDoc");
+      form.querySelectorAll("input[data-de]").forEach(inp => {
+        const k = docPl.bloques.findIndex(b => b.et === inp.dataset.de && (b.t === "texto" || b.t === "trabajador"));
+        if (k < 0) return;
+        const v = (form.elements[`b${k}`] || form.elements[`b${k}_nom`])?.value.trim();
+        if (v) inp.value = v;
+      });
+    }
+
+    // ---------- Trabajador y asistentes ----------
+    function elegirTrabDoc(sel) {
+      const p = (listado?.lista || []).find(x => claveRut(x.rut) === sel.value), form = document.getElementById("formDoc"), n = sel.dataset.n;
+      if (!p) return;
+      form.elements[n + "_nom"].value = p.nombre; form.elements[n + "_rut"].value = formatearRut(p.rut); form.elements[n + "_cargo"].value = cargosDe(claveRut(p.rut))[0] || "";
+      sincronizarNombresDoc(); guardarBorradorDoc();
+    }
+    function pintarPersonasDoc() {
+      const cont = document.getElementById("docPersonas");
+      if (!cont || !listado) return;
+      const b = normalizar(document.getElementById("docBuscar").value), br = claveRut(b);
+      const elegidos = new Set([...document.querySelectorAll("#docAsistentes .doc-asis")].map(d => claveRut(d.querySelector(".a-rut").value)));
+      cont.innerHTML = listado.lista.filter(p => !b || normalizar(p.nombre).includes(b) || (br.length > 2 && claveRut(p.rut).includes(br))).map(p => {
+        const suyos = cargosDe(claveRut(p.rut));
+        return `<button type="button" class="persona ${elegidos.has(claveRut(p.rut)) ? "elegido" : ""}" onclick="tocarPersonaDoc('${claveRut(p.rut)}')">
+          <span>${esc(p.nombre)}${suyos.length ? `<span class="etiqueta">${esc(suyos.join(" · "))}</span>` : ""}</span><small>${esc(p.rut)}</small></button>`;
+      }).join("") || `<p class="ayuda" style="padding:12px">Nadie coincide con la búsqueda.</p>`;
+    }
+    // Tocar un nombre: se agrega; si ya está y no ha firmado, se quita; si ya firmó, te lleva a su firma
+    function tocarPersonaDoc(rut) {
+      const ya = [...document.querySelectorAll("#docAsistentes .doc-asis")].find(d => claveRut(d.querySelector(".a-rut").value) === rut);
+      if (!ya) { const p = listado.lista.find(x => claveRut(x.rut) === rut); if (p) agregarAsistenteDoc({ nombre: p.nombre, rut: p.rut, cargo: cargosDe(rut)[0] || "" }, true); }
+      else if (!ya.querySelector("canvas[data-firmado]")) ya.remove();
+      else { ya.scrollIntoView({ behavior: "smooth", block: "center" }); ya.classList.remove("resaltar"); void ya.offsetWidth; ya.classList.add("resaltar"); }
+      actualizarAsistentesDoc(); pintarPersonasDoc(); guardarBorradorDoc();
+    }
+    function agregarAsistenteDoc(p, delListado) {
+      const div = document.createElement("div");
+      div.className = "bloque doc-asis";
+      const ro = delListado ? "readonly" : "";
+      div.innerHTML = `<span class="num"></span>
+        <button type="button" class="btn btn-quitar quitar" onclick="this.parentElement.remove(); actualizarAsistentesDoc(); pintarPersonasDoc(); guardarBorradorDoc()">✕</button>
+        <label>Nombre completo</label><input type="text" class="a-nombre" ${ro} value="${p ? esc(p.nombre) : ""}">
+        <div class="dos-col"><div><label>RUT</label><input type="text" class="a-rut" ${ro} value="${p ? esc(formatearRut(p.rut)) : ""}" placeholder="12.345.678-9" onchange="this.value = formatearRut(this.value)"></div>
+          <div><label>Cargo</label><input type="text" class="a-cargo" value="${p ? esc(p.cargo || "") : ""}"></div></div>
+        <div class="a-eval-caja" style="display:none"><label>Evaluación</label><select class="a-eval"><option value="">Elige…</option><option>Aprobado</option><option>Reprobado</option></select></div>
+        ${htmlFirma("Firma del asistente")}`;
+      if (p && p.eval) div.querySelector(".a-eval").value = p.eval;
+      document.getElementById("docAsistentes").appendChild(div);
+      activarFirmas(); actualizarAsistentesDoc();
+      if (!p) div.querySelector(".a-nombre").focus();
+      return div;
+    }
+    const evalDocActiva = () => { const b = docPl?.bloques.find(x => x.t === "asistentes"); return !!b && (b.eval === "si" || (b.eval === "opcional" && !!document.getElementById("docEvalOn")?.checked)); };
+    function pintarEvalDoc() { document.querySelectorAll("#docAsistentes .a-eval-caja").forEach(c => c.style.display = evalDocActiva() ? "" : "none"); guardarBorradorDoc(); }
+    function actualizarAsistentesDoc() {
+      const l = document.querySelectorAll("#docAsistentes .doc-asis");
+      l.forEach((d, i) => d.querySelector(".num").textContent = `Asistente ${i + 1}`);
+      const t = document.getElementById("docTitAsis"); if (t) t.textContent = `Asistentes (${l.length})`;
+      pintarEvalDoc();
+    }
+
+    // ---------- Fotos ----------
+    async function agregarFotoDoc(input) {
+      const a = input.files[0]; input.value = "";
+      if (!a) return;
+      try { docFotos.push(await comprimirFoto(a, 1280, 0.72)); pintarFotosDoc(); }
+      catch (e) { document.getElementById("errorDoc").textContent = "No se pudo leer la foto: " + e.message; }
+    }
+    function quitarFotoDoc(i) { docFotos.splice(i, 1); pintarFotosDoc(); }
+    function pintarFotosDoc() {
+      const c = document.getElementById("docFotos");
+      if (!c) return;
+      c.innerHTML = docFotos.map((f, i) => `<div class="foto"><img src="${f}" alt="Foto ${i + 1}"><button type="button" class="btn btn-quitar" onclick="quitarFotoDoc(${i})">✕</button></div>`).join("");
+      document.getElementById("btnFotoDoc").style.display = docFotos.length >= MAX_FOTOS_DOC ? "none" : "";
+    }
+
+    // ---------- Programa anual: marcar la actividad como cumplida ----------
+    function fechaDoc() {
+      const i = docPl ? docPl.bloques.findIndex(b => b.t === "fecha") : -1, v = i >= 0 ? document.getElementById("formDoc").elements[`b${i}`].value : "";
+      return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : hoyISO();
+    }
+    function pintarProgramaDoc() {
+      const caja = document.getElementById("docPrograma");
+      if (!docPl || !docPl.programa) { caja.style.display = "none"; caja.innerHTML = ""; return; }
+      const f = fechaDoc(), k = f.slice(0, 7), fin = isoD(finDeMes(k));
+      const marcadas = new Set([...caja.querySelectorAll("input:checked")].map(x => x.value));
+      const lista = programadasEntre(k + "-01", fin).filter(x => x.a.tipo === docPl.programa && !x.hecha);
+      if (!lista.length) { caja.style.display = "none"; caja.innerHTML = ""; return; }
+      const sugerida = (lista.find(x => x.f === f && !x.a.mes) || (lista.length === 1 ? lista[0] : null));
+      caja.style.display = "";
+      caja.innerHTML = `<h2>Programa anual</h2><p class="ayuda">Hay actividades de tipo "${html(docPl.programa)}" pendientes en ${html(nombreMes(k).toLowerCase())}. Marca la que cumples con este registro.</p>` +
+        lista.map(x => { const v = x.a.id + "|" + x.f; return `<label class="check-linea"><input type="checkbox" value="${html(v)}" ${marcadas.has(v) || (!marcadas.size && x === sugerida) ? "checked" : ""}> ${html(x.a.actividad)} <small>(${x.a.mes ? "del mes" : fechaCLde(x.f)}${x.atrasada ? ", atrasada" : ""})</small></label>`; }).join("");
+    }
+
+    // ---------- Borrador (sin firmas ni fotos) ----------
+    const formaDoc = () => docPl ? docPl.bloques.map(b => b.t + ":" + (b.et || "")).join("|") : "";
+    let docDefectos = {};   // lo que el formulario trae solo (fecha de hoy, lo recordado): no cuenta como borrador
+    function valoresFormDoc() {
+      const v = {};
+      for (const el of document.getElementById("formDoc").elements) {
+        if (!el.name || !/^b\d+/.test(el.name)) continue;
+        if (el.type === "radio") { if (el.checked) v[el.name] = el.value; }
+        else if (el.type === "checkbox") { if (el.checked) v[el.name] = "1"; }
+        else if (el.value) v[el.name] = el.value;
+      }
+      return v;
+    }
+    function guardarBorradorDoc() {
+      if (!docPid || docGuardando) return;
+      const v = valoresFormDoc();
+      const asis = [...document.querySelectorAll("#docAsistentes .doc-asis")].map(d => ({ nombre: d.querySelector(".a-nombre").value, rut: d.querySelector(".a-rut").value, cargo: d.querySelector(".a-cargo").value, eval: d.querySelector(".a-eval").value, listado: d.querySelector(".a-nombre").readOnly }));
+      const vacio = !asis.length && !Object.keys(v).some(k => v[k] !== docDefectos[k]);
+      if (vacio) { try { localStorage.removeItem("pt_doc_borrador"); } catch {} return; }
+      guardar("pt_doc_borrador", { pid: docPid, forma: formaDoc(), v, asis, evalOn: !!document.getElementById("docEvalOn")?.checked, cuando: Date.now() });
+    }
+    function restaurarBorradorDoc() {
+      const b = leerGuardado("pt_doc_borrador", null), caja = document.getElementById("docBorrador");
+      caja.innerHTML = "";
+      if (!b || b.pid !== docPid || typeof b.v !== "object" || (b.forma && b.forma !== formaDoc())) return;   // si la plantilla cambió, el borrador ya no calza
+      const form = document.getElementById("formDoc");
+      for (const [k, val] of Object.entries(b.v)) {
+        if (!/^b\d+/.test(k) || typeof val !== "string") continue;
+        const el = form.elements[k];
+        if (!el) continue;
+        if (el instanceof RadioNodeList || el.type === "radio") { const r = form.querySelector(`input[name="${k}"][value="${CSS.escape(val)}"]`); if (r) r.checked = true; }
+        else if (el.type === "checkbox") { el.checked = true; el.dispatchEvent(new Event("change")); }
+        else el.value = val;
+      }
+      const ev = document.getElementById("docEvalOn"); if (ev) ev.checked = !!b.evalOn;
+      for (const a of Array.isArray(b.asis) ? b.asis : []) if (a && typeof a.nombre === "string") agregarAsistenteDoc({ nombre: a.nombre, rut: String(a.rut || ""), cargo: String(a.cargo || ""), eval: String(a.eval || "") }, !!a.listado);
+      caja.innerHTML = `<div class="aviso-programa aviso-respaldo" style="cursor:default"><b>📝 Se recuperó lo que habías escrito</b><span>Guardado: ${new Date(b.cuando || Date.now()).toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}. Las firmas y las fotos no se guardan en el borrador: se hacen de nuevo.</span>
+        <button type="button" class="btn btn-secundario" style="margin:8px 0 0" onclick="descartarBorradorDoc()">Descartar y empezar de cero</button></div>`;
+    }
+    function descartarBorradorDoc() { try { localStorage.removeItem("pt_doc_borrador"); } catch {} elegirPlantillaDoc(docPid); }
+    ["input", "change"].forEach(t => document.getElementById("formDoc").addEventListener(t, ev => {
+      ev.target.classList?.remove("campo-falta");
+      if (t === "input" && ev.target.name && !ev.target.dataset.de) sincronizarNombresDoc();
+      clearTimeout(window.__borradorDoc); window.__borradorDoc = setTimeout(guardarBorradorDoc, 400);
+    }));
+
+    // ---------- Revisar y juntar los datos ----------
+    function duracionMin(ini, fin) {
+      const m = t => { const [h, mi] = String(t).split(":").map(Number); return h * 60 + mi; };
+      return /^\d{2}:\d{2}$/.test(ini) && /^\d{2}:\d{2}$/.test(fin) ? m(fin) - m(ini) : NaN;
+    }
+    const textoDuracion = min => `${Math.floor(min / 60) ? Math.floor(min / 60) + " h" : ""}${min % 60 ? (min >= 60 ? " " : "") + (min % 60) + " min" : ""}` || "0 min";
+    const decimalCL = x => String(Math.round(x * 100) / 100).replace(".", ",");
+    function recopilarDoc() {
+      const form = document.getElementById("formDoc"), pl = docPl, items = [];
+      const falla = (texto, el) => { const e = new Error(texto); e.el = el; throw e; };
+      const val = n => (form.elements[n]?.value || "").trim();
+      pl.bloques.forEach((b, i) => {
+        const n = `b${i}`;
+        if (b.t === "sec" || b.t === "fijo") return items.push({ b });
+        if (b.t === "horario") {
+          const ini = val(n + "_ini"), fin = val(n + "_fin");
+          if ((b.oblig || ini || fin) && (!ini || !fin)) falla(`Falta la hora de inicio o de término de "${b.et}".`, form.elements[n + (ini ? "_fin" : "_ini")]);
+          const min = duracionMin(ini, fin);
+          if (ini && fin && !(min > 0)) falla(`En "${b.et}", la hora de término debe ser posterior a la de inicio.`, form.elements[n + "_fin"]);
+          return items.push({ b, ini, fin, min: ini ? min : 0 });
+        }
+        if (b.t === "sino") {
+          const resp = b.ops.map((_, k) => form.querySelector(`input[name="${n}_${k}"]:checked`)?.value || "");
+          const k = resp.indexOf("");
+          if (b.oblig && k >= 0) falla(`Falta responder: "${b.ops[k]}".`, form.querySelector(`.doc-sino[data-n="${n}_${k}"]`));
+          return items.push({ b, resp });
+        }
+        if (b.t === "trabajador") {
+          const nombre = val(n + "_nom"), rut = formatearRut(val(n + "_rut")), cargo = val(n + "_cargo");
+          if ((b.oblig || nombre) && !nombre) falla(`Falta el nombre en "${b.et}".`, form.elements[n + "_nom"]);
+          if (nombre && !rutValido(rut)) falla(`El RUT de "${b.et}" no es válido: revísalo.`, form.elements[n + "_rut"]);
+          let firma = "";
+          if (b.firma && nombre) { const c = form.querySelector(`.doc-firma[data-i="${i}"] canvas`); if (!c.dataset.firmado) { c.closest(".firma").classList.add("falta"); falla(`Falta la firma de ${nombre}.`, c); } firma = c.toDataURL("image/png"); }
+          return items.push({ b, nombre, rut, cargo, firma });
+        }
+        if (b.t === "asistentes") {
+          const conEval = evalDocActiva(), lista = [], vistos = new Set();
+          for (const d of document.querySelectorAll("#docAsistentes .doc-asis")) {
+            const nombre = d.querySelector(".a-nombre").value.trim(), rutI = d.querySelector(".a-rut"); rutI.value = formatearRut(rutI.value);
+            if (!nombre) falla("Falta el nombre de un asistente.", d.querySelector(".a-nombre"));
+            if (!rutValido(rutI.value)) falla(`El RUT de ${nombre} no es válido: revísalo.`, rutI);
+            if (vistos.has(claveRut(rutI.value))) falla(`${nombre} está dos veces en los asistentes.`, rutI);
+            vistos.add(claveRut(rutI.value));
+            const ev = d.querySelector(".a-eval").value;
+            if (conEval && !ev) falla(`Falta la evaluación de ${nombre}.`, d.querySelector(".a-eval"));
+            const c = d.querySelector("canvas");
+            if (!c.dataset.firmado) { c.closest(".firma").classList.add("falta"); falla(`Falta la firma de ${nombre}.`, c); }
+            lista.push({ nombre, rut: rutI.value, cargo: d.querySelector(".a-cargo").value.trim(), eval: conEval ? ev : "", firma: c.toDataURL("image/png"), manual: !d.querySelector(".a-nombre").readOnly });
+          }
+          if (!lista.length) falla("Agrega al menos un asistente.", document.getElementById("docTitAsis"));
+          return items.push({ b, lista, conEval });
+        }
+        if (b.t === "fotos") return items.push({ b, fotos: [...docFotos] });
+        if (b.t === "firma") {
+          if (b.omitir && form.elements[n + "_omit"]?.checked) return items.push({ b, omitida: true });
+          const nombre = val(n + "_nom"), c = form.querySelector(`.doc-firma[data-i="${i}"] canvas`);
+          if (!nombre) falla(`Falta el nombre de quien firma como ${b.et}.`, form.elements[n + "_nom"]);
+          if (!c.dataset.firmado) { c.closest(".firma").classList.add("falta"); falla(`Falta la firma de ${b.et}.`, c); }
+          return items.push({ b, nombre, firma: c.toDataURL("image/png") });
+        }
+        const v = val(n);
+        if (b.oblig && !v) falla(`Falta: ${b.et}.`, form.elements[n]);
+        if (b.t === "numero" && v && !/^-?\d+([.,]\d+)?$/.test(v)) falla(`"${b.et}" debe ser un número.`, form.elements[n]);
+        items.push({ b, v });
+      });
+      const fecha = fechaDoc();
+      const principal = (items.find(x => x.b.principal && x.v) || items.find(x => (x.b.t === "texto" || x.b.t === "largo") && x.v) || {}).v || pl.nombre;
+      const asis = items.find(x => x.b.t === "asistentes"), hor = items.find(x => x.b.t === "horario" && x.min > 0);
+      const horasPersona = asis && hor ? hor.min / 60 * asis.lista.length : 0;
+      return { pl, pid: docPid, items, fecha, principal, nAsis: asis ? asis.lista.length : 0, horasPersona, duracion: hor ? hor.min : 0 };
+    }
+
+    // ---------- PDF ----------
+    async function crearPDF_Documento(d) {
+      const pl = d.pl;
+      const c = await nuevoPDFSimple(pl.titulo.toUpperCase(), [LINEA_EMPLEADOR || EMPRESA.nombre || "", pl.codigo ? "Código " + pl.codigo : "", "Fecha " + fechaCLde(d.fecha)].filter(Boolean).join(" · "));
+      const { rgb } = PDFLib, BORDE = rgb(0.82, 0.84, 0.87);
+      const cortar = (t, f, tam, ancho) => { t = textoPDF(t); while (t && f.widthOfTextAtSize(t, tam) > ancho) t = t.slice(0, -2) + "…"; return t; };
+      const dato = (et, valor) => {
+        const L = 150, le = partirPDF(et, c.fB, 9, L - 8), lv = partirPDF(valor || "—", c.fN, 9.5, c.ANCHO - L), alto = Math.max(le.length, lv.length) * 12.5 + 4;
+        c.espacio(alto);
+        le.forEach((l, k) => c.pag.drawText(l, { x: c.M, y: c.y - 9.5 - k * 12.5, size: 9, font: c.fB, color: c.NEGRO }));
+        lv.forEach((l, k) => c.pag.drawText(l, { x: c.M + L, y: c.y - 9.5 - k * 12.5, size: 9.5, font: c.fN, color: c.NEGRO }));
+        c.y -= alto;
+      };
+      const firmasFila = async lista => {   // [[imagen, nombre, rol]] de a dos por fila
+        const w = (c.ANCHO - 20) / 2;
+        for (let i = 0; i < lista.length; i += 2) {
+          c.espacio(125); c.y -= 8;
+          for (let j = 0; j < 2 && i + j < lista.length; j++) {
+            const [img, nombre, rol] = lista[i + j], x = c.M + j * (w + 20), im = await c.doc.embedPng(img), k = Math.min((w - 20) / im.width, 70 / im.height);
+            c.pag.drawImage(im, { x: x + (w - im.width * k) / 2, y: c.y - 80, width: im.width * k, height: im.height * k });
+            c.pag.drawLine({ start: { x, y: c.y - 86 }, end: { x: x + w, y: c.y - 86 }, thickness: 0.8, color: c.GRIS });
+            const t1 = cortar(nombre, c.fB, 9, w), t2 = cortar(rol, c.fN, 8, w);
+            c.pag.drawText(t1, { x: x + Math.max(0, (w - c.fB.widthOfTextAtSize(t1, 9)) / 2), y: c.y - 98, size: 9, font: c.fB, color: c.NEGRO });
+            c.pag.drawText(t2, { x: x + Math.max(0, (w - c.fN.widthOfTextAtSize(t2, 8)) / 2), y: c.y - 110, size: 8, font: c.fN, color: c.GRIS });
+          }
+          c.y -= 118;
+        }
+      };
+      const tablaAsistentes = async (x) => {
+        const cols = [["N°", 22], ["Nombre", 0], ["RUT", 72], ["Cargo", 92], ...(x.conEval ? [["Evaluación", 58]] : []), ["Firma", 96]];
+        const fijo = cols.reduce((s, [, w]) => s + w, 0); cols[1][1] = c.ANCHO - fijo;
+        const encabezado = () => {
+          c.espacio(18 + 30);
+          let xx = c.M;
+          c.pag.drawRectangle({ x: c.M, y: c.y - 16, width: c.ANCHO, height: 16, color: c.FONDO });
+          for (const [t, w] of cols) { c.pag.drawText(t, { x: xx + 3, y: c.y - 11.5, size: 8, font: c.fB, color: c.NEGRO }); xx += w; }
+          c.y -= 16;
+        };
+        encabezado();
+        for (let k = 0; k < x.lista.length; k++) {
+          const a = x.lista[k], H = 30;
+          if (c.y - H < c.M + 20) { c.nueva(); encabezado(); }
+          const celdas = [String(k + 1), a.nombre, a.rut, a.cargo || "", ...(x.conEval ? [a.eval] : [])];
+          let xx = c.M;
+          celdas.forEach((t, j) => { c.pag.drawText(cortar(t, c.fN, 8.5, cols[j][1] - 6), { x: xx + 3, y: c.y - H / 2 - 3, size: 8.5, font: a.eval === "Reprobado" && j === celdas.length - 1 ? c.fB : c.fN, color: a.eval === "Reprobado" && j === celdas.length - 1 ? c.ROJO : c.NEGRO }); xx += cols[j][1]; });
+          const im = await c.doc.embedPng(a.firma), wF = cols[cols.length - 1][1] - 6, s = Math.min(wF / im.width, (H - 4) / im.height);
+          c.pag.drawImage(im, { x: xx + 3 + (wF - im.width * s) / 2, y: c.y - H + 2 + (H - 4 - im.height * s) / 2, width: im.width * s, height: im.height * s });
+          c.pag.drawLine({ start: { x: c.M, y: c.y - H }, end: { x: c.M + c.ANCHO, y: c.y - H }, thickness: 0.5, color: BORDE });
+          c.y -= H;
+        }
+        c.y -= 8;
+      };
+      const items = d.items;
+      for (let i = 0; i < items.length; i++) {
+        const x = items[i], b = x.b;
+        if (b.t === "sec") {
+          // Una sección que solo tiene fotos y no hay fotos, no se imprime
+          let j = i + 1; const resto = []; while (j < items.length && items[j].b.t !== "sec") resto.push(items[j++]);
+          if (resto.length && resto.every(x => x.b.t === "fotos" && !x.fotos.length)) { i = j - 1; continue; }
+          c.titulo(b.txt);
+        }
+        else if (b.t === "fijo") c.parrafo(b.txt, { tam: 8.5, color: c.GRIS });
+        else if (b.t === "largo") { if (x.v || b.oblig) { c.parrafo(b.et, { f: c.fB, tam: 9 }); c.parrafo(x.v || "—", { tam: 9.5, sangria: 8 }); } }
+        else if (b.t === "fecha") dato(b.et, fechaCLde(x.v));
+        else if (b.t === "horario") dato(b.et, x.ini ? `${x.ini} a ${x.fin} (${textoDuracion(x.min)})` : "");
+        else if (b.t === "sino") {
+          c.parrafo(b.et, { f: c.fB, tam: 9 });
+          b.ops.forEach((it, k) => {
+            const r = x.resp[k], t = r === "SI" ? "SÍ" : r === "NA" ? "N/A" : r || "—", lineas = partirPDF(it, c.fN, 9, c.ANCHO - 70);
+            c.espacio(lineas.length * 12 + 4);
+            lineas.forEach((l, j) => c.pag.drawText(l, { x: c.M + 8, y: c.y - 9 - j * 12, size: 9, font: c.fN, color: c.NEGRO }));
+            c.pag.drawText(textoPDF(t), { x: c.M + c.ANCHO - 50, y: c.y - 9, size: 9, font: c.fB, color: r === "NO" ? c.ROJO : c.NEGRO });
+            c.y -= lineas.length * 12 + 2;
+            c.pag.drawLine({ start: { x: c.M + 8, y: c.y }, end: { x: c.M + c.ANCHO, y: c.y }, thickness: 0.4, color: BORDE });
+            c.y -= 2;
+          });
+          c.y -= 4;
+        }
+        else if (b.t === "trabajador") { dato(b.et, x.nombre ? `${x.nombre} · RUT ${x.rut}${x.cargo ? " · " + x.cargo : ""}` : ""); if (x.firma) await firmasFila([[x.firma, x.nombre, b.et]]); }
+        else if (b.t === "asistentes") {
+          if (d.duracion) c.parrafo(`Duración: ${textoDuracion(d.duracion)} · Asistentes: ${x.lista.length} · Horas-persona: ${decimalCL(d.horasPersona)}`, { f: c.fB, tam: 9.5 });
+          if (b.decl) c.parrafo(b.decl, { tam: 8.5, color: c.GRIS });
+          await tablaAsistentes(x);
+          if (x.conEval) { const ap = x.lista.filter(a => a.eval === "Aprobado").length; c.parrafo(`Aprobados: ${ap} de ${x.lista.length}${x.lista.length - ap ? ` · Reprobados: ${x.lista.length - ap}` : ""}`, { tam: 9 }); }
+        }
+        else if (b.t === "fotos") {
+          if (!x.fotos.length) { c.parrafo("Sin fotos.", { tam: 8.5, color: c.GRIS }); continue; }
+          const w = (c.ANCHO - 10) / 2;
+          for (let k = 0; k < x.fotos.length; k += 2) {
+            const ims = [];
+            for (const f of x.fotos.slice(k, k + 2)) ims.push(f.startsWith("data:image/png") ? await c.doc.embedPng(f) : await c.doc.embedJpg(f));
+            const alto = Math.max(...ims.map(im => Math.min(200, im.height * w / im.width)));
+            c.espacio(alto + 10);
+            ims.forEach((im, j) => { const s = Math.min(w / im.width, 200 / im.height); c.pag.drawImage(im, { x: c.M + j * (w + 10) + (w - im.width * s) / 2, y: c.y - im.height * s, width: im.width * s, height: im.height * s }); });
+            c.y -= alto + 10;
+          }
+        }
+        else if (b.t === "firma") {
+          // las firmas seguidas van juntas, de a dos por fila
+          const grupo = [];
+          while (i < items.length && items[i].b.t === "firma") { if (!items[i].omitida) grupo.push([items[i].firma, items[i].nombre, items[i].b.et]); i++; }
+          i--;
+          if (grupo.length) await firmasFila(grupo);
+          // Firma omitida a propósito (ej: el relator es el mismo prevencionista): queda la constancia
+          for (let j = i; j >= 0 && items[j].b.t === "firma"; j--) if (items[j].omitida) c.parrafo(`${items[j].b.et}: ${items[j].b.omitir}.`, { tam: 8.5, color: c.GRIS });
+        }
+        else dato(b.et, x.v);
+      }
+      c.y -= 4;
+      c.parrafo(`Documento generado el ${new Date().toLocaleString("es-CL")} con la plantilla "${pl.nombre}". Firmas trazadas en pantalla en el momento (firma electrónica simple, Ley N° 19.799).`, { tam: 7.5, color: c.GRIS });
+      c.pie();
+      return await c.doc.save();
+    }
+
+    // ---------- Generar, guardar y compartir ----------
+    async function generarDocumento(ev) {
+      ev.preventDefault();
+      const error = document.getElementById("errorDoc");
+      if (!docPl) return;
+      let d;
+      try { d = recopilarDoc(); }
+      catch (e) {
+        error.textContent = e.message;
+        if (e.el) { if (e.el.tagName === "INPUT" || e.el.tagName === "SELECT" || e.el.tagName === "TEXTAREA") e.el.classList.add("campo-falta"); e.el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+        return;
+      }
+      error.textContent = "Generando el PDF…";
+      try {
+        const bytes = await crearPDF_Documento(d);
+        pdfDoc = { bytes, prefijo: d.pl.prefijo, nombreArchivo: `${slugArchivo(d.pl.nombre)}_${slugArchivo(d.principal)}_${d.fecha}.pdf`, asunto: `${d.pl.nombre} – ${d.principal} – ${fechaCLde(d.fecha)}` };
+        const detalle = [d.pl.nombre, d.principal, d.nAsis ? `${d.nAsis} asistente(s)` : "", d.horasPersona ? `${decimalCL(d.horasPersona)} horas-persona` : ""].filter(Boolean).join(" · ");
+        const clave = `${d.pid}|${d.fecha}|${normalizar(d.principal)}`;
+        idsHistDoc[clave] = await guardarEnHistorial(idsHistDoc[clave] ?? null, "documento", pdfDoc, d.fecha, detalle, { plantilla: d.pid, asistentes: d.nAsis, horasPersona: d.horasPersona });
+        // Programa anual: las actividades marcadas quedan cumplidas
+        const marcadas = [...document.querySelectorAll("#docPrograma input:checked")].map(x => x.value).filter(v => /^[\w-]+\|\d{4}-\d{2}-\d{2}$/.test(v));
+        if (marcadas.length) { marcadas.forEach(k => programaHecho[k] = { cuando: new Date().toISOString(), folio: pdfDoc.folio || "" }); guardar("pt_programa_hecho", programaHecho); }
+        // Se recuerdan lugar, relator… y los nombres de quien firma; los asistentes nuevos quedan en el listado
+        const form = document.getElementById("formDoc"), rec = leerGuardado("pt_doc_recordar", {});
+        rec[d.pid] = {};
+        d.pl.bloques.forEach((b, i) => { if (b.recordar && form.elements[`b${i}`]?.value) rec[d.pid][claveRecordar(b)] = form.elements[`b${i}`].value; if (b.t === "firma" && !b.nombreDe && form.elements[`b${i}_nom`]?.value) rec[d.pid][claveRecordar(b)] = form.elements[`b${i}_nom`].value.trim(); });
+        guardar("pt_doc_recordar", rec);
+        (d.items.find(x => x.b.t === "asistentes")?.lista || []).filter(a => a.manual).forEach(a => agregarAlListado({ nombre: a.nombre, rut: a.rut, obra: listado?.obra || "" }));
+        docGuardando = true;
+        try { localStorage.removeItem("pt_doc_borrador"); } catch {}
+        setTimeout(() => docGuardando = false, 600);
+        document.getElementById("docBorrador").innerHTML = "";
+        error.textContent = "";
+        document.getElementById("infoPDFDoc").textContent = `${pdfDoc.nombreArchivo} · ${Math.round(pdfDoc.bytes.length / 1024)} KB${pdfDoc.folio ? " · Folio " + pdfDoc.folio : ""}${marcadas.length ? ` · ✓ ${marcadas.length} actividad(es) del programa marcada(s) como cumplida(s)` : ""}${driveConfigurado() ? " · se sube a tu Drive" : ""}. Si corriges algo y lo generas de nuevo, se reemplaza este mismo documento.`;
+        document.getElementById("mensajeDoc").textContent = "";
+        document.getElementById("cajaEnvioDoc").style.display = "block";
+        document.getElementById("cajaEnvioDoc").scrollIntoView({ behavior: "smooth" });
+        pintarProgramaDoc();
+      } catch (e) { error.textContent = "No se pudo generar el PDF: " + e.message; }
+    }
+    async function compartirDoc() { if (pdfDoc) await compartirPDFEPP(pdfDoc.bytes, pdfDoc.nombreArchivo, pdfDoc.asunto, document.getElementById("mensajeDoc")); }
+    function guardarPDFDoc() {
+      if (!pdfDoc) return;
+      descargarArchivo(pdfDoc.bytes, pdfDoc.nombreArchivo, "application/pdf");
+      document.getElementById("mensajeDoc").textContent = `PDF guardado como ${pdfDoc.nombreArchivo} (carpeta Descargas).`;
+    }
+    function nuevoDocumento() {
+      try { localStorage.removeItem("pt_doc_borrador"); } catch {}
+      docPid = null; docPl = null; pdfDoc = null;
+      document.getElementById("formDoc").style.display = "none";
+      document.getElementById("cajaEnvioDoc").style.display = "none";
+      iniciarDocumentos();
+      window.scrollTo(0, 0);
+    }
+
+    /* =====================================================================
        EDITOR DE FORMATOS (dentro de la app)
        Se trabaja sobre una copia (ED). Nada cambia hasta "Guardar cambios":
        ahí se arma el paquete completo y se activa igual que uno importado.
@@ -7950,6 +8536,7 @@
       ED = {
         charla: structuredClone(PAQ.charla),
         checklists: structuredClone(CHECKLISTS),
+        documentos: structuredClone(normalizarDocumentos(PAQUETE && PAQUETE.documentos)),
         irl: window.IRL_DATOS ? structuredClone(window.IRL_DATOS) : IRL_VACIA()
       };
     }
@@ -7960,7 +8547,7 @@
     }
     async function edAbrir(sec) {
       await edPreparar();
-      ({ irl: edPintarIRL, deptos: edPintarDeptos, charla: edPintarCharla, check: edPintarCheck })[sec]();
+      ({ irl: edPintarIRL, deptos: edPintarDeptos, charla: edPintarCharla, check: edPintarCheck, docs: edPintarDocs })[sec]();
     }
     function edDescartar() { ED = null; edCambios = []; sessionStorage.setItem("pt_abrirEmpresa", "1"); location.reload(); }
 
@@ -7973,6 +8560,7 @@
       const p = { ...base, formato: "prevencion-terreno/paquete", version: 1, nombre: base.nombre || PAQ.empresa.nombre || "Mi empresa",
         actualizado: hoyISO(), charla: ED.charla, checklists: ED.checklists };
       if (Object.keys(ED.irl.cargos).length) p.irl = ED.irl; else delete p.irl;
+      if (Object.keys(ED.documentos.plantillas).length) p.documentos = ED.documentos; else delete p.documentos;
       msj.textContent = "Guardando…";
       await activarPaquete(p);
     }
@@ -8238,6 +8826,134 @@
     function edQuitarLista(b) {
       if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro?"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Quitar lista"; }, 4000); return; }
       delete ED.checklists.listas[edListaSel]; edListaSel = null; edCambio("check list"); edPintarCheck();
+    }
+
+    /* ---------------- DOCUMENTOS BASE ---------------- */
+    let edDocSel = null;
+    // La plantilla que se edita: si es la incluida (capacitación) y todavía no tiene copia en el paquete, se crea al primer cambio
+    const edDocActual = () => ED.documentos.plantillas[edDocSel] || (edDocSel === "capacitacion" ? PLANTILLA_CAPACITACION : null);
+    function edDocEditable() {
+      if (!ED.documentos.plantillas[edDocSel] && edDocSel === "capacitacion") { const { incluida, ...copia } = structuredClone(PLANTILLA_CAPACITACION); ED.documentos.plantillas.capacitacion = copia; }
+      return ED.documentos.plantillas[edDocSel];
+    }
+    function edPintarDocs() {
+      const pls = { ...(ED.documentos.plantillas.capacitacion ? {} : { capacitacion: PLANTILLA_CAPACITACION }), ...ED.documentos.plantillas };
+      if (!edDocSel || !pls[edDocSel]) edDocSel = Object.keys(pls)[0];
+      const p = edDocActual();
+      const opcBloques = Object.entries(TIPOS_BLOQUE).map(([t, n]) => `<option value="${t}">${html(n)}</option>`).join("");
+      const fila = (b, i) => {
+        const largo = b.t === "fijo" || b.t === "sec";
+        return `<div class="ed-item ed-bloque">
+          <div class="ed-bloque-top"><b>${i + 1}. ${html(TIPOS_BLOQUE[b.t])}</b>
+            <span><button type="button" class="btn-limpiar" onclick="edDocMover(${i}, -1)" aria-label="Subir">↑</button><button type="button" class="btn-limpiar" onclick="edDocMover(${i}, 1)" aria-label="Bajar">↓</button><button type="button" class="btn-limpiar" onclick="edDocQuitarBloque(${i})" aria-label="Quitar">✕</button></span></div>
+          ${largo ? `<textarea rows="${b.t === "fijo" ? 3 : 1}" onchange="edDocSet(${i}, 'txt', this.value)">${html(b.txt)}</textarea>`
+                  : `<input type="text" value="${html(b.et)}" placeholder="Etiqueta" onchange="edDocSet(${i}, 'et', this.value)">`}
+          ${!largo && !["fotos", "asistentes", "firma"].includes(b.t) ? `<label class="check-linea"><input type="checkbox" ${b.oblig ? "checked" : ""} onchange="edDocSet(${i}, 'oblig', this.checked)"> Obligatorio</label>` : ""}
+          ${b.t === "texto" ? `<label class="check-linea"><input type="checkbox" ${b.principal ? "checked" : ""} onchange="edDocSet(${i}, 'principal', this.checked)"> Es el tema (va en el nombre del PDF)</label>
+            <label class="check-linea"><input type="checkbox" ${b.recordar ? "checked" : ""} onchange="edDocSet(${i}, 'recordar', this.checked)"> Recordar lo escrito para la próxima vez</label>` : ""}
+          ${b.t === "opciones" || b.t === "sino" ? `<small>${b.t === "sino" ? "Puntos a revisar" : "Opciones"} (uno por línea)</small><textarea rows="4" onchange="edDocSet(${i}, 'ops', this.value)">${html((b.ops || []).join("\n"))}</textarea>` : ""}
+          ${b.t === "asistentes" ? `<small>Declaración que firman</small><textarea rows="2" onchange="edDocSet(${i}, 'decl', this.value)">${html(b.decl || "")}</textarea>
+            <small>Evaluación de cada asistente</small><select onchange="edDocSet(${i}, 'eval', this.value)">${[["no", "No"], ["opcional", "Opcional (se activa al llenar)"], ["si", "Siempre"]].map(([v, t]) => `<option value="${v}" ${b.eval === v ? "selected" : ""}>${t}</option>`).join("")}</select>` : ""}
+          ${b.t === "trabajador" ? `<label class="check-linea"><input type="checkbox" ${b.firma ? "checked" : ""} onchange="edDocSet(${i}, 'firma', this.checked)"> El trabajador firma</label>` : ""}
+          ${b.t === "firma" ? `<small>Permitir omitirla (opcional): texto de la casilla</small><input type="text" value="${html(b.omitir || "")}" placeholder="Ej: El relator es el mismo prevencionista" onchange="edDocSet(${i}, 'omitir', this.value)">
+            <small>Copiar el nombre del campo (opcional, ej: Relator)</small><input type="text" value="${html(b.nombreDe || "")}" onchange="edDocSet(${i}, 'nombreDe', this.value)">` : ""}
+        </div>`;
+      };
+      document.getElementById("edDocs").innerHTML = `
+        <p class="ayuda">Arma plantillas para el menú "Documentos": cada una es una lista de bloques (secciones, textos, fechas, listas SÍ/NO, asistentes con firma, fotos y firmas). La del registro de capacitación viene con la app; si la cambias, se guarda tu versión.</p>
+        <div class="dos-col">
+          <select onchange="edDocSel = this.value; edPintarDocs()">${Object.entries(pls).map(([id, x]) => `<option value="${id}" ${id === edDocSel ? "selected" : ""}>${html(x.nombre)}${x.incluida ? " (incluida)" : ""}</option>`).join("")}</select>
+          <button type="button" class="btn btn-secundario" style="margin:0" onclick="edDocNueva(false)">+ Nueva plantilla</button>
+        </div>
+        ${p ? `<button type="button" class="btn btn-secundario" onclick="edDocNueva(true)">⧉ Copiar esta plantilla</button>
+          <label>Nombre (en el menú)</label><input type="text" value="${html(p.nombre)}" onchange="edDocSetPl('nombre', this.value)">
+          <label>Título del PDF</label><input type="text" value="${html(p.titulo)}" onchange="edDocSetPl('titulo', this.value)">
+          <div class="dos-col"><div><label>Código y versión (opcional)</label><input type="text" value="${html(p.codigo)}" placeholder="Ej: REG-PR-05 Rev. 0" onchange="edDocSetPl('codigo', this.value)"></div>
+            <div><label>Letras del folio</label><input type="text" value="${html(p.prefijo)}" maxlength="4" placeholder="DOC" onchange="edDocSetPl('prefijo', this.value)"></div></div>
+          <div class="dos-col"><div><label>Ícono</label><input type="text" value="${html(p.icono)}" maxlength="4" onchange="edDocSetPl('icono', this.value)"></div>
+            <div><label>Cumple en el programa</label><select onchange="edDocSetPl('programa', this.value)"><option value="">(ninguna)</option>${TIPOS_PROGRAMA.map(t => `<option ${p.programa === t ? "selected" : ""}>${t}</option>`).join("")}</select></div></div>
+          <h3>Bloques</h3>
+          ${p.bloques.map(fila).join("")}
+          <div class="dos-col"><select id="edDocNuevoTipo">${opcBloques}</select><button type="button" class="btn btn-secundario" style="margin:0" onclick="edDocAgregarBloque()">+ Agregar bloque</button></div>
+          <div class="dos-col" style="margin-top:8px">
+            <button type="button" class="btn btn-secundario" style="margin:0" onclick="edDocVistaPrevia()">👁️ Ver PDF de ejemplo</button>
+            <button type="button" class="btn btn-quitar" style="margin:0" onclick="edDocQuitar(this)">${p.incluida ? "—" : edDocSel === "capacitacion" ? "Volver a la incluida" : "Quitar plantilla"}</button></div>
+          <p class="mensaje" id="msjEdDoc"></p>` : ""}`;
+    }
+    function edDocSetPl(prop, v) {
+      const p = edDocEditable();
+      v = String(v).trim();
+      if (prop === "prefijo") { v = v.toUpperCase(); if (!/^[A-Z]{2,4}$/.test(v)) { document.getElementById("msjEdDoc").textContent = "Las letras del folio deben ser 2 a 4 letras (sin tildes ni números)."; return; } }
+      if ((prop === "nombre" || prop === "titulo") && !v) return;
+      p[prop] = v; edCambio("documentos"); edPintarDocs();
+    }
+    function edDocSet(i, prop, v) {
+      const b = edDocEditable().bloques[i];
+      if (prop === "ops") v = String(v).split("\n").map(x => x.trim()).filter(Boolean);
+      else if (typeof v === "string") v = v.trim();
+      if (prop === "principal" && v) edDocEditable().bloques.forEach(x => delete x.principal);
+      if (v === "" || v === false) delete b[prop]; else b[prop] = v;
+      edCambio("documentos"); edPintarDocs();
+    }
+    function edDocMover(i, paso) {
+      const l = edDocEditable().bloques, j = i + paso;
+      if (j < 0 || j >= l.length) return;
+      [l[i], l[j]] = [l[j], l[i]]; edCambio("documentos"); edPintarDocs();
+    }
+    function edDocQuitarBloque(i) {
+      const l = edDocEditable().bloques;
+      if (l.length === 1) { document.getElementById("msjEdDoc").textContent = "La plantilla necesita al menos un bloque."; return; }
+      l.splice(i, 1); edCambio("documentos"); edPintarDocs();
+    }
+    function edDocAgregarBloque() {
+      const t = document.getElementById("edDocNuevoTipo").value, p = edDocEditable();
+      if (t === "asistentes" && p.bloques.some(b => b.t === "asistentes")) { document.getElementById("msjEdDoc").textContent = "Solo puede haber una lista de asistentes por plantilla."; return; }
+      const b = t === "sec" ? { t, txt: "Nueva sección" } : t === "fijo" ? { t, txt: "" } : { t, et: TIPOS_BLOQUE[t] };
+      if (t === "opciones") b.ops = ["Opción 1", "Opción 2"];
+      if (t === "sino") b.ops = ["Punto a revisar"];
+      if (t === "asistentes") { b.eval = "no"; b.decl = "Al firmar, la persona trabajadora declara haber participado y comprendido lo tratado."; }
+      p.bloques.push(b); edCambio("documentos"); edPintarDocs();
+      document.querySelector("#edDocs .ed-bloque:last-of-type")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    function edDocNueva(copiar) {
+      const base = copiar ? edDocActual() : null;
+      const nombre = prompt(copiar ? "Nombre de la copia:" : "Nombre de la plantilla (ej: Permiso de trabajo en altura, Acta de reunión):", base ? base.nombre + " (copia)" : "");
+      if (!nombre || !nombre.trim()) return;
+      const id = idLibre(nombre, { ...ED.documentos.plantillas, capacitacion: 1 });
+      const { incluida, ...resto } = base ? structuredClone(base) : { titulo: nombre.trim().toUpperCase(), codigo: "", prefijo: "DOC", icono: "📄", programa: "",
+        bloques: [{ t: "sec", txt: "1. Antecedentes" }, { t: "texto", et: "Tema", oblig: true, principal: true }, { t: "fecha", et: "Fecha", oblig: true }, { t: "sec", txt: "2. Firmas" }, { t: "firma", et: "Prevención de Riesgos" }] };
+      ED.documentos.plantillas[id] = { ...resto, nombre: nombre.trim() };
+      edDocSel = id; edCambio("documentos"); edPintarDocs();
+    }
+    function edDocQuitar(b) {
+      if (!ED.documentos.plantillas[edDocSel]) return;   // la incluida sin cambios no se quita
+      if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; const t = b.textContent; b.textContent = "¿Seguro?"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = t; }, 4000); return; }
+      delete ED.documentos.plantillas[edDocSel];
+      if (edDocSel !== "capacitacion") edDocSel = null;
+      edCambio("documentos"); edPintarDocs();
+    }
+    // PDF de ejemplo con datos de muestra (no se guarda en el historial)
+    async function edDocVistaPrevia() {
+      const msj = document.getElementById("msjEdDoc"), pl = normalizarPlantilla(edDocActual());
+      if (!pl) { msj.textContent = "La plantilla no tiene bloques válidos."; return; }
+      const firma = (() => { const c = document.createElement("canvas"); c.width = 300; c.height = 90; const x = c.getContext("2d"); x.strokeStyle = "#0b1f44"; x.lineWidth = 3; x.beginPath(); x.moveTo(20, 60); x.bezierCurveTo(80, 0, 120, 100, 180, 40); x.bezierCurveTo(210, 15, 250, 70, 280, 35); x.stroke(); return c.toDataURL("image/png"); })();
+      const items = pl.bloques.map(b => {
+        if (b.t === "sec" || b.t === "fijo") return { b };
+        if (b.t === "horario") return { b, ini: "09:00", fin: "10:30", min: 90 };
+        if (b.t === "sino") return { b, resp: b.ops.map((_, k) => ["SI", "NO", "NA"][k % 3]) };
+        if (b.t === "trabajador") return { b, nombre: "Nombre de ejemplo", rut: "11.111.111-1", cargo: "Cargo", firma: b.firma ? firma : "" };
+        if (b.t === "asistentes") return { b, conEval: b.eval !== "no", lista: [1, 2, 3].map(k => ({ nombre: `Asistente de ejemplo ${k}`, rut: "11.111.111-1", cargo: "Cargo", eval: b.eval !== "no" ? "Aprobado" : "", firma })) };
+        if (b.t === "fotos") return { b, fotos: [] };
+        if (b.t === "firma") return { b, nombre: "Nombre de ejemplo", firma };
+        if (b.t === "fecha") return { b, v: hoyISO() };
+        if (b.t === "opciones") return { b, v: b.ops[0] || "" };
+        return { b, v: b.t === "numero" ? "1" : "Texto de ejemplo" };
+      });
+      const hay = items.some(x => x.b.t === "asistentes") && items.some(x => x.b.t === "horario");
+      try {
+        const bytes = await crearPDF_Documento({ pl, items, fecha: hoyISO(), duracion: hay ? 90 : 0, horasPersona: hay ? 4.5 : 0 });
+        await compartirPDFEPP(bytes, `Ejemplo_${slugArchivo(pl.nombre)}.pdf`, `Ejemplo – ${pl.nombre}`, msj);
+      } catch (e) { msj.textContent = "No se pudo armar el ejemplo: " + e.message; }
     }
 
     avisoProgramaMenu();
