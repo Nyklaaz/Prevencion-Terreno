@@ -244,6 +244,11 @@
     /* ===== Check list ===== */
     .ck-listas { display: grid; gap: 8px; margin-top: 4px; }
     .ck-listas:empty { display: none; }
+    .registro.reemplazado { opacity: .72; }
+    .hist-reemplazado, .hist-corrige { font-size: 13px; font-weight: 600; margin: 2px 0 4px; }
+    .hist-reemplazado { color: #b54708; } .hist-corrige { color: #1d4ed8; }
+    .bit-lista { max-height: 320px; overflow-y: auto; margin-top: 8px; border: 1px solid #eaecf0; border-radius: 8px; }
+    .bit-fila { padding: 8px 10px; border-bottom: 1px solid #eaecf0; font-size: 13px; }
     .dlg-clave { border: none; border-radius: 14px; padding: 18px; width: min(92vw, 420px); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
     .dlg-clave::backdrop { background: rgba(10, 15, 30, .55); }
     .dlg-clave input[type=password], .dlg-clave input#dlgClaveInput { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--borde); border-radius: 8px; }
@@ -669,6 +674,14 @@
           <div class="dos-col"><input type="month" id="expMes"><button type="button" class="btn btn-principal" onclick="exportarRegistrosMes()">Exportar</button></div>
           <p class="ayuda" style="margin-top:12px">Respaldo: baja un zip con todos los PDF del mes elegido, ordenados en carpetas. Este equipo guarda el mes actual y el anterior; lo más antiguo que ya respaldaste se borra solo.</p>
           <button type="button" class="btn btn-secundario" onclick="respaldarMesElegido()">💾 Descargar respaldo (zip) del mes</button>
+        </details>
+        <details class="exportar">
+          <summary>📒 Bitácora (registro de auditoría)</summary>
+          <p class="ayuda">Todo lo que pasa con los documentos queda anotado aquí: generado, corregido (con el folio al que corrige), borrado (con su motivo), respaldos, restauraciones y traspasos. Cada anotación está encadenada a la anterior: si alguien la altera, se nota.</p>
+          <p class="mensaje" id="bitEstado"></p>
+          <button type="button" class="btn btn-secundario" onclick="descargarBitacora()">📄 Descargar bitácora (PDF)</button>
+          <p class="mensaje" id="msjBit"></p>
+          <div id="bitLista" class="bit-lista"></div>
         </details>
         <details class="exportar">
           <summary>🔎 Verificar un documento</summary>
@@ -2115,7 +2128,7 @@
       const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos" };
       if (id === "documentos") iniciarDocumentos();
       if (id === "irl") iniciarIRL();
-      if (id === "historial") pintarHistorial();
+      if (id === "historial") { pintarHistorial(); pintarBitacora(); }
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
       if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); }
@@ -3306,6 +3319,14 @@
       const h = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
       return [...h].map(x => x.toString(16).padStart(2, "0")).join("");
     }
+    // Documentos que se firman en el momento, delante de quien registra (el informe reutiliza firmas: no va)
+    const FIRMA_PRESENCIAL = ["charla", "irl", "check", "epp", "consentimiento", "documento"];
+    let versionAppCache = "";
+    async function versionApp() {
+      if (versionAppCache) return versionAppCache;
+      try { const k = (await caches.keys()).filter(c => c.startsWith("prevencion:" + new URL("./", location.href).href)).sort().pop(); versionAppCache = k ? k.split(":").pop() : ""; } catch {}
+      return versionAppCache;
+    }
     // Estampa el folio al pie de cada página. Cambia pdf.bytes por la versión sellada.
     async function sellarPDF(pdf, tipo, fecha) {
       try {
@@ -3313,7 +3334,12 @@
         const folio = nuevoFolio(tipo, fecha, pdf.prefijo);
         const d = await PDFDocument.load(pdf.bytes, { updateMetadata: false });
         const f = await d.embedFont(StandardFonts.Helvetica);
-        for (const pag of d.getPages()) pag.drawText(`Folio ${folio} · verificable en la app Prevención en Terreno (Historial > Verificar documento)`, { x: 36, y: 11, size: 6, font: f, color: rgb(0.45, 0.48, 0.55) });
+        const linea2 = textoPDF([FIRMA_PRESENCIAL.includes(tipo) ? "Firma electrónica simple (Ley 19.799) trazada en pantalla, en forma presencial ante quien registra" : "",
+          `Formato ${PAQ.actualizado ? fechaCLde(PAQ.actualizado) : "base"}`, `App ${await versionApp() || "—"}`].filter(Boolean).join(" · "));
+        for (const pag of d.getPages()) {
+          pag.drawText(textoPDF(`Folio ${folio}${pdf.corrige ? ` · corrige y reemplaza al folio ${pdf.corrige}` : ""} · verificable en la app Prevención en Terreno (Historial > Verificar documento)`), { x: 36, y: 11, size: 6, font: f, color: rgb(0.45, 0.48, 0.55) });
+          pag.drawText(linea2, { x: 36, y: 4, size: 5.5, font: f, color: rgb(0.45, 0.48, 0.55) });
+        }
         d.setKeywords(["prevencion-terreno", "folio:" + folio]);
         pdf.bytes = await d.save();
         pdf.folio = folio;
@@ -3322,16 +3348,22 @@
       return pdf;
     }
 
+    // Una corrección NUNCA sobrescribe: el documento nuevo lleva su propio folio y dice a cuál corrige;
+    // el original se conserva (en el equipo y en Drive) marcado como "reemplazado por" el nuevo.
     async function guardarEnHistorial(idAnterior, tipo, pdf, fecha, detalle, extra = {}) {
+      let previo = null;
+      if (idAnterior) { try { previo = await operacionBD("readonly", s => s.get(idAnterior)); } catch {} }
+      if (previo && previo.reemplazadoPor) previo = null;
+      const version = previo ? (+previo.version || 1) + 1 : 1;
+      if (previo) { pdf.corrige = previo.folio || ""; pdf.nombreArchivo = String(pdf.nombreArchivo).replace(/\.pdf$/i, "") + `_v${version}.pdf`; }
       await sellarPDF(pdf, tipo, fecha);
       try {
         const registro = { ...extra, tipo, fecha, detalle, asunto: pdf.asunto, nombreArchivo: pdf.nombreArchivo,
-                           creado: Date.now(), pdf: pdf.bytes, folio: pdf.folio || "", hash: pdf.hash || "" };
-        if (idAnterior) {
-          registro.id = idAnterior;
-          try { const previo = await operacionBD("readonly", s => s.get(idAnterior)); const d = previo && (previo.drive || previo.driveAnterior); if (d) registro.driveAnterior = d; } catch {}
-        }
+                           creado: Date.now(), pdf: pdf.bytes, folio: pdf.folio || "", hash: pdf.hash || "", version,
+                           ...(previo ? { reemplaza: previo.folio || "" } : {}) };
         const id = await operacionBD("readwrite", s => s.put(registro));
+        if (previo) await operacionBD("readwrite", s => s.put({ ...previo, reemplazadoPor: pdf.folio || "", reemplazadoEn: Date.now() }));
+        bitacora(previo ? "Corregido" : "Generado", { folio: pdf.folio, doc: pdf.asunto, reemplaza: previo ? previo.folio : "" });
         subirPendientesDrive();   // a Google Drive, si está conectado (si no, queda en cola)
         return id;
       } catch (e) {
@@ -3371,8 +3403,10 @@
         `${regs.length} PDF guardados en este teléfono (${mb.toFixed(1)} MB)` + (visibles.length !== regs.length ? ` · mostrando ${visibles.length}` : "");
 
       lista.innerHTML = visibles.map(r => `
-        <div class="registro">
+        <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
           <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : "📋"} ${html(r.asunto)}</div>
+          ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
+          ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
@@ -3438,7 +3472,12 @@
         setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "🗑️"; }, 4000);
         return;
       }
+      const r = regsMemoria[id];
+      const motivo = prompt(`¿Por qué se borra "${r ? r.asunto : "este documento"}"?\n(Queda anotado en la bitácora con su folio y huella)`, "");
+      if (motivo === null) { boton.dataset.confirmar = ""; boton.textContent = "🗑️"; return; }
+      if (!motivo.trim()) { alert("Escribe el motivo para poder borrarlo."); boton.dataset.confirmar = ""; boton.textContent = "🗑️"; return; }
       try { await operacionBD("readwrite", s => s.delete(id)); } catch {}
+      await bitacora("Borrado", { folio: r?.folio, doc: r?.asunto, motivo: motivo.trim(), huella: (r?.hash || "").slice(0, 16) });
       pintarHistorial();
     }
 
@@ -4243,6 +4282,53 @@
     }
 
     /* ----- Registros del mes (historial de este equipo) ----- */
+    /* ----- BITÁCORA DE AUDITORÍA -----
+       Cada evento (generar, corregir, borrar, respaldar, restaurar, exportar…) queda anotado con fecha y hora.
+       Cada anotación lleva la huella (SHA-256) de la anterior: si alguien borra o cambia una, la cadena se rompe. */
+    const BITACORA_MAX = 50000;
+    let bitacoraCola = Promise.resolve();
+    async function leerBitacora() { try { const l = await bdAvisos("readonly", s => s.get("bitacora")); return Array.isArray(l) ? l : []; } catch { return []; } }
+    const huellaEvento = async (previa, e) => (await huella(textoABytes(previa + "|" + JSON.stringify({ ...e, h: undefined })))).slice(0, 32);
+    function bitacora(ev, det = {}) {
+      bitacoraCola = bitacoraCola.then(async () => {
+        const lista = await leerBitacora();
+        const e = { t: new Date().toISOString(), ev: String(ev).slice(0, 40) };
+        for (const [k, v] of Object.entries(det)) if (v !== undefined && v !== null && v !== "") e[k] = String(v).slice(0, 200);
+        e.h = await huellaEvento(lista.length ? lista[lista.length - 1].h : "", e);
+        lista.push(e);
+        await bdAvisos("readwrite", s => s.put(lista.slice(-BITACORA_MAX), "bitacora"));
+      }).catch(() => {});
+      return bitacoraCola;
+    }
+    // Revisa la cadena: devuelve el número del primer evento alterado, o 0 si está íntegra
+    async function revisarBitacora(lista) {
+      for (let i = 1; i < lista.length; i++) if (lista[i].h !== await huellaEvento(lista[i - 1].h, lista[i])) return i + 1;
+      return 0;
+    }
+    async function pintarBitacora() {
+      const caja = document.getElementById("bitLista");
+      if (!caja) return;
+      const lista = await leerBitacora(), malo = await revisarBitacora(lista);
+      document.getElementById("bitEstado").innerHTML = !lista.length ? "Todavía no hay eventos."
+        : malo ? `<span class="rojo">⚠️ La bitácora fue alterada a partir del evento N° ${malo}.</span>` : `<span class="verde">✅ Cadena íntegra: ${lista.length} evento(s) desde el ${new Date(lista[0].t).toLocaleDateString("es-CL")}.</span>`;
+      caja.innerHTML = lista.slice(-40).reverse().map(e => `<div class="bit-fila"><b>${html(e.ev)}</b> <small>${new Date(e.t).toLocaleString("es-CL")}</small><br>${html(textoEvento(e))}</div>`).join("");
+    }
+    const textoEvento = e => [e.doc, e.folio ? "Folio " + e.folio : "", e.reemplaza ? "corrige al " + e.reemplaza : "", e.motivo ? "Motivo: " + e.motivo : "", e.det].filter(Boolean).join(" · ");
+    async function descargarBitacora() {
+      const msj = document.getElementById("msjBit");
+      try {
+        const lista = await leerBitacora(), malo = await revisarBitacora(lista);
+        const c = await nuevoPDFSimple("BITÁCORA DE AUDITORÍA DE REGISTROS", `${LINEA_EMPLEADOR || EMPRESA.nombre || ""} · Emitida el ${new Date().toLocaleString("es-CL")}`);
+        c.parrafo(`Eventos registrados por la aplicación Prevención en Terreno en este equipo: generación, corrección y borrado de documentos, respaldos, restauraciones y traspasos. Cada evento incluye la huella del anterior (cadena SHA-256). Estado: ${!lista.length ? "sin eventos" : malo ? "ALTERADA a partir del evento N° " + malo : "íntegra"} (${lista.length} eventos).`, { tam: 9 });
+        c.titulo("Eventos");
+        lista.forEach((e, i) => c.parrafo(`${i + 1}. ${new Date(e.t).toLocaleString("es-CL")} · ${e.ev}${textoEvento(e) ? " · " + textoEvento(e) : ""} · h:${e.h.slice(0, 12)}`, { tam: 8 }));
+        c.pie();
+        const bytes = await c.doc.save();
+        await compartirPDFEPP(bytes, `Bitacora_auditoria_${hoyISO()}.pdf`, "Bitácora de auditoría", msj);
+        bitacora("Bitácora exportada", { det: `${lista.length} eventos` });
+      } catch (e) { msj.textContent = "No se pudo armar la bitácora: " + e.message; }
+    }
+    const vigente = r => !r.reemplazadoPor;   // un documento corregido se conserva, pero no se cuenta dos veces
     async function registrosDelMes(k) {
       try {
         const regs = await operacionBD("readonly", s => s.getAll());
@@ -4289,6 +4375,7 @@
       if (clave) { zip = await cifrarBytes(zip, clave); nombreZip += ".cifrado"; mime = "application/octet-stream"; }
       descargarArchivo(zip, nombreZip, mime);
       alDrive(nombreZip, zip, mime, [DRIVE_RAIZ, k], "respaldo-mes:" + k);
+      bitacora("Respaldo mensual", { det: `${nombreZip} · ${regs.length} PDF${clave ? " · cifrado" : " · SIN cifrar"}` });
       if (!confirm(`Se descargó ${nombreZip} con ${regs.length} PDF de ${nombreMes(k)}.\n\n¿Quedó guardado (en el PC o en tu correo)?\n\nSi tocas Aceptar, este mes queda respaldado y sus PDF se borrarán de este equipo cuando termine el mes siguiente.`)) return false;
       const hechos = leerGuardado("pt_respaldoMes", {});
       hechos[k] = momento;
@@ -4302,6 +4389,7 @@
       // Antes de borrar IRL: se agendan sus reinducciones (12 meses por defecto), para no perder a esos trabajadores
       if (borrar.some(r => r.tipo === "irl")) { try { await reinduccionesDesdeIRL(); } catch {} }
       for (const r of borrar) { try { await operacionBD("readwrite", s => s.delete(r.id)); } catch {} }
+      if (borrar.length) await bitacora("Limpieza tras respaldo mensual", { det: `${borrar.length} PDF ya respaldados: ${[...new Set(borrar.map(mesDeRegistro))].join(", ")}` });
       return borrar.length;
     }
     // Aviso rojo en el menú mientras haya un mes terminado sin respaldo
@@ -4350,11 +4438,15 @@
       ["Dirección del Trabajo, Ord. N° 477 (27-01-2017)", "Los documentos de la relación laboral son instrumentos privados; cuando se requiere la firma del trabajador, basta una firma electrónica simple para la validez del instrumento."],
       ["Dirección del Trabajo, Dictamen N° 0789/015 (16-02-2015)", "Acepta la documentación laboral electrónica, con el consentimiento expreso de las personas trabajadoras y con la documentación disponible para la fiscalización."],
       ["Ley N° 19.628 y Ley N° 21.719 (protección de datos personales)", "Los datos personales de las personas trabajadoras se tratan solo para la finalidad informada (seguridad y salud en el trabajo), con medidas de seguridad, y su titular puede pedir acceso, rectificación y supresión. La Ley N° 21.719 (publicada el 13-12-2024) reemplaza el régimen de la Ley N° 19.628 desde su entrada en vigencia, fijada para el 1-12-2026 (hay un proyecto de ley para postergarla)."],
+      ["Dirección del Trabajo, Ord. N° 754 (19-11-2025)", "No existen inconvenientes jurídicos para crear, firmar y gestionar electrónicamente la documentación laboral, incluida la de seguridad y salud en el trabajo: comprobantes de entrega de EPP, actividades del Derecho a Saber, capacitaciones, charlas y firma de asistencia. Excepción: las actividades que requieren la comparecencia personal del trabajador (por ejemplo, un curso práctico de extintores) deben realizarse en forma presencial; la firma electrónica no las reemplaza. En esta aplicación todas las firmas se trazan en forma presencial."],
       ["Código del Trabajo, art. 456", "El tribunal aprecia la prueba conforme a las reglas de la sana crítica: las fotografías, los folios, las fechas y los respaldos se ponderan en su conjunto."]
     ];
     const RESGUARDOS_APP = [
       "Cada firma se traza en la pantalla en el momento, en presencia de quien registra. La aplicación no guarda firmas para reutilizarlas.",
       "Cada PDF lleva un folio único y su huella digital (SHA-256). El Historial permite verificar si un documento es el original o si fue modificado.",
+      "Una corrección nunca sobrescribe: genera un documento nuevo con su propio folio, que indica a qué folio corrige; el original se conserva marcado como reemplazado.",
+      "Una bitácora de auditoría, con huellas encadenadas, registra la generación, corrección y borrado de documentos (con su motivo), los respaldos, las restauraciones y los traspasos.",
+      "El pie de cada documento indica la forma de firma y la versión del formato y de la aplicación con que se generó.",
       "Los registros indican su fecha y hora de emisión. Las fotografías del check list y de los hallazgos quedan incorporadas al documento.",
       "Copia automática en el Google Drive de la empresa y respaldo mensual con todos los documentos. Los respaldos completos se cifran con contraseña (AES-256).",
       "Los documentos se pueden imprimir, compartir y entregar en copia a la persona trabajadora o al fiscalizador cuando lo soliciten.",
@@ -4365,7 +4457,8 @@
       "D.S. 44 de 2024: bcn.cl/leychile/navegar?idNorma=1205298",
       "Código del Trabajo: bcn.cl/leychile/navegar?idNorma=207436",
       "Dirección del Trabajo, Ord. 477: dt.gob.cl/legislacion/1624/w3-article-111073.html",
-      "Dirección del Trabajo, Dictamen 0789/015: dt.gob.cl/legislacion/1624/w3-article-105114.html"
+      "Dirección del Trabajo, Dictamen 0789/015: dt.gob.cl/legislacion/1624/w3-article-105114.html",
+      "Dirección del Trabajo, Ord. 754/2025: dt.gob.cl/legislacion/1624/w3-article-128569.html"
     ];
     // RUT -> { nombre, rutTxt, fecha, folio, correo }. Solo se aceptan entradas con la forma que genera la app.
     let consentimientos = (() => {
@@ -4444,7 +4537,7 @@
       c.titulo("4. Fuentes (textos oficiales)");
       FUENTES_RESPALDO.forEach(t => c.parrafo(t, { vineta: "•", tam: 8.5, color: c.GRIS }));
       c.y -= 6;
-      c.parrafo("Documento informativo preparado a partir de los textos oficiales vigentes al 14-11-2026. No reemplaza la asesoría legal ni el criterio del organismo fiscalizador.", { tam: 8, color: c.GRIS });
+      c.parrafo("Documento informativo preparado a partir de los textos oficiales vigentes al 15-11-2026. No reemplaza la asesoría legal ni el criterio del organismo fiscalizador.", { tam: 8, color: c.GRIS });
       c.pie();
       return await c.doc.save();
     }
@@ -4496,7 +4589,7 @@
       c.titulo("Declaración");
       c.parrafo(textoConsentimiento(d.p, EMPRESA.nombre || "la empresa"), { tam: 10 });
       c.parrafo(textoDatosPersonales(EMPRESA.nombre || "la empresa"), { tam: 9.5 });
-      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 y 3; D.S. N° 44 de 2024, art. 72; Dirección del Trabajo, Dictamen N° 0789/015 y Ord. N° 477; Ley N° 19.628 y Ley N° 21.719 (protección de datos personales).", { tam: 8, color: c.GRIS });
+      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 y 3; D.S. N° 44 de 2024, art. 72; Dirección del Trabajo, Dictamen N° 0789/015, Ord. N° 477 y Ord. N° 754 de 2025; Ley N° 19.628 y Ley N° 21.719 (protección de datos personales).", { tam: 8, color: c.GRIS });
       c.espacio(140); c.y -= 10;
       const w = (c.ANCHO - 20) / 2;
       const firmas = [[d.firmaT, d.p.nombre, "Persona trabajadora"], [d.firmaP, d.prev, "Registra (Prevención de Riesgos)"]];
@@ -4847,6 +4940,7 @@
       document.querySelector("#eppElementos .epp-otro").value = "";
       document.querySelectorAll("#formEPP .firma .btn-limpiar").forEach(limpiarFirma);
       document.querySelectorAll("#formEPP .campo-falta, #formEPP .falta").forEach(x => x.classList.remove("campo-falta", "falta"));
+      bitacora("Entrega EPP registrada", { doc: `${nombre} · ${fechaCLde(fecha)} · ${items.map(i => i.desc).join(", ")}` });
       msj.textContent = `✅ Entrega registrada: ${items.map(i => i.desc).join(", ")} para ${nombre}. Queda en su Hoja de cargos de ${nombreMes(fecha.slice(0, 7))}${driveConfigurado() ? " y se sube a tu Drive" : ""}.`;
       hojaParcialEPPaDrive(rut, fecha.slice(0, 7)).catch(() => {});
       pintarListaEPP(); pintarFichaEPP();
@@ -4870,7 +4964,11 @@
     async function quitarEntregaEPP(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar entrega"; }, 4000); return; }
       let quitada = null;
-      try { quitada = await bdEPP("readonly", s => s.get(id)); await borrarEntregaEPP(id); } catch {}
+      try { quitada = await bdEPP("readonly", s => s.get(id)); } catch {}
+      const motivo = prompt("¿Por qué se quita esta entrega? (queda anotado en la bitácora)", "");
+      if (motivo === null || !motivo.trim()) { boton.dataset.confirmar = ""; pintarFichaEPP(); return; }
+      try { await borrarEntregaEPP(id); } catch {}
+      if (quitada) await bitacora("Entrega EPP quitada", { doc: `${quitada.nombre} · ${fechaCLde(quitada.fecha)} · ${(quitada.items || []).map(i => i.desc).join(", ")}`, motivo: motivo.trim() });
       if (quitada) hojaParcialEPPaDrive(quitada.rut, quitada.fecha.slice(0, 7)).catch(() => {});   // la copia en Drive se actualiza
       pintarFichaEPP();
     }
@@ -4985,13 +5083,15 @@
       if (!delMes.length) return 0;
       const porRut = {};
       delMes.forEach(e => (porRut[e.rut] ||= []).push(e));
-      const hist = (await todosLosRegistros()).filter(r => r.tipo === "epp" && mesDeRegistro(r) === k);
+      const hist = (await todosLosRegistros()).filter(r => r.tipo === "epp" && mesDeRegistro(r) === k && vigente(r));
       const fin = isoD(new Date(+k.slice(0, 4), +k.slice(5, 7), 0, 12));
       for (const lista of Object.values(porRut)) {
         const trab = trabajadorDe(lista), clave = `${trab.nombre} · RUT ${trab.rutTxt}`;
-        const previo = hist.find(r => String(r.detalle || "").startsWith(clave + " ·"));   // si se vuelve a generar, se reemplaza
+        const previo = hist.find(r => String(r.detalle || "").startsWith(clave + " ·"));   // si cambió, va una versión nueva que la corrige
+        const contenido = lista.map(e => e.creado).join(",");
+        if (previo && previo.contenido === contenido) continue;   // mismas entregas: la hoja ya está
         const pdf = { bytes: await crearPDF_HojaCargos(trab, lista, nombreMes(k)), nombreArchivo: nombreArchivoEPP(trab.nombre, k), asunto: `Hoja de cargos EPP – ${trab.nombre} – ${nombreMes(k)}` };
-        await guardarEnHistorial(previo ? previo.id : null, "epp", pdf, fin, `${clave} · ${lista.length} entrega(s)`);
+        await guardarEnHistorial(previo ? previo.id : null, "epp", pdf, fin, `${clave} · ${lista.length} entrega(s)`, { contenido });
       }
       return Object.keys(porRut).length;
     }
@@ -5036,7 +5136,7 @@
     async function pintarResumenMes() {
       const k = infMesActual;
       if (!k) return;
-      const regs = (await registrosDelMes(k)).filter(r => r.tipo !== "anexo");
+      const regs = (await registrosDelMes(k)).filter(r => r.tipo !== "anexo" && vigente(r));
       const n = t => regs.filter(r => r.tipo === t).length;
       document.getElementById("infResumenHist").textContent = regs.length
         ? `En este equipo hay ${n("charla")} charla(s), ${n("irl")} IRL, ${n("check")} check list y ${n("documento")} documento(s) de ${nombreMes(k)}.`
@@ -5052,7 +5152,7 @@
     async function generarActividades() {
       guardarInforme();
       const k = infMesActual, mesTxt = nombreMes(k).toLowerCase();
-      const regs = await registrosDelMes(k);
+      const regs = (await registrosDelMes(k)).filter(vigente);
       const contar = lista => Object.entries(lista.reduce((o, x) => (o[x] = (o[x] || 0) + 1, o), {})).map(([a, b]) => `${a} (${b})`).join(", ");
       const nuevas = [];
       const ch = regs.filter(r => r.tipo === "charla");
@@ -5166,7 +5266,9 @@
     }
     async function borrarAnexo(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
+      const anx = await operacionBD("readonly", s => s.get(id)).catch(() => null);
       await operacionBD("readwrite", s => s.delete(id));
+      bitacora("Anexo del informe quitado", { doc: anx ? anx.titulo || anx.nombreArchivo : "" });
       pintarAnexos();
     }
 
@@ -5255,6 +5357,7 @@
         } catch {}
         const epp = await entregasEPP();   // entregas de EPP con sus firmas (sin el número interno)
         if (epp.length) datos.entregasEPP = epp.map(({ id, ...resto }) => resto);
+        const bit = await leerBitacora(); if (bit.length) datos.bitacora = bit;
         const hoy = new Date().toLocaleDateString("sv-SE");
         let bytesRespaldo = textoABytes(JSON.stringify(datos)), nombre = `Respaldo_Prevencion_${hoy}.json`, mime = "application/json";
         const clave = await contrasenaParaRespaldo("El respaldo");
@@ -5262,6 +5365,7 @@
         descargarArchivo(bytesRespaldo, nombre, mime);
         alDrive(nombre, bytesRespaldo, mime, [DRIVE_RAIZ, "Respaldos"], "respaldo-json:" + hoy);
         guardar("pt_inf_ultimoRespaldo", Date.now());
+        bitacora("Respaldo completo", { det: `${nombre} · ${regs.length} archivos${clave ? " · cifrado" : " · SIN cifrar"}` });
         aviso.textContent = `✅ Respaldo guardado (${nombre}, ${regs.length} archivos)${clave ? ", cifrado con tu contraseña" : ""}. Guárdalo en un pendrive o mándatelo al correo.` + (clave ? "" : " ⚠️ Va SIN cifrar: define una contraseña en Empresa y formatos → Respaldo cifrado.");
       } catch (e) { aviso.textContent = e.cancelado ? e.message : "No se pudo armar el respaldo: " + e.message; }
     }
@@ -5302,6 +5406,10 @@
           await operacionBD("readwrite", s => s.put({ ...resto, pdf: b64aBytes(r.pdf) }));
           n++;
         }
+        // Bitácora: si este equipo no tiene, se toma la del respaldo (solo eventos con la forma correcta)
+        const bitRes = (Array.isArray(d.bitacora) ? d.bitacora : []).filter(e => e && typeof e.t === "string" && typeof e.ev === "string" && typeof e.h === "string" && Object.values(e).every(v => typeof v === "string"));
+        if (bitRes.length && !(await leerBitacora()).length) { try { await bdAvisos("readwrite", s => s.put(bitRes.slice(-BITACORA_MAX), "bitacora")); } catch {} }
+        await bitacora("Respaldo restaurado", { det: `${a.name} · ${n} archivo(s) nuevos` });
         sessionStorage.setItem("pt_abrirPantalla", pantalla);
         aviso.textContent = `✅ Respaldo restaurado (${n} archivos nuevos). Recargando…`;
         setTimeout(() => location.reload(), 800);
@@ -5324,7 +5432,7 @@
         for (const r of regs) {
           const d = await PDFDocument.load(r.pdf);
           const pags = await total.copyPages(d, d.getPageIndices());
-          indice.push({ plantilla: r.plantilla || "", asistentes: r.asistentes || 0, horasPersona: r.horasPersona || 0, tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", desde: total.getPageCount(), paginas: pags.length });
+          indice.push({ version: +r.version || 1, reemplaza: r.reemplaza || "", reemplazadoPor: r.reemplazadoPor || "", plantilla: r.plantilla || "", asistentes: r.asistentes || 0, horasPersona: r.horasPersona || 0, tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", desde: total.getPageCount(), paginas: pags.length });
           pags.forEach(p => total.addPage(p));
         }
         total.setTitle(`Registros de prevención – ${nombreMes(k)}`);
@@ -5334,13 +5442,14 @@
         const archivo = new File([bytes], nombre, { type: "application/pdf" });
         const datos = { files: [archivo], title: `Registros de prevención – ${nombreMes(k)}`, text: `Registros de ${nombreMes(k)} para el informe mensual (cargar en el PC: Informe mensual → Cargar registros del celular)` };
         if (navigator.canShare && navigator.canShare(datos)) {
-          try { await navigator.share(datos); msj.textContent = `Listo: ${regs.length} registros de ${nombreMes(k)}.`; return; }
+          try { await navigator.share(datos); bitacora("Traspaso al PC", { det: `${nombre} · ${regs.length} registros` }); msj.textContent = `Listo: ${regs.length} registros de ${nombreMes(k)}.`; return; }
           catch (e) { if (e.name === "AbortError") { msj.textContent = "Envío cancelado."; return; } }
         }
         const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
         const a = document.createElement("a"); a.href = url; a.download = nombre;
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60000);
+        bitacora("Traspaso al PC", { det: `${nombre} · ${regs.length} registros` });
         msj.textContent = `Se guardó ${nombre} con ${regs.length} registros. Mándatelo al PC (correo o WhatsApp).`;
       } catch (e) { msj.textContent = "No se pudo armar el archivo: " + e.message; }
     }
@@ -5367,9 +5476,11 @@
           pags.forEach(p => d.addPage(p));
           if (r.folio) d.setKeywords(["prevencion-terreno", "folio:" + r.folio]);   // el folio sigue siendo verificable en el PC
           const pdf = await d.save(), hashCopia = await huella(pdf);   // la copia separada en el PC también se reconoce como original
-          await operacionBD("readwrite", s => s.put({ ...(r.tipo === "documento" ? { plantilla: idSeguroTxt(r.plantilla) ? r.plantilla : "", asistentes: +r.asistentes || 0, horasPersona: +r.horasPersona || 0 } : {}), tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", hashCopia, pdf }));
+          await operacionBD("readwrite", s => s.put({ ...(r.tipo === "documento" ? { plantilla: idSeguroTxt(r.plantilla) ? r.plantilla : "", asistentes: +r.asistentes || 0, horasPersona: +r.horasPersona || 0 } : {}), tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", hashCopia, pdf,
+            version: +r.version || 1, ...(/^[A-Z]{2,4}-\d{6}-[A-Z0-9]{4}$/.test(r.reemplaza || "") ? { reemplaza: r.reemplaza } : {}), ...(/^[A-Z]{2,4}-\d{6}-[A-Z0-9]{4}$/.test(r.reemplazadoPor || "") ? { reemplazadoPor: r.reemplazadoPor } : {}) }));
           nuevos++;
         }
+        bitacora("Registros cargados del celular", { det: `${a.name} · ${nuevos} nuevo(s)` });
         msj.textContent = `✅ ${nuevos} registro(s) nuevos de ${nombreMes(info.mes)} cargados${info.registros.length - nuevos ? ` (${info.registros.length - nuevos} ya estaban)` : ""}.`;
         if (info.mes && info.mes !== infMesActual) { document.getElementById("infMes").value = info.mes; cambiarMesInforme(); }
         else pintarResumenMes();
@@ -5459,6 +5570,7 @@
         const bytes = await crearPDF_Informe(infMesActual);
         pdfInforme = { bytes, nombreArchivo: `Informe_Mensual_N${m.numero}_${nombreMes(infMesActual).replace(" ", "_")}.pdf`, asunto: `Informe mensual N°${m.numero} – ${nombreMes(infMesActual)}` };
         await sellarPDF(pdfInforme, "informe", infMesActual + "-28");
+        bitacora("Generado", { folio: pdfInforme.folio, doc: pdfInforme.asunto });
         await operacionBD("readwrite", s => s.put({ tipo: "informe", fecha: infMesActual + "-28", asunto: pdfInforme.asunto, detalle: `Informe mensual de gestión preventiva · ${nombreMes(infMesActual)}`, nombreArchivo: pdfInforme.nombreArchivo, creado: Date.now(), pdf: pdfInforme.bytes, folio: pdfInforme.folio || "", hash: pdfInforme.hash || "" })).catch(() => {});
         error.textContent = "";
         document.getElementById("infoPDFInforme").textContent = `${pdfInforme.nombreArchivo} · ${(pdfInforme.bytes.length / 1048576).toFixed(1)} MB${pdfInforme.folio ? " · Folio " + pdfInforme.folio : ""}`;
@@ -6189,7 +6301,9 @@
       if (v("cifClave1").length < 10) { msj.textContent = "La contraseña nueva debe tener al menos 10 caracteres."; return; }
       if (v("cifClave1") !== v("cifClave2")) { msj.textContent = "Las dos contraseñas nuevas no son iguales."; return; }
       msj.textContent = "Guardando…";
+      const cambio = cifradoActivo();
       guardar("pt_cifra_verif", bytesAB64(await cifrarBytes(textoABytes(CIF_PRUEBA), v("cifClave1"))));
+      bitacora(cambio ? "Contraseña de respaldo cambiada" : "Contraseña de respaldo definida");
       ["cifActual", "cifClave1", "cifClave2"].forEach(id => document.getElementById(id).value = "");
       document.getElementById("cifDefinir").open = false;
       pintarCifrado();
@@ -6637,6 +6751,7 @@
     // Guarda un paquete completo y recarga la app para usarlo
     async function activarPaquete(p, abrirEmpresa = true) {
       const { irl, ...liviano } = p;
+      await bitacora("Formatos cambiados", { det: p.nombre || p.empresa?.nombre || "" });
       try { localStorage.setItem("pt_paquete", JSON.stringify(liviano)); }
       catch (e) { document.getElementById("msjPaquete").textContent = "No hay espacio en este navegador para el paquete (¿logo muy pesado?). Libera espacio o achica el logo."; return; }
       if (irl) await bdPaquete("readwrite", s => s.put(irl, "irl")); else await bdPaquete("readwrite", s => s.delete("irl"));
@@ -6782,7 +6897,7 @@
     async function iniciarCalendario() {
       document.getElementById("progTipo").innerHTML = TIPOS_PROGRAMA.map(t => `<option>${t}</option>`).join("");
       if (!document.getElementById("progFecha").value) document.getElementById("progFecha").value = calDiaSel;
-      try { calRegistros = (await operacionBD("readonly", s => s.getAll())).filter(r => ["charla", "irl", "check", "informe", "documento"].includes(r.tipo)); } catch { calRegistros = []; }
+      try { calRegistros = (await operacionBD("readonly", s => s.getAll())).filter(r => ["charla", "irl", "check", "informe", "documento"].includes(r.tipo) && vigente(r)); } catch { calRegistros = []; }
       pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma();
     }
     function moverMesCal(paso) {
@@ -8614,7 +8729,7 @@
         else dato(b.et, x.v);
       }
       c.y -= 4;
-      c.parrafo(`Documento generado el ${new Date().toLocaleString("es-CL")} con la plantilla "${pl.nombre}". Firmas trazadas en pantalla en el momento (firma electrónica simple, Ley N° 19.799).`, { tam: 7.5, color: c.GRIS });
+      c.parrafo(`Documento generado el ${new Date().toLocaleString("es-CL")} con la plantilla "${pl.nombre}". Firmas trazadas en pantalla en el momento (firma electrónica simple, Ley N° 19.799).${items.some(x => x.b.t === "asistentes") ? " La actividad se realizó en forma presencial y cada asistente firmó al término de ella." : ""}`, { tam: 7.5, color: c.GRIS });
       c.pie();
       return await c.doc.save();
     }
@@ -8652,7 +8767,7 @@
         setTimeout(() => docGuardando = false, 600);
         document.getElementById("docBorrador").innerHTML = "";
         error.textContent = "";
-        document.getElementById("infoPDFDoc").textContent = `${pdfDoc.nombreArchivo} · ${Math.round(pdfDoc.bytes.length / 1024)} KB${pdfDoc.folio ? " · Folio " + pdfDoc.folio : ""}${marcadas.length ? ` · ✓ ${marcadas.length} actividad(es) del programa marcada(s) como cumplida(s)` : ""}${driveConfigurado() ? " · se sube a tu Drive" : ""}. Si corriges algo y lo generas de nuevo, se reemplaza este mismo documento.`;
+        document.getElementById("infoPDFDoc").textContent = `${pdfDoc.nombreArchivo} · ${Math.round(pdfDoc.bytes.length / 1024)} KB${pdfDoc.folio ? " · Folio " + pdfDoc.folio : ""}${marcadas.length ? ` · ✓ ${marcadas.length} actividad(es) del programa marcada(s) como cumplida(s)` : ""}${driveConfigurado() ? " · se sube a tu Drive" : ""}. Si corriges algo y lo generas de nuevo, sale una versión corregida con folio nuevo y el original se conserva.`;
         document.getElementById("mensajeDoc").textContent = "";
         document.getElementById("cajaEnvioDoc").style.display = "block";
         document.getElementById("cajaEnvioDoc").scrollIntoView({ behavior: "smooth" });
