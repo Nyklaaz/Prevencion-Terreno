@@ -1009,6 +1009,29 @@
       </div>
 
       <div class="tarjeta">
+        <h2>Respaldo legal y consentimiento</h2>
+        <p class="ayuda">Las normas que respaldan los registros electrónicos con firma en pantalla y fotos (Ley 19.799, D.S. 44 y Dirección del Trabajo). También va como anexo en la carpeta del mes del informe.</p>
+        <button type="button" class="btn btn-secundario" onclick="descargarRespaldoNormativo()">📜 Respaldo normativo (PDF)</button>
+        <p class="mensaje" id="msjLegal"></p>
+        <details class="exportar" id="consForm">
+          <summary>✍️ Consentimiento de firma electrónica</summary>
+          <p class="ayuda">Cada trabajador lo firma <b>una sola vez</b>: acepta que sus registros se hagan y firmen en la app (Dirección del Trabajo, Dictamen 0789/015).</p>
+          <label>Trabajador</label>
+          <select id="consTrab" onchange="elegirTrabConsentimiento()"></select>
+          <p class="ayuda" id="consTexto" style="margin-top:8px"></p>
+          <label>Correo para recibir copias (opcional)</label>
+          <input type="text" id="consCorreo" inputmode="email" autocomplete="off" placeholder="nombre@correo.cl">
+          <div id="consFirmaTrab"></div>
+          <label>Nombre de quien registra</label>
+          <input type="text" id="consPrev">
+          <div id="consFirmaPrev"></div>
+          <button type="button" class="btn btn-principal" onclick="registrarConsentimiento()">Registrar consentimiento</button>
+          <p class="mensaje" id="msjCons"></p>
+          <div id="consFaltan"></div>
+        </details>
+      </div>
+
+      <div class="tarjeta">
         <h2>Google Drive</h2>
         <p class="ayuda">Cada PDF que generes se guarda solo en tu Google Drive, en la carpeta "Prevención en Terreno", ordenado por mes y tipo. Sin señal, queda en cola y sube apenas haya internet. La app solo puede ver los archivos que ella misma crea en tu Drive.</p>
         <p class="mensaje" id="driveEstado"></p>
@@ -2007,7 +2030,7 @@
       if (id === "historial") pintarHistorial();
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
-      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); }
+      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); }
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
@@ -3185,7 +3208,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON" };
     function nuevoFolio(tipo, fecha) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3261,7 +3284,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : "📋"} ${html(r.asunto)}</div>
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
@@ -4143,7 +4166,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -4222,6 +4245,202 @@
       const viejas = Object.keys(infFirmaExperto).filter(k => k < limite && k !== enCurso);
       viejas.forEach(k => delete infFirmaExperto[k]);
       if (viejas.length) guardar("pt_inf_firmaExperto", infFirmaExperto);
+    }
+
+    /* =====================================================================
+       RESPALDO NORMATIVO Y CONSENTIMIENTO DE FIRMA ELECTRÓNICA
+       Textos revisados el 14-11-2026 en bcn.cl (Biblioteca del Congreso) y dt.gob.cl (Dirección del Trabajo).
+       Documento informativo: no reemplaza asesoría legal.
+       ===================================================================== */
+    const NORMAS_RESPALDO = [
+      ["Ley N° 19.799, art. 3", "Los actos y contratos suscritos por medio de firma electrónica son válidos de la misma manera y producen los mismos efectos que los celebrados por escrito y en soporte de papel. La firma electrónica, cualquiera sea su naturaleza, se mirará como firma manuscrita para todos los efectos legales."],
+      ["Ley N° 19.799, art. 2, letras d) y f)", "Documento electrónico es toda representación de un hecho, imagen o idea creada o almacenada por medios electrónicos (incluye las fotografías que forman parte de los registros). Firma electrónica es cualquier sonido, símbolo o proceso electrónico que permite identificar al menos formalmente a su autor (la firma trazada en la pantalla)."],
+      ["Ley N° 19.799, art. 5", "Los documentos electrónicos pueden presentarse en juicio. Los instrumentos privados suscritos con firma electrónica tienen el valor probatorio que corresponda de acuerdo con las reglas generales."],
+      ["D.S. N° 44 de 2024 (Ministerio del Trabajo y Previsión Social), art. 72", "La entidad empleadora debe registrar y respaldar de forma documental y fidedigna la información vinculada a la gestión de los riesgos laborales y mantenerla, preferentemente en formato electrónico, a disposición de la entidad fiscalizadora y del organismo administrador."],
+      ["D.S. N° 44 de 2024, art. 15", "Obliga a informar a cada persona trabajadora, previo al inicio de las labores, los riesgos, las medidas preventivas y los métodos de trabajo correctos. No exige un soporte de papel para dejar constancia de ello."],
+      ["Dirección del Trabajo, Ord. N° 477 (27-01-2017)", "Los documentos de la relación laboral son instrumentos privados; cuando se requiere la firma del trabajador, basta una firma electrónica simple para la validez del instrumento."],
+      ["Dirección del Trabajo, Dictamen N° 0789/015 (16-02-2015)", "Acepta la documentación laboral electrónica, con el consentimiento expreso de las personas trabajadoras y con la documentación disponible para la fiscalización."],
+      ["Código del Trabajo, art. 456", "El tribunal aprecia la prueba conforme a las reglas de la sana crítica: las fotografías, los folios, las fechas y los respaldos se ponderan en su conjunto."]
+    ];
+    const RESGUARDOS_APP = [
+      "Cada firma se traza en la pantalla en el momento, en presencia de quien registra. La aplicación no guarda firmas para reutilizarlas.",
+      "Cada PDF lleva un folio único y su huella digital (SHA-256). El Historial permite verificar si un documento es el original o si fue modificado.",
+      "Los registros indican su fecha y hora de emisión. Las fotografías del check list y de los hallazgos quedan incorporadas al documento.",
+      "Copia automática en el Google Drive de la empresa y respaldo mensual con todos los documentos.",
+      "Los documentos se pueden imprimir, compartir y entregar en copia a la persona trabajadora o al fiscalizador cuando lo soliciten.",
+      "Cada persona trabajadora firma una constancia de aceptación expresa del registro electrónico (Dictamen DT N° 0789/015)."
+    ];
+    const FUENTES_RESPALDO = [
+      "Ley 19.799: bcn.cl/leychile/navegar?idNorma=196640",
+      "D.S. 44 de 2024: bcn.cl/leychile/navegar?idNorma=1205298",
+      "Código del Trabajo: bcn.cl/leychile/navegar?idNorma=207436",
+      "Dirección del Trabajo, Ord. 477: dt.gob.cl/legislacion/1624/w3-article-111073.html",
+      "Dirección del Trabajo, Dictamen 0789/015: dt.gob.cl/legislacion/1624/w3-article-105114.html"
+    ];
+    // RUT -> { nombre, rutTxt, fecha, folio, correo }. Solo se aceptan entradas con la forma que genera la app.
+    let consentimientos = (() => {
+      const c = leerGuardado("pt_consentimientos", {});
+      return c && typeof c === "object" ? Object.fromEntries(Object.entries(c).filter(([k, v]) => /^[0-9K]{2,10}$/.test(k) && v && typeof v.nombre === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v.fecha || ""))) : {};
+    })();
+
+    // Hoja PDF simple con encabezado de la empresa, títulos, párrafos y pie con páginas
+    function partirPDF(texto, f, tam, ancho) {
+      const out = [];
+      for (const par of String(texto ?? "").split("\n")) {
+        let linea = "";
+        for (const p of textoPDF(par).split(" ").filter(Boolean)) {
+          const prueba = linea ? linea + " " + p : p;
+          if (f.widthOfTextAtSize(prueba, tam) <= ancho) linea = prueba; else { if (linea) out.push(linea); linea = p; }
+        }
+        out.push(linea);
+      }
+      return out;
+    }
+    async function nuevoPDFSimple(titulo, subtitulo) {
+      const { PDFDocument, StandardFonts, rgb } = PDFLib;
+      const doc = await PDFDocument.create();
+      doc.setTitle(textoPDF(titulo));
+      const fN = await doc.embedFont(StandardFonts.Helvetica), fB = await doc.embedFont(StandardFonts.HelveticaBold), logo = await doc.embedPng(LOGO_EMPRESA);
+      const A = 595.28, H = 841.89, M = 42, ANCHO = A - 2 * M;
+      const c = { doc, fN, fB, A, H, M, ANCHO, NEGRO: rgb(0.12, 0.16, 0.2), GRIS: rgb(0.4, 0.44, 0.52), ROJO: rgb(0.72, 0.06, 0.16), FONDO: rgb(0.95, 0.96, 0.97), pag: null, y: 0 };
+      c.nueva = () => {
+        c.pag = doc.addPage([A, H]); c.y = H - M;
+        c.pag.drawImage(logo, { x: A - M - 36, y: c.y - 34, width: 36, height: 36 });
+        for (const l of partirPDF(titulo, fB, 12, ANCHO - 60)) { c.pag.drawText(l, { x: M, y: c.y - 12, size: 12, font: fB, color: c.NEGRO }); c.y -= 15; }
+        for (const l of partirPDF(subtitulo, fN, 8, ANCHO - 60)) { c.pag.drawText(l, { x: M, y: c.y - 9, size: 8, font: fN, color: c.GRIS }); c.y -= 10; }
+        c.y = Math.min(c.y, H - M - 40) - 6;
+        c.pag.drawLine({ start: { x: M, y: c.y }, end: { x: A - M, y: c.y }, thickness: 2, color: c.ROJO });
+        c.y -= 14;
+      };
+      c.espacio = alto => { if (c.y - alto < M + 20) c.nueva(); };
+      c.parrafo = (texto, { f = fN, tam = 9.5, color = c.NEGRO, sangria = 0, vineta = "" } = {}) => {
+        partirPDF(texto, f, tam, ANCHO - sangria - (vineta ? 12 : 0)).forEach((l, i) => {
+          c.espacio(tam * 1.4);
+          if (vineta && i === 0) c.pag.drawText(vineta, { x: M + sangria, y: c.y - tam, size: tam, font: fN, color });
+          c.pag.drawText(l, { x: M + sangria + (vineta ? 12 : 0), y: c.y - tam, size: tam, font: f, color });
+          c.y -= tam * 1.4;
+        });
+        c.y -= 3;
+      };
+      c.titulo = t => {
+        c.espacio(44); c.y -= 6;
+        c.pag.drawRectangle({ x: M, y: c.y - 18, width: ANCHO, height: 18, color: c.FONDO });
+        c.pag.drawRectangle({ x: M, y: c.y - 18, width: 4, height: 18, color: c.ROJO });
+        c.pag.drawText(textoPDF(t), { x: M + 10, y: c.y - 13, size: 9.5, font: fB, color: c.NEGRO });
+        c.y -= 26;
+      };
+      c.pie = () => {
+        const pags = doc.getPages();
+        pags.forEach((p, i) => { const t = textoPDF(`Página ${i + 1} de ${pags.length} · ${EMPRESA.nombre || ""} · Generado con Prevención en Terreno`); p.drawText(t, { x: (A - fN.widthOfTextAtSize(t, 7)) / 2, y: M - 18, size: 7, font: fN, color: c.GRIS }); });
+      };
+      c.nueva();
+      return c;
+    }
+
+    async function crearPDF_RespaldoNormativo() {
+      const c = await nuevoPDFSimple("RESPALDO NORMATIVO DE LOS REGISTROS ELECTRÓNICOS", `Anexo complementario · ${LINEA_EMPLEADOR || EMPRESA.nombre || ""} · Emitido el ${fechaCLde(hoyISO())}`);
+      c.parrafo(`Este anexo resume las normas que respaldan que los registros de seguridad y salud en el trabajo de ${EMPRESA.nombre || "la empresa"} (charlas y ART, IRL, entregas de EPP, check list, hallazgos e informes) se confeccionen, firmen y guarden en formato electrónico, con firma electrónica simple trazada en pantalla y respaldo fotográfico, mediante la aplicación Prevención en Terreno.`);
+      c.titulo("1. Marco normativo");
+      for (const [n, t] of NORMAS_RESPALDO) { c.parrafo(n, { f: c.fB, tam: 9.5 }); c.parrafo(t, { sangria: 10, tam: 9 }); }
+      c.titulo("2. Cómo se resguarda cada registro");
+      RESGUARDOS_APP.forEach(t => c.parrafo(t, { vineta: "•", tam: 9 }));
+      c.titulo("3. Aceptación de las personas trabajadoras");
+      const lista = Object.values(consentimientos).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+      if (!lista.length) c.parrafo("Aún no hay constancias de aceptación registradas en este equipo.", { color: c.GRIS, tam: 9 });
+      else {
+        c.parrafo(`${lista.length} persona(s) trabajadora(s) aceptaron expresamente el registro electrónico:`, { tam: 9 });
+        lista.forEach(x => c.parrafo(`${x.nombre} · RUT ${x.rutTxt || ""} · ${fechaCLde(x.fecha)}${x.folio ? " · Folio " + x.folio : ""}`, { vineta: "•", tam: 8.5 }));
+      }
+      c.titulo("4. Fuentes (textos oficiales)");
+      FUENTES_RESPALDO.forEach(t => c.parrafo(t, { vineta: "•", tam: 8.5, color: c.GRIS }));
+      c.y -= 6;
+      c.parrafo("Documento informativo preparado a partir de los textos oficiales vigentes al 14-11-2026. No reemplaza la asesoría legal ni el criterio del organismo fiscalizador.", { tam: 8, color: c.GRIS });
+      c.pie();
+      return await c.doc.save();
+    }
+    async function descargarRespaldoNormativo() {
+      const msj = document.getElementById("msjLegal");
+      try { await compartirPDFEPP(await crearPDF_RespaldoNormativo(), "Respaldo_normativo_registros_electronicos.pdf", "Respaldo normativo de los registros electrónicos", msj); }
+      catch (e) { msj.textContent = "No se pudo armar el documento: " + e.message; }
+    }
+
+    /* ----- Constancia de consentimiento (una vez por trabajador) ----- */
+    const textoConsentimiento = (p, empresa) => `Yo, ${p.nombre}, RUT ${p.rut}, declaro que acepto expresamente que los registros de seguridad y salud en el trabajo que me corresponda firmar con ${empresa} (charlas y ART, información de riesgos laborales (IRL), entregas de elementos de protección personal, check list y otros) se confeccionen, firmen y guarden en formato electrónico mediante la aplicación Prevención en Terreno, con firma electrónica simple trazada en pantalla (Ley N° 19.799), incluidas las fotografías que formen parte de esos registros. Se me informó que puedo pedir copia de cualquiera de estos documentos, que si no acepto los registros se harán en papel, y que puedo revocar esta aceptación por escrito.`;
+    let consIniciado = false;
+    function pintarConsentimientos() {
+      const sel = document.getElementById("consTrab");
+      if (!sel) return;
+      if (!consIniciado) {
+        consIniciado = true;
+        document.getElementById("consFirmaTrab").innerHTML = htmlFirma("Firma del trabajador");
+        document.getElementById("consFirmaPrev").innerHTML = htmlFirma("Firma de quien registra");
+        activarFirmas();
+      }
+      const lista = (listado?.lista || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre, "es")), actual = sel.value;
+      sel.innerHTML = `<option value="">Elige al trabajador…</option>` + lista.map(p => { const r = claveRut(p.rut); return `<option value="${r}">${html(p.nombre)}${consentimientos[r] ? " ✓" : ""}</option>`; }).join("");
+      if (actual) sel.value = actual;
+      if (!document.getElementById("consPrev").value) document.getElementById("consPrev").value = leerGuardado("pt_epp_prev", "") || leerGuardado("pt_relator", {}).nombre || "";
+      const faltan = lista.filter(p => !consentimientos[claveRut(p.rut)]);
+      document.getElementById("consFaltan").innerHTML = faltan.length
+        ? `<p class="ayuda rojo" style="margin-top:10px">Sin consentimiento (${faltan.length}): ${faltan.map(p => html(p.nombre)).join(", ")}.</p>`
+        : lista.length ? `<p class="ayuda verde" style="margin-top:10px">✅ Todo el listado tiene su consentimiento.</p>` : "";
+      elegirTrabConsentimiento();
+    }
+    function elegirTrabConsentimiento() {
+      const r = document.getElementById("consTrab").value, p = (listado?.lista || []).find(x => claveRut(x.rut) === r);
+      document.getElementById("consTexto").textContent = p ? textoConsentimiento(p, EMPRESA.nombre || "la empresa") : "";
+      const c = r && consentimientos[r];
+      document.getElementById("msjCons").textContent = c ? `Ya firmó su consentimiento el ${fechaCLde(c.fecha)} (folio ${c.folio || "—"}). Si lo registras de nuevo, queda uno nuevo.` : "";
+    }
+    async function crearPDF_Consentimiento(d) {
+      const c = await nuevoPDFSimple("CONSTANCIA DE CONSENTIMIENTO PARA FIRMA ELECTRÓNICA", `${LINEA_EMPLEADOR || EMPRESA.nombre || ""} · Registros de seguridad y salud en el trabajo`);
+      c.titulo("Persona trabajadora");
+      c.parrafo(`Nombre: ${d.p.nombre}`, { tam: 10 });
+      c.parrafo(`RUT: ${d.p.rut}`, { tam: 10 });
+      const cargo = cargosDe(claveRut(d.p.rut))[0];
+      if (cargo) c.parrafo(`Cargo: ${cargo}`, { tam: 10 });
+      if (d.correo) c.parrafo(`Correo para recibir copias: ${d.correo}`, { tam: 10 });
+      c.parrafo(`Fecha: ${fechaCLde(d.fecha)}`, { tam: 10 });
+      c.titulo("Declaración");
+      c.parrafo(textoConsentimiento(d.p, EMPRESA.nombre || "la empresa"), { tam: 10 });
+      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 y 3; D.S. N° 44 de 2024, art. 72; Dirección del Trabajo, Dictamen N° 0789/015 y Ord. N° 477.", { tam: 8, color: c.GRIS });
+      c.espacio(140); c.y -= 10;
+      const w = (c.ANCHO - 20) / 2;
+      const firmas = [[d.firmaT, d.p.nombre, "Persona trabajadora"], [d.firmaP, d.prev, "Registra (Prevención de Riesgos)"]];
+      for (let i = 0; i < firmas.length; i++) {
+        const [img, nombre, rol] = firmas[i], x = c.M + i * (w + 20), im = await c.doc.embedPng(img), k = Math.min((w - 20) / im.width, 70 / im.height);
+        c.pag.drawImage(im, { x: x + (w - im.width * k) / 2, y: c.y - 80, width: im.width * k, height: im.height * k });
+        c.pag.drawLine({ start: { x, y: c.y - 86 }, end: { x: x + w, y: c.y - 86 }, thickness: 0.8, color: c.GRIS });
+        const t1 = textoPDF(nombre), t2 = textoPDF(rol);
+        c.pag.drawText(t1, { x: x + Math.max(0, (w - c.fB.widthOfTextAtSize(t1, 9)) / 2), y: c.y - 98, size: 9, font: c.fB, color: c.NEGRO });
+        c.pag.drawText(t2, { x: x + (w - c.fN.widthOfTextAtSize(t2, 8)) / 2, y: c.y - 110, size: 8, font: c.fN, color: c.GRIS });
+      }
+      c.y -= 120;
+      c.pie();
+      return await c.doc.save();
+    }
+    async function registrarConsentimiento() {
+      const msj = document.getElementById("msjCons"), r = document.getElementById("consTrab").value, p = (listado?.lista || []).find(x => claveRut(x.rut) === r);
+      const cT = document.querySelector("#consFirmaTrab canvas"), cP = document.querySelector("#consFirmaPrev canvas");
+      const prev = document.getElementById("consPrev").value.trim(), correo = document.getElementById("consCorreo").value.trim();
+      if (!p) { msj.textContent = "Elige al trabajador."; return; }
+      if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { msj.textContent = "El correo no parece válido (o déjalo en blanco)."; return; }
+      if (!cT.dataset.firmado) { msj.textContent = "Falta la firma del trabajador."; return; }
+      if (!prev || !cP.dataset.firmado) { msj.textContent = "Falta el nombre y la firma de quien registra."; return; }
+      msj.textContent = "Generando…";
+      try {
+        const fecha = hoyISO();
+        const bytes = await crearPDF_Consentimiento({ p, correo, prev, firmaT: cT.toDataURL("image/png"), firmaP: cP.toDataURL("image/png"), fecha });
+        const pdf = { bytes, nombreArchivo: `Consentimiento_firma_electronica_${String(p.nombre).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_")}_${fecha}.pdf`, asunto: `Consentimiento de firma electrónica – ${p.nombre} – ${fechaCLde(fecha)}` };
+        await guardarEnHistorial(null, "consentimiento", pdf, fecha, `${p.nombre} · RUT ${p.rut}`);
+        consentimientos[r] = { nombre: p.nombre, rutTxt: p.rut, fecha, folio: pdf.folio || "", correo };
+        guardar("pt_consentimientos", consentimientos);
+        guardar("pt_epp_prev", prev);
+        document.querySelectorAll("#consForm .firma .btn-limpiar").forEach(limpiarFirma);
+        document.getElementById("consCorreo").value = "";
+        pintarConsentimientos();
+        msj.textContent = `✅ Consentimiento de ${p.nombre} registrado (folio ${pdf.folio || "—"}). Quedó en el Historial${driveConfigurado() ? " y se sube a tu Drive" : ""}.`;
+      } catch (e) { msj.textContent = "No se pudo registrar: " + e.message; }
     }
 
     /* =====================================================================
@@ -4916,7 +5135,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -6168,6 +6387,7 @@
         for (const r of regs) archivos.push({ nombre: `${base}/Registros del mes/${carpetaReg[r.tipo]}/${nombreSeguro(r.nombreArchivo)}`, datos: new Uint8Array(r.pdf) });
         const anexos = await anexosDelMes(k);
         anexos.forEach((a, i) => archivos.push({ nombre: `${base}/Anexos/${String(i + 1).padStart(2, "0")} ${nombreSeguro(a.titulo)}.${a.mime === "application/pdf" ? "pdf" : "jpg"}`, datos: new Uint8Array(a.pdf) }));
+        archivos.push({ nombre: `${base}/Anexos/00 Respaldo normativo de los registros electrónicos.pdf`, datos: await crearPDF_RespaldoNormativo() });
         // nombres repetidos: se numeran
         const vistos = {};
         archivos.forEach(a => { if (vistos[a.nombre]) a.nombre = a.nombre.replace(/(\.\w+)$/, ` (${++vistos[a.nombre]})$1`); else vistos[a.nombre] = 1; });
@@ -6687,7 +6907,8 @@
       const halVenc = hallazgos.filter(h => !h.cerrado && h.plazo && h.plazo < hoy), halHoy = hallazgos.filter(h => !h.cerrado && h.plazo === hoy);
       const venVenc = vencimientos.filter(v => estadoVen(v) === "vencido"), venProx = vencimientos.filter(v => estadoVen(v) === "alerta");
       const sinLicencia = (listado?.lista || []).filter(p => { const r = claveRut(p.rut); return esConductor(r) && !licenciaDe(r); });
-      if (!deHoy.length && !atrasadas.length && !delMes.length && !halVenc.length && !halHoy.length && !venVenc.length && !venProx.length && !sinLicencia.length) { caja.style.display = "none"; return; }
+      const sinConsentimiento = (listado?.lista || []).filter(p => !consentimientos[claveRut(p.rut)]);
+      if (!deHoy.length && !atrasadas.length && !delMes.length && !halVenc.length && !halHoy.length && !venVenc.length && !venProx.length && !sinLicencia.length && !sinConsentimiento.length) { caja.style.display = "none"; return; }
       caja.style.display = "block";
       caja.innerHTML = `<b>📅 Pendientes de prevención</b>
         ${deHoy.length ? `<span>Hoy: ${deHoy.map(x => html(x.a.actividad)).join(", ")}</span>` : ""}
@@ -6697,7 +6918,8 @@
         ${halVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('hallazgos')">⛔ ${halVenc.length} hallazgo(s) con plazo vencido →</span>` : ""}
         ${venProx.length ? `<span onclick="event.stopPropagation(); mostrar('vencimientos')">⏰ Por vencer: ${venProx.slice(0, 3).map(v => html(v.tipo + " " + v.quien) + " (" + fechaCLde(v.vence) + ")").join(", ")}${venProx.length > 3 ? " y " + (venProx.length - 3) + " más" : ""} →</span>` : ""}
         ${venVenc.length ? `<span class="rojo" onclick="event.stopPropagation(); mostrar('vencimientos')">⛔ ${venVenc.length} documento(s) o certificación(es) vencido(s) →</span>` : ""}
-        ${sinLicencia.length ? `<span onclick="event.stopPropagation(); mostrar('vencimientos')">🚗 ${sinLicencia.length} conductor(es) u operador(es) sin licencia registrada →</span>` : ""}`;
+        ${sinLicencia.length ? `<span onclick="event.stopPropagation(); mostrar('vencimientos')">🚗 ${sinLicencia.length} conductor(es) u operador(es) sin licencia registrada →</span>` : ""}
+        ${sinConsentimiento.length ? `<span onclick="event.stopPropagation(); mostrar('empresa'); document.getElementById('consForm').open = true">✍️ ${sinConsentimiento.length} trabajador(es) sin consentimiento de firma electrónica →</span>` : ""}`;
     }
 
     /* =====================================================================
