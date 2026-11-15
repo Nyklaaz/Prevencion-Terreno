@@ -4165,7 +4165,7 @@
       const nombreZip = `Respaldo_Prevencion_${k}.zip`;
       const zip = armarZip(archivos);
       descargarArchivo(zip, nombreZip, "application/zip");
-      if (driveToken()) subirArchivoDrive(nombreZip, zip, "application/zip", [DRIVE_RAIZ, k]).catch(() => {});
+      alDrive(nombreZip, zip, "application/zip", [DRIVE_RAIZ, k], "respaldo-mes:" + k);
       if (!confirm(`Se descargó ${nombreZip} con ${regs.length} PDF de ${nombreMes(k)}.\n\n¿Quedó guardado (en el PC o en tu correo)?\n\nSi tocas Aceptar, este mes queda respaldado y sus PDF se borrarán de este equipo cuando termine el mes siguiente.`)) return false;
       const hechos = leerGuardado("pt_respaldoMes", {});
       hechos[k] = momento;
@@ -4306,6 +4306,24 @@
       }
     }
     const rutaDrive = r => [DRIVE_RAIZ, mesDeRegistro(r), CARPETA_RESPALDO[r.tipo] || "Otros"];
+    // Archivos que no están en el Historial (zip, Excel, respaldos, hojas parciales de EPP): van a una cola que sobrevive
+    // a cerrar la app. "clave" = el mismo archivo que se actualiza (se reemplaza en Drive en vez de duplicarse).
+    async function alDrive(nombre, bytes, mime, ruta, clave) {
+      if (!driveConfigurado()) return;
+      try { await bdAvisos("readwrite", s => s.put({ nombre, bytes, mime, ruta, clave: clave || "", t: Date.now() + Math.random() }, "cola:" + (clave || Date.now() + "-" + Math.random()))); } catch { return; }
+      subirPendientesDrive();
+    }
+    async function colaDrive() {
+      try { return (await bdAvisos("readonly", s => s.getAllKeys())).filter(k => String(k).startsWith("cola:")); } catch { return []; }
+    }
+    // Hoja de cargos del mes de un trabajador (copia parcial): se sube a Drive con cada entrega y se va reemplazando
+    async function hojaParcialEPPaDrive(rut, mes) {
+      if (!driveConfigurado()) return;
+      const lista = (await entregasEPP()).filter(e => e.rut === rut && e.fecha.startsWith(mes));
+      if (!lista.length) return;
+      const bytes = await crearPDF_HojaCargos(trabajadorDe(lista), lista, `${nombreMes(mes)} · copia parcial al ${fechaCLde(hoyISO())}`);
+      await alDrive(nombreArchivoEPP(lista[0].nombre, mes).replace(/\.pdf$/, "_parcial.pdf"), bytes, "application/pdf", [DRIVE_RAIZ, mes, "EPP"], `epp:${rut}:${mes}`);
+    }
     let subiendoDrive = false, otraVueltaDrive = false;
     async function subirPendientesDrive(manual = false) {
       if (!driveConfigurado() || !driveToken()) { if (manual) conectarDrive(); else pintarDrive(); return; }
@@ -4324,6 +4342,18 @@
             if (actual && actual.creado === r.creado) { const { driveAnterior, ...resto } = actual; await operacionBD("readwrite", s => s.put({ ...resto, drive: id })); n++; }
           } catch (e) { error = e.message; if (e.sinPermiso) { otraVueltaDrive = false; break; } }
           }
+          if (driveToken()) for (const k of await colaDrive()) {
+            const it = await bdAvisos("readonly", s => s.get(k));
+            if (!it) continue;
+            try {
+              const ids = leerGuardado("pt_drive_ids", {});
+              const id = await subirArchivoDrive(it.nombre, it.bytes, it.mime, it.ruta, it.clave ? ids[it.clave] : null);
+              if (it.clave) { const ids2 = leerGuardado("pt_drive_ids", {}); ids2[it.clave] = id; guardar("pt_drive_ids", ids2); }
+              const actual = await bdAvisos("readonly", s => s.get(k));   // si llegó una versión más nueva mientras subía, se sube en la próxima vuelta
+              if (actual && actual.t === it.t) await bdAvisos("readwrite", s => s.delete(k)); else otraVueltaDrive = true;
+              n++;
+            } catch (e) { error = e.message; if (e.sinPermiso) { otraVueltaDrive = false; break; } }
+          }
         } while (otraVueltaDrive);
       } finally { subiendoDrive = false; }
       await pintarDrive(n, error);
@@ -4331,7 +4361,7 @@
     }
     async function pintarDrive(subidos = 0, error = "") {
       const conf = driveConfigurado(), con = !!driveToken();
-      const pend = conf ? (await todosLosRegistros()).filter(r => !r.drive).length : 0;
+      const pend = conf ? (await todosLosRegistros()).filter(r => !r.drive).length + (await colaDrive()).length : 0;
       const cli = document.getElementById("driveCliente"), red = document.getElementById("driveRedirect"), est = document.getElementById("driveEstado");
       if (cli && document.activeElement !== cli) cli.value = driveCliente();
       if (red) red.textContent = driveRedirect();
@@ -4487,7 +4517,8 @@
       document.querySelector("#eppElementos .epp-otro").value = "";
       document.querySelectorAll("#formEPP .firma .btn-limpiar").forEach(limpiarFirma);
       document.querySelectorAll("#formEPP .campo-falta, #formEPP .falta").forEach(x => x.classList.remove("campo-falta", "falta"));
-      msj.textContent = `✅ Entrega registrada: ${items.map(i => i.desc).join(", ")} para ${nombre}. Queda en su Hoja de cargos de ${nombreMes(fecha.slice(0, 7))}.`;
+      msj.textContent = `✅ Entrega registrada: ${items.map(i => i.desc).join(", ")} para ${nombre}. Queda en su Hoja de cargos de ${nombreMes(fecha.slice(0, 7))}${driveConfigurado() ? " y se sube a tu Drive" : ""}.`;
+      hojaParcialEPPaDrive(rut, fecha.slice(0, 7)).catch(() => {});
       pintarListaEPP(); pintarFichaEPP();
     }
     async function pintarFichaEPP() {
@@ -4508,7 +4539,9 @@
     }
     async function quitarEntregaEPP(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar entrega"; }, 4000); return; }
-      try { await borrarEntregaEPP(id); } catch {}
+      let quitada = null;
+      try { quitada = await bdEPP("readonly", s => s.get(id)); await borrarEntregaEPP(id); } catch {}
+      if (quitada) hojaParcialEPPaDrive(quitada.rut, quitada.fecha.slice(0, 7)).catch(() => {});   // la copia en Drive se actualiza
       pintarFichaEPP();
     }
 
@@ -4886,7 +4919,9 @@
         const epp = await entregasEPP();   // entregas de EPP con sus firmas (sin el número interno)
         if (epp.length) datos.entregasEPP = epp.map(({ id, ...resto }) => resto);
         const hoy = new Date().toLocaleDateString("sv-SE");
-        descargarArchivo(textoABytes(JSON.stringify(datos)), `Respaldo_Prevencion_${hoy}.json`, "application/json");
+        const bytesRespaldo = textoABytes(JSON.stringify(datos));
+        descargarArchivo(bytesRespaldo, `Respaldo_Prevencion_${hoy}.json`, "application/json");
+        alDrive(`Respaldo_Prevencion_${hoy}.json`, bytesRespaldo, "application/json", [DRIVE_RAIZ, "Respaldos"], "respaldo-json:" + hoy);
         guardar("pt_inf_ultimoRespaldo", Date.now());
         aviso.textContent = `✅ Respaldo guardado (Respaldo_Prevencion_${hoy}.json, ${regs.length} archivos). Guárdalo en un pendrive o mándatelo al correo.`;
       } catch (e) { aviso.textContent = "No se pudo armar el respaldo: " + e.message; }
@@ -5456,7 +5491,9 @@
     function descargarIFOS() {
       guardarInforme();
       try {
-        descargarArchivo(excelIFOS(infMesActual), `IFOS_SAFI_${String(infContrato.safi || "").replace(/\D/g, "")}_${infMesActual}.xlsx`, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        const ifos = excelIFOS(infMesActual), nombreIFOS = `IFOS_SAFI_${String(infContrato.safi || "").replace(/\D/g, "")}_${infMesActual}.xlsx`, tipoX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        descargarArchivo(ifos, nombreIFOS, tipoX);
+        alDrive(nombreIFOS, ifos, tipoX, [DRIVE_RAIZ, infMesActual, "Informe"], "ifos:" + infMesActual);
         document.getElementById("errorInforme").textContent = "";
       } catch (e) { document.getElementById("errorInforme").textContent = "No se pudo armar el IFOS: " + e.message; }
     }
@@ -6115,6 +6152,7 @@
         archivos.forEach(a => { if (vistos[a.nombre]) a.nombre = a.nombre.replace(/(\.\w+)$/, ` (${++vistos[a.nombre]})$1`); else vistos[a.nombre] = 1; });
         const zip = armarZip(archivos);
         descargarArchivo(zip, `${archivoBase}.zip`, "application/zip");
+        alDrive(`${archivoBase}.zip`, zip, "application/zip", [DRIVE_RAIZ, k, "Informe"], "carpeta-mes:" + k);
         error.textContent = "";
         const ultimo = leerGuardado("pt_inf_ultimoRespaldo", 0);
         document.getElementById("mensajeInforme").textContent = Date.now() - ultimo > 7 * 86400000 ? "💾 Recomendado: guarda un respaldo ahora (botón arriba, en Mes a informar)." : "";
@@ -6232,7 +6270,9 @@
       if (!window.IRL_DATOS) await cargarIRLPaquete();
       const p = { ...PAQUETE, ...(window.IRL_DATOS ? { irl: window.IRL_DATOS } : {}) };
       const nombre = `paquete-${(p.id || "empresa").replace(/[^\w-]+/g, "-")}-${new Date().toLocaleDateString("sv-SE")}.json`;
-      descargarArchivo(textoABytes(JSON.stringify(p)), nombre, "application/json");
+      const bytesPaq = textoABytes(JSON.stringify(p));
+      descargarArchivo(bytesPaq, nombre, "application/json");
+      alDrive(nombre, bytesPaq, "application/json", [DRIVE_RAIZ, "Paquete de formatos"], "paquete:" + nombre);
       msj.textContent = `Se descargó ${nombre}. Mándalo a tus supervisores y lo cargan con "Cargar un paquete".`;
     }
     async function quitarPaquete(boton) {
