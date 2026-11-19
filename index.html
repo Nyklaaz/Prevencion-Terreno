@@ -539,6 +539,9 @@
       <button class="menu-btn" onclick="mostrar('accidentes')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></span><span class="menu-txt">Accidente: informe flash<small>Información preliminar en terreno y la investigación en Word</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+      <button class="menu-btn" onclick="mostrar('casi')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span><span class="menu-txt">Casi accidentes y actos inseguros<small>Reporte rápido de lo que casi pasó o se vio en terreno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
       <button class="menu-btn" onclick="mostrar('chequeo')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
@@ -702,6 +705,7 @@
           <button type="button" data-f="documento" onclick="filtrarHist(this)">Documentos</button>
           <button type="button" data-f="accidente" onclick="filtrarHist(this)">Accidentes</button>
           <button type="button" data-f="emergencia" onclick="filtrarHist(this)">Emergencia</button>
+          <button type="button" data-f="casi" onclick="filtrarHist(this)">Casi accidentes</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
@@ -1483,6 +1487,35 @@
         </div>
       </form>
       <div class="tarjeta" id="eppFicha" style="display:none"></div>
+    </section>
+
+    <!-- ========== CASI ACCIDENTES Y ACTOS O CONDICIONES INSEGURAS ========== -->
+    <section id="casi" class="pantalla">
+      <div class="tarjeta">
+        <h2>Reporte rápido</h2>
+        <p class="ayuda">Registro de aprendizaje: lo que casi pasó o lo que se vio. Sin nombres de personas. Toma menos de un minuto.</p>
+        <label>Tipo</label>
+        <select id="casiTipo"><option>Casi accidente</option><option>Acto inseguro</option><option>Condición insegura</option></select>
+        <div class="dos-col">
+          <div><label>Fecha</label><input type="date" id="casiFecha"></div>
+          <div><label>Hora</label><input type="time" id="casiHora"></div>
+        </div>
+        <label>Lugar o área</label><input type="text" id="casiLugar" maxlength="120" placeholder="Ej: Frente de excavación, km 12">
+        <label>¿Qué pasó?</label>
+        <textarea id="casiDesc" rows="3" maxlength="600" placeholder="Ej: Una retroexcavadora retrocedió sin señalero y pasó a 2 m de un trabajador"></textarea>
+        <label>Cargo o especialidad involucrada (opcional, sin nombre)</label><input type="text" id="casiCargo" maxlength="80" placeholder="Ej: Operador, Jornal">
+        <label>Acción inmediata</label>
+        <textarea id="casiAccion" rows="2" maxlength="400" placeholder="Ej: Se detuvo la faena y se reforzó la comunicación"></textarea>
+        <label class="btn btn-secundario" style="margin:10px 0 0">📷 Agregar foto (opcional, hasta 3)
+          <input type="file" accept="image/*" capture="environment" onchange="fotoCasi(this)" hidden>
+        </label>
+        <div id="casiFotos"></div>
+        <label class="check-linea"><input type="checkbox" id="casiSeg"> Pasar a seguimiento (crea un hallazgo para cerrarlo con plazo)</label>
+        <p class="error" id="casiError"></p>
+        <button type="button" class="btn btn-principal" onclick="guardarCasi()">Guardar reporte</button>
+        <p class="mensaje" id="casiMsj"></p>
+      </div>
+      <div class="tarjeta"><h2>Este mes</h2><div id="casiMes"></div></div>
     </section>
 
     <!-- ========== FICHA DE EMERGENCIA ========== -->
@@ -2370,7 +2403,8 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros" };
+      if (id === "casi") iniciarCasi();
       if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
       if (id === "matriz") iniciarMatriz();
@@ -3558,7 +3592,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG", casi: "CAS" };
     function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3653,7 +3687,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : r.tipo === "casi" ? "👁️" : "📋"} ${html(r.asunto)}</div>
           ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
           ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
@@ -3727,6 +3761,7 @@
       if (!motivo.trim()) { alert("Escribe el motivo para poder borrarlo."); boton.dataset.confirmar = ""; boton.textContent = "🗑️"; return; }
       try { await operacionBD("readwrite", s => s.delete(id)); } catch {}
       await bitacora("Borrado", { folio: r?.folio, doc: r?.asunto, motivo: motivo.trim(), huella: (r?.hash || "").slice(0, 16) });
+      if (r && r.tipo === "casi" && r.reporteId) quitarCasiBorrado(r.reporteId);
       pintarHistorial();
     }
 
@@ -4589,7 +4624,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia", casi: "Casi accidentes" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -5423,6 +5458,8 @@
       }
       const otrosDocs = regs.filter(r => r.tipo === "documento" && r.plantilla !== "capacitacion");
       if (otrosDocs.length) nuevas.push(`Se emitieron ${otrosDocs.length} documento(s) de prevención: ${contar(otrosDocs.map(r => String(r.detalle).split(" · ")[0]))}.`);
+      const rc = resumenCasiMes(k);
+      if (rc.total) nuevas.push(`${rc.total === 1 ? "Se registró 1 reporte preventivo" : `Se registraron ${rc.total} reportes preventivos`}: ${rc.porTipo["Casi accidente"]} casi accidente(s), ${rc.porTipo["Acto inseguro"]} acto(s) inseguro(s) y ${rc.porTipo["Condición insegura"]} condición(es) insegura(s).`);
       const acc = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
       nuevas.push(acc.length ? `Durante el mes de ${mesTxt} se registra(n) ${acc.length} accidente(s): ${acc.map(a => `${a.categoria || "accidente"} ${a.tipo ? "(" + a.tipo.toLowerCase() + ")" : ""} el ${fechaCLde(a.fecha)}`).join("; ")}. Se adjunta la investigación correspondiente.`
                              : `No se registran accidentes en el mes de ${mesTxt}.`);
@@ -5434,7 +5471,7 @@
       if (cp.total) nuevas.push(`Cumplimiento del programa de prevención de riesgos del mes: se ejecutaron ${cp.hechas} de ${cp.total} actividades programadas (${cp.pct}%).`);
       const actuales = leerFilas("infActividades").filter(a => a.texto);
       // No repetimos lo que ya estaba (si se presiona dos veces)
-      const auto = /^(Se realiz(?:ó 1|aron \d+) capacitaci|Se emitieron \d+ documento|Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
+      const auto = /^(Se registr(?:ó 1 reporte|aron \d+ reportes) preventivo|Se realiz(?:ó 1|aron \d+) capacitaci|Se emitieron \d+ documento|Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
       pintarFilas("infActividades", [...nuevas.map(texto => ({ texto })), ...actuales.filter(a => !auto.test(a.texto))]);
       guardarInforme();
     }
@@ -5586,7 +5623,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -7506,7 +7543,7 @@
        Cada hallazgo: qué se encontró, dónde, riesgo, acción, responsable, plazo y cierre.
        El texto va en localStorage (pt_hallazgos); las fotos en IndexedDB aparte (pesan).
        ===================================================================== */
-    const ORIGENES_HALLAZGO = ["Inspección en terreno", "Check list", "Charla / ART", "Observación de conducta", "Auditoría / mandante", "Accidente o incidente", "Comité Paritario", "Otro"];
+    const ORIGENES_HALLAZGO = ["Inspección en terreno", "Check list", "Charla / ART", "Observación de conducta", "Auditoría / mandante", "Accidente o incidente", "Casi accidente", "Comité Paritario", "Otro"];
     let hallazgos = listaGuardada("pt_hallazgos", h => idSeguroTxt(h.id));
     let filtroHal = "abiertos", fotoNuevaHal = null;
 
@@ -8661,9 +8698,102 @@
     }
     pintarBotonEmergencia();
 
+    /* =====================================================================
+       CASI ACCIDENTES, ACTOS Y CONDICIONES INSEGURAS (folio CAS-)
+       pt_casi = [{ id, tipo, fecha, hora, lugar, desc, cargo, accion, seguimiento, folio }]  (sin nombres ni RUT; para la estadística)
+       pt_casi_recordar = { lugar }. Las fotos van SOLO dentro del PDF (no se guardan aparte). No lleva firma.
+       Si se marca seguimiento, se crea un hallazgo (origen "Casi accidente"). No hay "corregir": si hay un error se registra otro
+       y el malo se borra del Historial con su motivo (al borrarlo, se quita también de pt_casi).
+       ===================================================================== */
+    const TIPOS_CASI = ["Casi accidente", "Acto inseguro", "Condición insegura"];
+    let casiReportes = listaGuardada("pt_casi", r => idSeguroTxt(r.id) && TIPOS_CASI.includes(r.tipo) && /^\d{4}-\d{2}-\d{2}$/.test(String(r.fecha)))
+      .map(r => ({ id: r.id, tipo: r.tipo, fecha: r.fecha, hora: textoCorto(r.hora, 5), lugar: textoCorto(r.lugar, 120), desc: textoCorto(r.desc, 600), cargo: textoCorto(r.cargo, 80), accion: textoCorto(r.accion, 400), seguimiento: !!r.seguimiento, folio: textoCorto(r.folio, 40) }));
+    let casiFotosTmp = [];
+    function iniciarCasi() {
+      const ahora = new Date();
+      document.getElementById("casiFecha").value = hoyISO();
+      document.getElementById("casiHora").value = ahora.toTimeString().slice(0, 5);
+      document.getElementById("casiLugar").value = textoCorto(leerGuardado("pt_casi_recordar", {}).lugar, 120);
+      document.getElementById("casiError").textContent = ""; document.getElementById("casiMsj").textContent = "";
+      casiFotosTmp = []; pintarFotosCasi(); pintarCasiMes();
+    }
+    async function fotoCasi(input) {
+      const f = input.files[0]; input.value = "";
+      if (!f) return;
+      if (casiFotosTmp.length >= 3) { document.getElementById("casiError").textContent = "Máximo 3 fotos."; return; }
+      try { casiFotosTmp.push(await comprimirFoto(f, 800, 0.65)); pintarFotosCasi(); }
+      catch { document.getElementById("casiError").textContent = "No se pudo leer esa foto."; }
+    }
+    function pintarFotosCasi() {
+      document.getElementById("casiFotos").innerHTML = casiFotosTmp.map((f, i) => `<div class="ck-foto"><img src="${f}" alt="Foto ${i + 1}" style="max-width:120px"><button type="button" class="btn btn-quitar" onclick="casiFotosTmp.splice(${i}, 1); pintarFotosCasi()">Quitar</button></div>`).join("");
+    }
+    const resumenCasiMes = k => {
+      const l = casiReportes.filter(r => r.fecha.startsWith(k));
+      return { total: l.length, porTipo: Object.fromEntries(TIPOS_CASI.map(t => [t, l.filter(r => r.tipo === t).length])) };
+    };
+    function pintarCasiMes() {
+      const k = hoyISO().slice(0, 7), rs = resumenCasiMes(k), cont = document.getElementById("casiMes");
+      cont.innerHTML = rs.total ? `<div class="inf-panel">${TIPOS_CASI.map(t => `<div class="inf-dato"><b>${rs.porTipo[t]}</b><small>${html(t)}</small></div>`).join("")}</div>` : `<p class="ayuda" style="margin:0">Todavía no hay reportes este mes.</p>`;
+    }
+    async function crearPDF_Casi(r, fotos) {
+      const c = await nuevoPDFSimple("REPORTE PREVENTIVO: " + r.tipo.toUpperCase(), `${EMPRESA.nombre || ""} · ${fechaCLde(r.fecha)}${r.hora ? " " + r.hora + " hrs" : ""} · Registro de aprendizaje, sin identificación de personas`);
+      c.parrafo(`Tipo: ${r.tipo}`, { f: c.fB, tam: 11 });
+      c.parrafo(`Fecha y hora: ${fechaCLde(r.fecha)}${r.hora ? ", " + r.hora + " hrs" : ""}`, { tam: 10.5 });
+      if (r.lugar) c.parrafo(`Lugar o área: ${r.lugar}`, { tam: 10.5 });
+      if (r.cargo) c.parrafo(`Cargo o especialidad involucrada: ${r.cargo}`, { tam: 10.5 });
+      c.titulo("Qué pasó");
+      c.parrafo(r.desc, { tam: 10.5 });
+      if (r.accion) { c.titulo("Acción inmediata"); c.parrafo(r.accion, { tam: 10.5 }); }
+      c.parrafo(r.seguimiento ? "Quedó en seguimiento como hallazgo para su cierre." : "Sin seguimiento posterior.", { tam: 9.5, color: c.GRIS });
+      if (fotos.length) {
+        c.espacio(190);   // el título y la fila de fotos van juntos en la misma página
+        c.titulo("Fotos");
+        let x = c.M, alto = 0;
+        for (const f of fotos) {
+          const img = await c.doc.embedJpg(f), esc = Math.min(1, 160 / img.width, 125 / img.height), w = img.width * esc, h = img.height * esc;
+          c.pag.drawImage(img, { x, y: c.y - h, width: w, height: h });
+          x += w + 12; alto = Math.max(alto, h);
+        }
+        c.y -= alto + 10;
+      }
+      c.pie();
+      return await c.doc.save();
+    }
+    async function guardarCasi() {
+      const err = document.getElementById("casiError"), msj = document.getElementById("casiMsj"), v = id => document.getElementById(id).value.trim();
+      const r = { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), tipo: v("casiTipo"), fecha: v("casiFecha"), hora: v("casiHora"), lugar: v("casiLugar"), desc: v("casiDesc"),
+                  cargo: v("casiCargo"), accion: v("casiAccion"), seguimiento: document.getElementById("casiSeg").checked, folio: "" };
+      if (!TIPOS_CASI.includes(r.tipo) || !/^\d{4}-\d{2}-\d{2}$/.test(r.fecha)) { err.textContent = "Revisa el tipo y la fecha."; return; }
+      if (!r.lugar) { err.textContent = "Escribe el lugar o área."; return; }
+      if (!r.desc) { err.textContent = "Cuenta brevemente qué pasó."; return; }
+      err.textContent = ""; msj.textContent = "Guardando…";
+      try {
+        const pdf = { bytes: await crearPDF_Casi(r, casiFotosTmp), nombreArchivo: `Reporte_preventivo_${r.fecha}_${r.hora.replace(":", "")}.pdf`, asunto: `${r.tipo} – ${r.lugar} – ${fechaCLde(r.fecha)}` };
+        await guardarEnHistorial(null, "casi", pdf, r.fecha, `${r.tipo} · ${r.lugar}`, { reporteId: r.id });
+        r.folio = pdf.folio || "";
+        casiReportes.push(r); guardar("pt_casi", casiReportes);
+        guardar("pt_casi_recordar", { lugar: r.lugar });
+        if (r.seguimiento && !hallazgos.some(h => h.clave === "casi:" + r.id)) {
+          hallazgos.push({ id: nuevoIdHal(), clave: "casi:" + r.id, fecha: r.fecha, desc: `${r.tipo}: ${r.desc}`, lugar: r.lugar, origen: "Casi accidente", riesgo: "Medio",
+                           accion: r.accion, resp: "", plazo: isoD(new Date(Date.now() + 7 * 86400000)), foto: false, fotoCierre: false, cerrado: null });
+          guardarHallazgos();
+        }
+        bitacora("Reporte preventivo", { doc: `${r.tipo} · ${r.lugar} · ${fechaCLde(r.fecha)}`, folio: r.folio });
+        ["casiDesc", "casiCargo", "casiAccion"].forEach(id => document.getElementById(id).value = "");
+        document.getElementById("casiSeg").checked = false;
+        casiFotosTmp = []; pintarFotosCasi(); pintarCasiMes();
+        msj.textContent = `✅ Guardado con folio ${r.folio || "—"}${r.seguimiento ? " y en seguimiento (Hallazgos)" : ""}. Quedó en el Historial.`;
+      } catch (e) { console.warn(e); err.textContent = "No se pudo guardar el reporte."; msj.textContent = ""; }
+    }
+    // Si se borra del Historial el PDF de un reporte, también se quita su dato (para que no cuente en la estadística)
+    function quitarCasiBorrado(reporteId) {
+      if (!casiReportes.some(r => r.id === reporteId)) return;
+      casiReportes = casiReportes.filter(r => r.id !== reporteId); guardar("pt_casi", casiReportes);
+    }
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
