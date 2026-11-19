@@ -479,6 +479,15 @@
     #menu.activa .menu-btn:nth-of-type(9) { animation-delay: .27s; } #menu.activa .menu-btn:nth-of-type(10) { animation-delay: .30s; }
     .aviso-respaldo { animation: latido 2.6s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+    /* Ficha de emergencia: botón rojo arriba del menú y pantalla de lectura con teléfonos grandes */
+    .btn-emergencia { display: block; width: 100%; text-align: left; background: var(--grad-rojo-negro); color: #fff; border: 0; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; font-family: inherit; font-size: 18px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(159,18,57,.35); }
+    .btn-emergencia small { display: block; font-size: 13px; font-weight: 400; opacity: .9; margin-top: 2px; }
+    .btn-emergencia:active { transform: scale(.98); }
+    .emer-fila { border-bottom: 1px solid #e5e9f4; padding: 10px 0; }
+    .emer-fila:last-child { border-bottom: 0; }
+    .emer-rol { font-size: 14px; color: #475569; }
+    .emer-tel { display: block; font-size: 26px; font-weight: 800; color: var(--rojo-osc); text-decoration: none; letter-spacing: .5px; }
+    .emer-fila-edicion { border: 1px solid #e5e9f4; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
   </style>
 </head>
 
@@ -499,6 +508,7 @@
         <p><b>Para empezar</b>, carga los datos de tu empresa y tus formatos.</p>
         <button class="btn btn-principal" onclick="mostrar('empresa')">Configurar mi empresa</button>
       </div>
+      <button type="button" class="btn-emergencia" id="emerBoton" onclick="abrirEmergencia()">🚨 Emergencia<small id="emerBotonTxt">Teléfonos, dirección y qué hacer</small></button>
       <p class="empresa-activa" id="empresaActiva"></p>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
       <button type="button" class="aviso-programa" id="avisoDrive" style="display:none" onclick="conectarDrive()"></button>
@@ -691,6 +701,7 @@
           <button type="button" data-f="epp" onclick="filtrarHist(this)">EPP</button>
           <button type="button" data-f="documento" onclick="filtrarHist(this)">Documentos</button>
           <button type="button" data-f="accidente" onclick="filtrarHist(this)">Accidentes</button>
+          <button type="button" data-f="emergencia" onclick="filtrarHist(this)">Emergencia</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
@@ -1472,6 +1483,41 @@
         </div>
       </form>
       <div class="tarjeta" id="eppFicha" style="display:none"></div>
+    </section>
+
+    <!-- ========== FICHA DE EMERGENCIA ========== -->
+    <section id="emergencia" class="pantalla">
+      <div id="emerLectura"></div>
+      <div id="emerEdicion" style="display:none">
+        <div class="tarjeta">
+          <h2>La obra</h2>
+          <label>Nombre de la faena</label><input type="text" id="emerFaena" maxlength="120">
+          <label>Dirección exacta de la faena</label><input type="text" id="emerDir" maxlength="200" placeholder="Calle, kilómetro de la ruta, comuna">
+          <label>Cómo llegar (para guiar a la ambulancia)</label><textarea id="emerLlegar" rows="2" maxlength="400" placeholder="Ej: Ingreso por el acceso norte, portón azul"></textarea>
+        </div>
+        <div class="tarjeta">
+          <h2>Teléfonos</h2>
+          <p class="ayuda">Los tres números nacionales ya vienen puestos. Agrega la mutual, el residente, el prevencionista y lo que necesites.</p>
+          <div id="emerContactos"></div>
+          <button type="button" class="btn btn-secundario" onclick="agregarContactoEmergencia()">+ Agregar un teléfono</button>
+        </div>
+        <div class="tarjeta">
+          <h2>Hospital o urgencia más cercana</h2>
+          <label>Nombre</label><input type="text" id="emerHospNombre" maxlength="120">
+          <label>Dirección</label><input type="text" id="emerHospDir" maxlength="200">
+          <label>Teléfono</label><input type="text" id="emerHospTel" maxlength="20" inputmode="tel">
+          <label>Ruta desde la obra</label><textarea id="emerHospRuta" rows="2" maxlength="400" placeholder="Ej: 12 km por la ruta, tiempo estimado 15 minutos"></textarea>
+        </div>
+        <div class="tarjeta">
+          <h2>Qué hacer en una emergencia</h2>
+          <p class="ayuda">Pasos breves, uno por línea (opcional).</p>
+          <textarea id="emerQue" rows="4" maxlength="1200" placeholder="1. Mantener la calma y avisar al residente&#10;2. Llamar a la ambulancia&#10;3. No mover al lesionado"></textarea>
+          <p class="error" id="emerError"></p>
+          <button type="button" class="btn btn-principal" onclick="guardarEmergencia()">Guardar y generar PDF</button>
+          <button type="button" class="btn btn-secundario" id="emerCancelar" onclick="verEmergencia()">Cancelar</button>
+          <p class="mensaje" id="emerMsj"></p>
+        </div>
+      </div>
     </section>
 
     <!-- ========== SEGUIMIENTO DE HALLAZGOS ========== -->
@@ -2321,7 +2367,8 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia" };
+      if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
       if (id === "matriz") iniciarMatriz();
       if (id === "accidentes") iniciarAccidentes();
@@ -2335,7 +2382,7 @@
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
       if (id === "epp") iniciarEPP();
-      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); }
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); pintarBotonEmergencia(); }
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -3508,7 +3555,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG" };
     function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3603,7 +3650,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : "📋"} ${html(r.asunto)}</div>
           ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
           ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
@@ -4539,7 +4586,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -5536,7 +5583,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -7828,7 +7875,7 @@
     const TIPOS_VENC = {
       "Trabajador": ["Reinducción IRL", "Licencia de conducir", "Examen ocupacional", "Examen preocupacional", "Curso trabajo en altura", "Certificación operador de maquinaria", "Curso de primeros auxilios", "Credencial / acreditación"],
       "Equipo o vehículo": ["Recarga extintor", "Mantención extintor", "Revisión técnica", "Permiso de circulación", "SOAP", "Certificación de grúa / equipo de levante", "Mantención programada"],
-      "Documento u otro": ["Reglamento interno", "Plan de emergencia", "Contrato / subcontrato", "Acta Comité Paritario", "Certificado de fumigación"]
+      "Documento u otro": ["Reglamento interno", "Plan de emergencia", "Revisión ficha de emergencia", "Contrato / subcontrato", "Acta Comité Paritario", "Certificado de fumigación"]
     };
     let vencimientos = listaGuardada("pt_vencimientos", v => idSeguroTxt(v.id));
     let filtroVen = "alerta";
@@ -8464,9 +8511,154 @@
       return { cargo, contenido: bloques, imagenes };
     }
 
+    /* =====================================================================
+       FICHA DE EMERGENCIA DE LA OBRA
+       pt_emergencia = { faena, direccion, comoLlegar, contactos: [{ rol, nombre, tel }], hospital: { nombre, dir, tel, ruta }, queHacer, actualizado }
+       Es configuración: se conserva en "Empezar de cero" y va en el respaldo. Cada vez que se guarda se arma un PDF con
+       folio EMG- (sin firma) que queda en el Historial (corregir = versión nueva) y se crea o renueva el vencimiento fijo
+       "vEmergencia" (30 días) para revisarla todos los meses.
+       ===================================================================== */
+    const CONTACTOS_EMERGENCIA_BASE = [{ rol: "Ambulancia (SAMU)", nombre: "", tel: "131" }, { rol: "Bomberos", nombre: "", tel: "132" }, { rol: "Carabineros", nombre: "", tel: "133" }];
+    const textoCorto = (x, n) => String(x ?? "").slice(0, n);
+    function validarEmergencia(e) {
+      if (!e || typeof e !== "object" || Array.isArray(e)) return null;
+      const h = e.hospital && typeof e.hospital === "object" ? e.hospital : {};
+      return {
+        faena: textoCorto(e.faena, 120), direccion: textoCorto(e.direccion, 200), comoLlegar: textoCorto(e.comoLlegar, 400),
+        contactos: (Array.isArray(e.contactos) ? e.contactos : []).filter(c => c && typeof c === "object").slice(0, 30).map(c => ({ rol: textoCorto(c.rol, 80), nombre: textoCorto(c.nombre, 80), tel: textoCorto(c.tel, 20) })),
+        hospital: { nombre: textoCorto(h.nombre, 120), dir: textoCorto(h.dir, 200), tel: textoCorto(h.tel, 20), ruta: textoCorto(h.ruta, 400) },
+        queHacer: textoCorto(e.queHacer, 1200), actualizado: /^\d{4}-\d{2}-\d{2}$/.test(String(e.actualizado)) ? e.actualizado : ""
+      };
+    }
+    let emergencia = validarEmergencia(leerGuardado("pt_emergencia", null));
+    // Solo dígitos (y un + al inicio): sirve para el enlace tel: y evita que entre texto raro en el href
+    const telLimpio = t => { const s = String(t ?? "").trim(), n = s.replace(/[^\d]/g, ""); return n.length >= 2 && n.length <= 15 ? (s.startsWith("+") ? "+" : "") + n : ""; };
+    const enlaceTel = t => telLimpio(t) ? `<a class="emer-tel" href="tel:${telLimpio(t)}">${html(t)}</a>` : (String(t || "").trim() ? `<span class="emer-tel">${html(t)}</span>` : "");
+    function pintarBotonEmergencia() {
+      const t = document.getElementById("emerBotonTxt");
+      if (t) t.textContent = emergencia ? "Teléfonos, dirección y qué hacer" : "Toca para completar la ficha de tu obra";
+    }
+    function abrirEmergencia() { mostrar("emergencia"); }
+    function iniciarEmergencia() { if (emergencia) verEmergencia(); else editarEmergencia(); }
+    async function ultimaEmergencia() {
+      try { const regs = await operacionBD("readonly", s => s.getAll()); return regs.filter(r => r.tipo === "emergencia" && vigente(r)).sort((a, b) => b.creado - a.creado)[0] || null; }
+      catch { return null; }
+    }
+    async function verEmergencia() {
+      document.getElementById("emerEdicion").style.display = "none";
+      const cont = document.getElementById("emerLectura");
+      cont.style.display = "block";
+      const e = emergencia, h = e.hospital;
+      const filasTel = e.contactos.filter(c => c.tel || c.nombre).map(c => `<div class="emer-fila"><div class="emer-rol"><b>${html(c.rol || "Contacto")}</b>${c.nombre ? " · " + html(c.nombre) : ""}</div>${enlaceTel(c.tel)}</div>`).join("");
+      const hosp = h.nombre || h.dir || h.tel || h.ruta;
+      cont.innerHTML = `
+        <div class="tarjeta">
+          <h2>🚨 ${html(e.faena || EMPRESA.nombre || "Mi obra")}</h2>
+          ${e.direccion ? `<p style="font-size:18px;font-weight:700;margin:6px 0">📍 ${html(e.direccion)}</p>` : ""}
+          ${e.comoLlegar ? `<p style="margin:4px 0">${html(e.comoLlegar)}</p>` : ""}
+          <p class="ayuda" style="margin:8px 0 0">Actualizada el ${fechaCLde(e.actualizado)}</p>
+        </div>
+        <div class="tarjeta"><h2>📞 Teléfonos</h2>${filasTel || `<p class="ayuda">No hay teléfonos en la ficha.</p>`}</div>
+        ${hosp ? `<div class="tarjeta"><h2>🏥 ${html(h.nombre || "Hospital o urgencia más cercana")}</h2>
+          ${h.dir ? `<p style="margin:4px 0">📍 ${html(h.dir)}</p>` : ""}${enlaceTel(h.tel)}
+          ${h.ruta ? `<p style="margin:8px 0 0"><b>Ruta:</b> ${html(h.ruta)}</p>` : ""}</div>` : ""}
+        ${e.queHacer ? `<div class="tarjeta"><h2>Qué hacer</h2><p style="white-space:pre-line;margin:0">${html(e.queHacer)}</p></div>` : ""}
+        <div class="tarjeta">
+          <button type="button" class="btn btn-principal" onclick="editarEmergencia()">✏️ Editar la ficha</button>
+          <button type="button" class="btn btn-secundario" onclick="compartirEmergencia()">📤 Compartir el PDF</button>
+          <p class="mensaje" id="emerMsjLectura"></p>
+        </div>`;
+    }
+    async function compartirEmergencia() {
+      const r = await ultimaEmergencia(), msj = document.getElementById("emerMsjLectura");
+      if (r) await compartirHist(+r.id); else msj.textContent = "Todavía no hay un PDF de la ficha: guárdala de nuevo para generarlo.";
+    }
+    function filaContactoEmergencia(c = {}) {
+      const d = document.createElement("div");
+      d.className = "emer-fila-edicion";
+      d.innerHTML = `<div class="dos-col"><div><label>Quién o qué es</label><input type="text" data-k="rol" maxlength="80" placeholder="Ej: Mutual, Residente"></div>
+        <div><label>Teléfono</label><input type="text" data-k="tel" maxlength="20" inputmode="tel"></div></div>
+        <label>Nombre (opcional)</label><input type="text" data-k="nombre" maxlength="80">
+        <button type="button" class="btn btn-quitar" onclick="this.closest('.emer-fila-edicion').remove()">Quitar</button>`;
+      for (const k of ["rol", "tel", "nombre"]) d.querySelector(`[data-k="${k}"]`).value = c[k] || "";
+      return d;
+    }
+    function agregarContactoEmergencia(c) { document.getElementById("emerContactos").appendChild(filaContactoEmergencia(c)); }
+    function editarEmergencia() {
+      document.getElementById("emerLectura").style.display = "none";
+      document.getElementById("emerEdicion").style.display = "block";
+      const e = emergencia || { faena: "", direccion: "", comoLlegar: "", contactos: CONTACTOS_EMERGENCIA_BASE, hospital: {}, queHacer: "" }, h = e.hospital || {};
+      const v = (id, x) => document.getElementById(id).value = x || "";
+      v("emerFaena", e.faena); v("emerDir", e.direccion); v("emerLlegar", e.comoLlegar);
+      v("emerHospNombre", h.nombre); v("emerHospDir", h.dir); v("emerHospTel", h.tel); v("emerHospRuta", h.ruta); v("emerQue", e.queHacer);
+      const cont = document.getElementById("emerContactos");
+      cont.innerHTML = "";
+      e.contactos.forEach(c => agregarContactoEmergencia(c));
+      if (!emergencia) { agregarContactoEmergencia({ rol: "Mutual" }); agregarContactoEmergencia({ rol: "Residente de obra" }); agregarContactoEmergencia({ rol: "Prevencionista" }); }
+      document.getElementById("emerCancelar").style.display = emergencia ? "" : "none";
+      document.getElementById("emerError").textContent = ""; document.getElementById("emerMsj").textContent = "";
+      document.querySelectorAll("#emerEdicion textarea").forEach(autoAltura);
+    }
+    const ETIQUETAS_EMERGENCIA = { faena: "faena", direccion: "dirección", comoLlegar: "cómo llegar", contactos: "teléfonos", hospital: "hospital", queHacer: "qué hacer" };
+    function camposCambiadosEmergencia(a, b) {
+      if (!a) return ["ficha nueva"];
+      return Object.keys(ETIQUETAS_EMERGENCIA).filter(k => JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => ETIQUETAS_EMERGENCIA[k]);
+    }
+    async function crearPDF_Emergencia(e) {
+      const c = await nuevoPDFSimple("FICHA DE EMERGENCIA", `${EMPRESA.nombre || ""}${e.faena ? " · " + e.faena : ""} · Actualizada el ${fechaCLde(e.actualizado)}`);
+      if (e.direccion) c.parrafo(e.direccion, { f: c.fB, tam: 14 });
+      if (e.comoLlegar) c.parrafo(e.comoLlegar, { tam: 10 });
+      c.titulo("Teléfonos de emergencia");
+      for (const t of e.contactos.filter(x => x.tel || x.nombre)) {
+        c.espacio(46);
+        c.parrafo(`${t.rol || "Contacto"}${t.nombre ? " - " + t.nombre : ""}`, { f: c.fB, tam: 11 });
+        if (t.tel) c.parrafo(t.tel, { f: c.fB, tam: 22, color: c.ROJO });
+      }
+      const h = e.hospital;
+      if (h.nombre || h.dir || h.tel || h.ruta) {
+        c.titulo("Hospital o urgencia más cercana");
+        if (h.nombre) c.parrafo(h.nombre, { f: c.fB, tam: 12 });
+        if (h.dir) c.parrafo(h.dir, { tam: 11 });
+        if (h.tel) c.parrafo(h.tel, { f: c.fB, tam: 22, color: c.ROJO });
+        if (h.ruta) c.parrafo("Ruta: " + h.ruta, { tam: 10 });
+      }
+      if (e.queHacer) { c.titulo("Qué hacer en una emergencia"); e.queHacer.split("\n").filter(l => l.trim()).forEach(l => c.parrafo(l, { tam: 11 })); }
+      c.pie();
+      return await c.doc.save();
+    }
+    // Crea o renueva el vencimiento fijo para revisar la ficha cada mes (reutiliza avisos, calendario y notificaciones)
+    function sincronizarRevisionEmergencia() {
+      const vence = isoD(new Date(Date.now() + 30 * 86400000));
+      const previo = vencimientos.find(v => v.id === "vEmergencia");
+      if (previo) { previo.anteriores = [...(previo.anteriores || []), { vence: previo.vence, renovado: hoyISO() }].slice(-5); previo.vence = vence; }
+      else vencimientos.push({ id: "vEmergencia", cat: "Documento u otro", tipo: "Revisión ficha de emergencia", quien: "Ficha de emergencia", vence, aviso: 7, nota: "Revisa teléfonos, dirección y ruta al hospital", anteriores: [] });
+      guardarVenc(); avisoProgramaMenu();
+    }
+    async function guardarEmergencia() {
+      const err = document.getElementById("emerError"), msj = document.getElementById("emerMsj"), val = id => document.getElementById(id).value.trim();
+      const contactos = [...document.querySelectorAll("#emerContactos .emer-fila-edicion")].map(f => { const g = k => f.querySelector(`[data-k="${k}"]`).value.trim(); return { rol: g("rol"), nombre: g("nombre"), tel: g("tel") }; }).filter(c => c.tel || c.nombre);
+      const nuevo = validarEmergencia({ faena: val("emerFaena"), direccion: val("emerDir"), comoLlegar: val("emerLlegar"), contactos,
+        hospital: { nombre: val("emerHospNombre"), dir: val("emerHospDir"), tel: val("emerHospTel"), ruta: val("emerHospRuta") }, queHacer: val("emerQue"), actualizado: hoyISO() });
+      if (!nuevo.direccion) { err.textContent = "Escribe la dirección exacta de la faena."; return; }
+      if (!nuevo.contactos.some(c => telLimpio(c.tel))) { err.textContent = "Agrega al menos un teléfono válido."; return; }
+      if (nuevo.contactos.some(c => c.tel && !telLimpio(c.tel))) { err.textContent = "Hay un teléfono con formato raro: usa solo números (y + al inicio si es internacional)."; return; }
+      err.textContent = ""; msj.textContent = "Generando el PDF…";
+      try {
+        const cambios = camposCambiadosEmergencia(emergencia, nuevo), previo = await ultimaEmergencia();
+        const pdf = { bytes: await crearPDF_Emergencia(nuevo), nombreArchivo: `Ficha_emergencia_${nuevo.actualizado}.pdf`, asunto: `Ficha de emergencia – ${nuevo.faena || EMPRESA.nombre || "obra"} – ${fechaCLde(nuevo.actualizado)}` };
+        await guardarEnHistorial(previo ? previo.id : null, "emergencia", pdf, nuevo.actualizado, `${nuevo.direccion} · ${nuevo.contactos.length} teléfono(s)`);
+        emergencia = nuevo; guardar("pt_emergencia", nuevo);
+        sincronizarRevisionEmergencia(); pintarBotonEmergencia();
+        bitacora("Ficha de emergencia actualizada", { doc: "Ficha de emergencia", folio: pdf.folio, det: "Cambió: " + (cambios.join(", ") || "sin cambios de contenido") });
+        msj.textContent = "";
+        verEmergencia();
+      } catch (e) { console.warn(e); err.textContent = "No se pudo guardar la ficha."; msj.textContent = ""; }
+    }
+    pintarBotonEmergencia();
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
