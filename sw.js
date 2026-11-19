@@ -10,7 +10,7 @@
    en el mismo sitio no se borran entre ellas.
    ===================================================================== */
 const BASE = "prevencion:" + self.registration.scope + ":";
-const VERSION = BASE + "2026-11-19a";
+const VERSION = BASE + "2026-11-19b";
 const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js", "./xlsx.full.min.js",
                   "./manifest.json", "./icono-192.png", "./icono-512.png"];
 // "reload"/"no-cache": se pide SIEMPRE al servidor (si no cambió, responde rápido), nunca una copia vieja del navegador

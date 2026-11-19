@@ -488,6 +488,12 @@
     .emer-rol { font-size: 14px; color: #475569; }
     .emer-tel { display: block; font-size: 26px; font-weight: 800; color: var(--rojo-osc); text-decoration: none; letter-spacing: .5px; }
     .emer-fila-edicion { border: 1px solid #e5e9f4; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
+    /* Plazos del PST-30 */
+    .plazo-rest { display: block; font-size: 22px; font-weight: 800; }
+    .plazo-ok { color: #15803d; } .plazo-amar { color: #a16207; } .plazo-rojo { color: #b91c1c; }
+    .plazo-fila { display: block; padding: 8px 0; border-bottom: 1px solid #e5e9f4; }
+    .plazo-cerrado { opacity: .7; }
+    .plazo-card a.btn { text-decoration: none; display: block; text-align: center; }
   </style>
 </head>
 
@@ -510,6 +516,7 @@
       </div>
       <button type="button" class="btn-emergencia" id="emerBoton" onclick="abrirEmergencia()">🚨 Emergencia<small id="emerBotonTxt">Teléfonos, dirección y qué hacer</small></button>
       <p class="empresa-activa" id="empresaActiva"></p>
+      <button type="button" class="aviso-programa aviso-respaldo" id="avisoPlazoAcc" style="display:none" onclick="mostrar('accidentes')"></button>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
       <button type="button" class="aviso-programa" id="avisoDrive" style="display:none" onclick="conectarDrive()"></button>
       <div class="aviso-programa aviso-respaldo" id="avisoEPP" style="display:none">
@@ -1100,6 +1107,15 @@
           <div class="dos-col">
             <div><label>Promedio anual de trabajadores</label><input type="text" id="empPromedio" inputmode="numeric"></div>
           </div>
+          <h3>Plazos del PST-30 (reporte flash)</h3>
+          <div class="dos-col">
+            <div><label>Correo del Inspector Fiscal</label><input type="text" id="empInspMail" inputmode="email" maxlength="120"></div>
+            <div><label>Teléfono del Inspector Fiscal</label><input type="text" id="empInspFono" inputmode="tel" maxlength="30"></div>
+          </div>
+          <div class="dos-col">
+            <div><label>WhatsApp del Inspector (si es otro)</label><input type="text" id="empInspWa" inputmode="tel" maxlength="30"></div>
+            <div><label>Casilla de la empresa para el flash (copia)</label><input type="text" id="empMailFlash" inputmode="email" maxlength="120" placeholder="ej: expando.pr@gmail.com"></div>
+          </div>
         </details>
         <label>Correo de contacto para datos personales</label>
         <input type="text" id="empContacto" inputmode="email" autocomplete="off" placeholder="prevencion@empresa.cl">
@@ -1312,6 +1328,24 @@
         <p><b>1.</b> Atención inmediata del trabajador y traslado al organismo administrador.<br>
            <b>2.</b> DIAT al organismo administrador dentro de 24 horas (art. 76, Ley 16.744).<br>
            <b>3.</b> Si es <b>grave o fatal</b>: suspender la faena afectada y avisar de inmediato a la Inspección del Trabajo y a la SEREMI de Salud (art. 76, Ley 16.744).</p>
+      </div>
+      <div class="tarjeta" id="plazoAccCaja">
+        <h2>⏱ Plazos del PST-30</h2>
+        <p class="ayuda">Inicia el reloj apenas ocurra un accidente grave, fatal o con reposo. Se cuenta desde la hora del accidente y sigue corriendo aunque cierres la app, pero la app no avisa sola con la pantalla apagada: míralo al abrirla.</p>
+        <div id="plazoAccLista"></div>
+        <details class="exportar" id="plazoAccForm" ontoggle="if (this.open) abrirFormPlazo()">
+          <summary>+ Iniciar el reloj de un accidente</summary>
+          <div class="dos-col">
+            <div><label>Fecha del accidente</label><input type="date" id="plazoAccFecha"></div>
+            <div><label>Hora</label><input type="time" id="plazoAccHora"></div>
+          </div>
+          <label class="check-linea"><input type="checkbox" id="plazoAccEst"> La hora es estimada</label>
+          <label>Gravedad</label>
+          <select id="plazoAccCat"><option>Grave</option><option>Fatal</option><option>Leve con tiempo perdido (CTP)</option></select>
+          <label>Lugar (breve)</label><input type="text" id="plazoAccLugar" maxlength="120" placeholder="Ej: Ruta C-35 km 12">
+          <p class="error" id="plazoAccError"></p>
+          <button type="button" class="btn btn-principal" onclick="iniciarPlazoAcc()">Iniciar reloj</button>
+        </details>
       </div>
       <form id="formAcc" onsubmit="generarFlash(event)" novalidate>
         <div class="tarjeta">
@@ -2408,7 +2442,7 @@
       if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
       if (id === "matriz") iniciarMatriz();
-      if (id === "accidentes") iniciarAccidentes();
+      if (id === "accidentes") { iniciarAccidentes(); pintarPlazosAcc(); }
       if (id === "documentos") iniciarDocumentos();
       if (id === "irl") iniciarIRL();
       if (id === "historial") { pintarHistorial(); pintarBitacora(); }
@@ -2419,7 +2453,7 @@
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
       if (id === "epp") iniciarEPP();
-      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); pintarBotonEmergencia(); }
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); pintarBotonEmergencia(); pintarAvisoPlazoMenu(); }
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -5628,7 +5662,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -7089,6 +7123,9 @@
         contactoDatos: document.getElementById("empContacto").value.trim().slice(0, 120),
         ...Object.fromEntries(CAMPOS_EMP_ACC.map(([id, k]) => [k, document.getElementById(id).value.trim().slice(0, 160)])) };
       if (p.empresa.contactoDatos && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p.empresa.contactoDatos)) { document.getElementById("msjEmpresa").textContent = "El correo de contacto no parece válido."; return; }
+      for (const [k, et] of [["inspMail", "del Inspector Fiscal"], ["mailFlash", "de la empresa para el flash"]]) {
+        if (p.empresa[k] && !/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(p.empresa[k])) { document.getElementById("msjEmpresa").textContent = `El correo ${et} no parece válido.`; return; }
+      }
       if (!p.nombre) p.nombre = p.empresa.nombre;
       p.actualizado = new Date().toLocaleDateString("sv-SE");
       await guardarLiviano(p);
@@ -8796,6 +8833,190 @@
       casiReportes = casiReportes.filter(r => r.id !== reporteId); guardar("pt_casi", casiReportes);
     }
 
+    /* =====================================================================
+       PLAZOS DEL PST-30 PARA ACCIDENTES (reloj desde la hora del accidente)
+       pt_plazos_acc = [{ id, fecha, hora, estimada, categoria, lugar, accId, hitos: { llamada, whatsapp, flash, lod } }]  (cada hito = ISO de cuando se hizo, o "")
+       - Grave / Fatal: llamada y WhatsApp al Inspector Fiscal (inmediato), reporte flash por correo (3 h) y registro en el LOD (24 h).
+       - Leve con tiempo perdido (CTP): solo el registro en el LOD (24 h). El leve sin tiempo perdido no tiene plazo.
+       El reloj se calcula SIEMPRE desde la fecha y hora guardadas. La app no envía nada ni registra el LOD: ayuda a preparar el correo,
+       y el usuario marca lo que hizo. Los datos del Inspector Fiscal están en Empresa y formatos (EMPRESA.inspMail, inspFono, inspWa, mailFlash).
+       ===================================================================== */
+    const CATS_PLAZO = ["Grave", "Fatal", "Leve con tiempo perdido (CTP)"];
+    const HITOS_PLAZO = { llamada: { t: "Llamada al Inspector Fiscal", h: 0 }, whatsapp: { t: "WhatsApp al Inspector Fiscal", h: 0 }, flash: { t: "Reporte flash por correo", h: 3 }, lod: { t: "Registro en el LOD", h: 24 } };
+    const EVENTO_HITO = { llamada: "Llamada al Inspector Fiscal", whatsapp: "WhatsApp enviado al Inspector Fiscal", flash: "Flash enviado (marcado por el usuario)", lod: "LOD registrado" };
+    const hitosDe = p => p.categoria === CATS_PLAZO[2] ? ["lod"] : ["llamada", "whatsapp", "flash", "lod"];
+    const esISOPlazo = t => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(t));
+    let plazosAcc = listaGuardada("pt_plazos_acc", p => idSeguroTxt(p.id) && /^\d{4}-\d{2}-\d{2}$/.test(String(p.fecha)) && /^\d{2}:\d{2}$/.test(String(p.hora)) && CATS_PLAZO.includes(p.categoria))
+      .map(p => ({ id: p.id, fecha: p.fecha, hora: p.hora, estimada: !!p.estimada, categoria: p.categoria, lugar: textoCorto(p.lugar, 120), accId: idSeguroTxt(p.accId) ? textoCorto(p.accId, 40) : "",
+                   hitos: Object.fromEntries(Object.keys(HITOS_PLAZO).map(h => [h, p.hitos && esISOPlazo(p.hitos[h]) ? String(p.hitos[h]).slice(0, 30) : ""])) }));
+    const guardarPlazos = () => guardar("pt_plazos_acc", plazosAcc);
+    const inicioPlazo = p => new Date(`${p.fecha}T${p.hora}:00`);
+    const venceHito = (p, h) => HITOS_PLAZO[h].h ? new Date(inicioPlazo(p).getTime() + HITOS_PLAZO[h].h * 3600000) : null;
+    const plazoPendiente = p => hitosDe(p).some(h => !p.hitos[h]);
+    function textoRestante(ms) {
+      const m = Math.floor(Math.abs(ms) / 60000), hh = Math.floor(m / 60), mm = m % 60, t = hh ? `${hh} h ${mm} min` : `${mm} min`;
+      return ms >= 0 ? `quedan ${t}` : `vencido hace ${t}`;
+    }
+    const claseRestante = ms => ms < 0 ? "plazo-rojo" : ms <= 3600000 ? "plazo-amar" : "plazo-ok";
+    const horaCorta = d => d.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const diaHoraCorta = d => `${d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit" })} ${horaCorta(d)}`;
+    function waNumero(t) {
+      let d = String(t ?? "").replace(/\D/g, "");
+      if (d.length === 9 && d[0] === "9") d = "56" + d;
+      return d.length >= 10 && d.length <= 15 ? d : "";
+    }
+    const correoValido = t => /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(String(t ?? "").trim());
+    const obraPlazo = () => infContrato.contrato || EMPRESA.nombre || "obra";
+    const catPlazoTxt = p => p.categoria === CATS_PLAZO[2] ? "con tiempo perdido" : p.categoria.toLowerCase();
+
+    function nuevoIdPlazo() { return "pl" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+    function abrirFormPlazo() {
+      const ahora = new Date();
+      document.getElementById("plazoAccFecha").value = hoyISO();
+      document.getElementById("plazoAccHora").value = ahora.toTimeString().slice(0, 5);
+      document.getElementById("plazoAccEst").checked = false;
+      document.getElementById("plazoAccError").textContent = "";
+    }
+    function iniciarPlazoAcc() {
+      const err = document.getElementById("plazoAccError"), v = id => document.getElementById(id).value.trim();
+      const p = { id: nuevoIdPlazo(), fecha: v("plazoAccFecha"), hora: v("plazoAccHora"), estimada: document.getElementById("plazoAccEst").checked, categoria: v("plazoAccCat"), lugar: v("plazoAccLugar"), accId: "",
+                  hitos: { llamada: "", whatsapp: "", flash: "", lod: "" } };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(p.fecha) || !/^\d{2}:\d{2}$/.test(p.hora)) { err.textContent = "Escribe la fecha y la hora del accidente."; return; }
+      if (!CATS_PLAZO.includes(p.categoria)) { err.textContent = "Elige la gravedad."; return; }
+      if (inicioPlazo(p) > new Date(Date.now() + 5 * 60000)) { err.textContent = "La hora del accidente no puede ser futura."; return; }
+      err.textContent = "";
+      plazosAcc.unshift(p); guardarPlazos();
+      bitacora("Plazo PST-30 iniciado", { doc: `Accidente ${p.categoria} · ${fechaCLde(p.fecha)} ${p.hora}`, det: p.estimada ? "hora estimada" : "" });
+      document.getElementById("plazoAccLugar").value = "";
+      document.getElementById("plazoAccForm").open = false;
+      pintarPlazosAcc(); pintarAvisoPlazoMenu();
+    }
+    function marcarHitoPlazo(id, h, hecho) {
+      const p = plazosAcc.find(x => x.id === id);
+      if (!p || !HITOS_PLAZO[h]) return;
+      p.hitos[h] = hecho ? new Date().toISOString() : "";
+      guardarPlazos();
+      bitacora(hecho ? EVENTO_HITO[h] : "Hito de plazo desmarcado", { doc: `Accidente ${p.categoria} · ${fechaCLde(p.fecha)} ${p.hora}`, det: HITOS_PLAZO[h].t });
+      pintarPlazosAcc(); pintarAvisoPlazoMenu();
+    }
+    function quitarPlazoAcc(id, boton) {
+      if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Seguro? Toca de nuevo"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar este reloj"; }, 4000); return; }
+      const p = plazosAcc.find(x => x.id === id);
+      plazosAcc = plazosAcc.filter(x => x.id !== id); guardarPlazos();
+      if (p) bitacora("Plazo PST-30 quitado", { doc: `Accidente ${p.categoria} · ${fechaCLde(p.fecha)} ${p.hora}` });
+      pintarPlazosAcc(); pintarAvisoPlazoMenu();
+    }
+    // Al generar el flash, se une al reloj que se había iniciado antes (mismo día y la hora más cercana)
+    function vincularPlazoAlFlash(a) {
+      const libres = plazosAcc.filter(p => !p.accId && p.fecha === a.fecha);
+      if (!libres.length) return;
+      const min = h => { const [x, y] = String(h || "0:0").split(":").map(Number); return x * 60 + y; };
+      libres.sort((x, y) => Math.abs(min(x.hora) - min(a.hora)) - Math.abs(min(y.hora) - min(a.hora)));
+      libres[0].accId = a.id; guardarPlazos();
+    }
+    function textoFlashCorreo(p, conNombre) {
+      const a = p.accId ? accPorId(p.accId) : null, lugar = a ? lugarAcc(a) || a.comuna : p.lugar;
+      const L = [`REPORTE FLASH – Accidente ${catPlazoTxt(p)} – ${obraPlazo()}`, `Fecha y hora: ${fechaCLde(p.fecha)} ${p.hora} hrs${p.estimada ? " (hora estimada)" : ""}`];
+      if (lugar) L.push(`Lugar: ${lugar}`);
+      if (a) {
+        if (a.que) L.push(`Descripción: ${a.que.slice(0, 300)}`);
+        if (a.cargo) L.push(`Cargo: ${a.cargo}`);
+        if (a.despues) L.push(`Acción inmediata: ${a.despues.slice(0, 200)}`);
+        if (a.centro) L.push(`Traslado a: ${a.centro}`);
+        L.push(conNombre ? `Trabajador: ${a.nombre} · RUT ${a.rut}` : "Datos del trabajador: ver informe flash adjunto.");
+        if (a.folio) L.push(`Folio: ${a.folio}`);
+        L.push("Se adjunta el informe flash (Word).");
+      } else L.push("El informe flash completo se enviará adjunto.");
+      L.push("", EMPRESA.nombre || "");
+      return { asunto: `REPORTE FLASH – Accidente ${catPlazoTxt(p)} – ${obraPlazo()} – ${fechaCLde(p.fecha)} ${p.hora}`, cuerpo: L.join("\n").trim() };
+    }
+    function preparaCorreoFlash(id) {
+      const p = plazosAcc.find(x => x.id === id), msj = document.getElementById("plazoMsj_" + id);
+      if (!p) return;
+      if (!correoValido(EMPRESA.inspMail)) { msj.textContent = 'Falta el correo del Inspector Fiscal (Empresa y formatos → "Datos para los informes de accidentes").'; return; }
+      const t = textoFlashCorreo(p, !!document.getElementById("plazoNom_" + id)?.checked);
+      const cc = correoValido(EMPRESA.mailFlash) ? "&cc=" + encodeURIComponent(EMPRESA.mailFlash.trim()) : "";
+      const url = `mailto:${encodeURIComponent(EMPRESA.inspMail.trim())}?subject=${encodeURIComponent(t.asunto)}${cc}&body=${encodeURIComponent(t.cuerpo)}`;
+      const a = document.createElement("a"); a.href = url; document.body.appendChild(a); a.click(); a.remove();
+      msj.textContent = "Se abrió tu correo. El Word no se adjunta solo: usa “Compartir Word” o descárgalo y adjúntalo. Cuando lo envíes, marca “Reporte flash” como hecho.";
+    }
+    async function copiarCorreoFlash(id) {
+      const p = plazosAcc.find(x => x.id === id), msj = document.getElementById("plazoMsj_" + id);
+      if (!p) return;
+      const t = textoFlashCorreo(p, !!document.getElementById("plazoNom_" + id)?.checked), texto = `Asunto: ${t.asunto}\n\n${t.cuerpo}`;
+      try { await navigator.clipboard.writeText(texto); msj.textContent = "Texto copiado."; }
+      catch {
+        const ta = document.createElement("textarea"); ta.value = texto; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+        let ok = false; try { ok = document.execCommand("copy"); } catch {}
+        ta.remove(); msj.textContent = ok ? "Texto copiado." : "No se pudo copiar: manténlo presionado y cópialo a mano.";
+      }
+    }
+    async function compartirWordPlazo(id) {
+      const p = plazosAcc.find(x => x.id === id), msj = document.getElementById("plazoMsj_" + id);
+      if (!p || !p.accId || !accPorId(p.accId)) { msj.textContent = "Primero genera el informe flash de este accidente (más abajo)."; return; }
+      await compartirFlashWord(p.accId);
+      msj.textContent = document.getElementById("msjAcc").textContent;
+    }
+    function pintarPlazosAcc() {
+      const cont = document.getElementById("plazoAccLista");
+      if (!cont) return;
+      const limite = Date.now() - 14 * 86400000;
+      const lista = plazosAcc.filter(p => plazoPendiente(p) || inicioPlazo(p).getTime() > limite).sort((a, b) => inicioPlazo(b) - inicioPlazo(a));
+      const tel = telLimpio(EMPRESA.inspFono), wa = waNumero(EMPRESA.inspWa || EMPRESA.inspFono);
+      cont.innerHTML = lista.length ? lista.map(p => {
+        const ini = inicioPlazo(p), pendiente = plazoPendiente(p), esGrave = hitosDe(p).length > 1;
+        const filas = hitosDe(p).map(h => {
+          const venc = venceHito(p, h), hecho = p.hitos[h];
+          const info = hecho ? `<span class="plazo-ok">✅ hecho a las ${horaCorta(new Date(hecho))}</span>`
+            : venc ? `<span class="plazo-rest" data-p="${p.id}" data-h="${h}"></span><small>vence ${diaHoraCorta(venc)}</small>` : `<small>inmediato</small>`;
+          return `<label class="check-linea plazo-fila"><input type="checkbox" ${hecho ? "checked" : ""} onchange="marcarHitoPlazo('${p.id}', '${h}', this.checked)"> ${html(HITOS_PLAZO[h].t)}${HITOS_PLAZO[h].h ? ` (${HITOS_PLAZO[h].h} h)` : ""}<br>${info}</label>`;
+        }).join("");
+        const aviso = esGrave ? `<div class="botones">
+            ${tel ? `<a class="btn btn-principal" href="tel:${tel}">📞 Llamar al Inspector</a>` : `<span class="ayuda">Falta el teléfono del Inspector Fiscal (Empresa y formatos).</span>`}
+            ${wa ? `<a class="btn btn-secundario" target="_blank" rel="noopener" href="https://wa.me/${wa}?text=${encodeURIComponent(`AVISO: accidente ${catPlazoTxt(p)} en ${obraPlazo()}, ${fechaCLde(p.fecha)} ${p.hora} hrs${p.lugar ? ", " + p.lugar : ""}. El reporte flash va por correo.`)}">💬 WhatsApp</a>` : ""}</div>` : "";
+        return `<div class="tarjeta plazo-card ${pendiente ? "" : "plazo-cerrado"}" id="plazo_${p.id}">
+          <div class="tit">${p.categoria === CATS_PLAZO[2] ? "🟡" : "🔴"} Accidente ${html(catPlazoTxt(p))} · ${fechaCLde(p.fecha)} ${html(p.hora)}${p.estimada ? " (estimada)" : ""}</div>
+          ${p.lugar ? `<div class="det">📍 ${html(p.lugar)}</div>` : ""}
+          ${aviso}${filas}
+          ${esGrave ? `<div class="botones">
+            <button type="button" class="btn btn-secundario" onclick="preparaCorreoFlash('${p.id}')">✉️ Preparar correo</button>
+            <button type="button" class="btn btn-secundario" onclick="copiarCorreoFlash('${p.id}')">📋 Copiar texto</button>
+            <button type="button" class="btn btn-secundario" onclick="compartirWordPlazo('${p.id}')">📤 Compartir Word</button></div>
+            <label class="check-linea"><input type="checkbox" id="plazoNom_${p.id}"> Incluir nombre y RUT del trabajador en el cuerpo del correo</label>` : ""}
+          <p class="mensaje" id="plazoMsj_${p.id}"></p>
+          <button type="button" class="btn btn-quitar" onclick="quitarPlazoAcc('${p.id}', this)">Quitar este reloj</button>
+        </div>`;
+      }).join("") : `<p class="ayuda">No hay relojes activos. Si ocurre un accidente grave, fatal o con reposo, inicia el reloj aquí.</p>`;
+      tickPlazos();
+    }
+    // Pone al día los tiempos restantes (cada 30 s y al volver a la app) y el aviso rojo del menú
+    function tickPlazos() {
+      document.querySelectorAll(".plazo-rest").forEach(s => {
+        const p = plazosAcc.find(x => x.id === s.dataset.p); if (!p) return;
+        const ms = venceHito(p, s.dataset.h) - Date.now();
+        s.textContent = textoRestante(ms); s.className = "plazo-rest " + claseRestante(ms);
+      });
+      pintarAvisoPlazoMenu();
+    }
+    function pintarAvisoPlazoMenu() {
+      const b = document.getElementById("avisoPlazoAcc");
+      if (!b) return;
+      const lineas = [];
+      for (const p of plazosAcc) {
+        if (!plazoPendiente(p) || inicioPlazo(p).getTime() < Date.now() - 3 * 86400000) continue;
+        for (const h of hitosDe(p)) {
+          const venc = venceHito(p, h);
+          if (!p.hitos[h] && venc) lineas.push({ ms: venc - Date.now(), t: `${HITOS_PLAZO[h].t}: vence ${diaHoraCorta(venc)} (${textoRestante(venc - Date.now())})`, cab: `Accidente ${catPlazoTxt(p)} ${p.hora}` });
+        }
+      }
+      lineas.sort((x, y) => x.ms - y.ms);
+      b.style.display = lineas.length ? "block" : "none";
+      if (lineas.length) b.innerHTML = `<b>⏱ Plazos del PST-30</b>${lineas.slice(0, 3).map(l => `<span class="${l.ms < 0 ? "rojo" : ""}">${html(l.cab)} · ${html(l.t)}</span>`).join("")}`;
+    }
+    setInterval(tickPlazos, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) tickPlazos(); });
+    pintarAvisoPlazoMenu();
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
       "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar"];
@@ -9097,7 +9318,8 @@
        pt_accidentes guarda cada accidente con sus firmas (solo para volver a armar ESE mismo documento).
        ===================================================================== */
     const CAMPOS_EMP_ACC = [["empRep", "repNombre"], ["empRepRut", "repRut"], ["empFono", "fono"], ["empMail", "correo"], ["empDir", "direccion"], ["empComuna", "comuna"],
-      ["empActividad", "actividad"], ["empOrganismo", "organismo"], ["empPublica", "publica"], ["empPromedio", "promedioTrab"], ["empTipoAcc", "tipoAcc"]];
+      ["empActividad", "actividad"], ["empOrganismo", "organismo"], ["empPublica", "publica"], ["empPromedio", "promedioTrab"], ["empTipoAcc", "tipoAcc"],
+      ["empInspMail", "inspMail"], ["empInspFono", "inspFono"], ["empInspWa", "inspWa"], ["empMailFlash", "mailFlash"]];
     let accidentes = listaGuardada("pt_accidentes", a => idSeguroTxt(a.id) && /^\d{4}-\d{2}-\d{2}$/.test(a.fecha || "") && typeof a.nombre === "string");
     let accActualId = null, accFirmasIniciadas = false;
     const idsHistAcc = {};
@@ -9192,6 +9414,7 @@
         a.folio = pdf.folio || "";
         // Registro del accidente (para la investigación) y para el informe mensual
         accidentes = accidentes.filter(x => x.id !== a.id).concat(a);
+        vincularPlazoAlFlash(a);
         guardar("pt_accidentes", accidentes);
         alInformeMensual(a);
         guardar("pt_acc_recordar", { inv: a.invNombre, invCargo: a.invCargo, centro: a.centro, ruta: a.ruta, comuna: a.comuna, cphs: a.cphsNombre });
