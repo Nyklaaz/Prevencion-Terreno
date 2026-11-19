@@ -1053,10 +1053,17 @@
         </details>
         <details class="exportar">
           <summary>📥 Cargar el programa desde Excel</summary>
-          <p class="ayuda">Sirve una planilla con columnas <b>Actividad</b> y <b>Fecha</b> (opcional: Tipo, Responsable), o una carta Gantt con los meses marcados (1, X, CV, D): meses con nombre (Ene, Feb…, o Ene-2027) o numerados 1, 2, 3… hasta el término del contrato.</p>
+          <p class="ayuda">También reconoce el <b>programa oficial del contrato (CEX-FF-SG-03)</b>: te muestra una vista previa antes de cargarlo. Sirve una planilla con columnas <b>Actividad</b> y <b>Fecha</b> (opcional: Tipo, Responsable), o una carta Gantt con los meses marcados (1, X, CV, D): meses con nombre (Ene, Feb…, o Ene-2027) o numerados 1, 2, 3… hasta el término del contrato.</p>
           <label class="btn btn-secundario" style="margin:0">Elegir archivo Excel
             <input type="file" accept=".xls,.xlsx,.csv" onchange="importarProgramaExcel(this)" hidden>
           </label>
+          <div id="progVistaPrevia" class="ed-barra" style="display:none; position:static">
+            <p class="ayuda" id="progVistaTitulo" style="margin:0 0 6px"></p>
+            <label>Fecha del día 0 (inicio del contrato)</label><input type="date" id="progDia0" onchange="pintarVistaPreviaPrograma()">
+            <div id="progVistaTxt"></div>
+            <div class="dos-col"><button type="button" class="btn btn-principal" id="progVistaOk" onclick="cargarProgramaCEX()">Cargar el programa</button>
+              <button type="button" class="btn btn-secundario" onclick="cancelarVistaPrograma()">Cancelar</button></div>
+          </div>
           <div id="progInicioCaja" class="ed-barra" style="display:none; position:static">
             <p class="ayuda" id="progInicioTxt" style="margin:0 0 6px"></p>
             <div class="dos-col"><input type="month" id="progInicio" aria-label="Mes 1 del programa">
@@ -7306,7 +7313,7 @@
               <span><input type="checkbox" ${x.hecha ? "checked" : ""} onchange="marcarProgramada('${x.a.id}', '${x.f}', this.checked)">
               <b>${html(x.a.actividad)}</b> <small>${html(x.a.tipo)}${x.a.responsable ? " · " + html(x.a.responsable) : ""}${x.a.nota ? " · " + html(x.a.nota) : x.a.frecuencia ? " · " + html(x.a.frecuencia) : ""}</small>
               ${x.a.detalle ? `<small class="cal-detalle">${html(x.a.detalle)}</small>` : ""}
-              ${x.atrasada ? `<small class="rojo">Atrasada</small>` : ""}${sug ? `<small class="verde">${sug}</small>` : ""}</span></label>`;
+              ${x.atrasada ? `<small class="rojo">Atrasada</small>` : ""}${sug ? `<small class="verde">${sug}</small>` : ""}</span></label>${detalleProg(x.a)}`;
       const ico = { charla: "📋", irl: "📘", check: "✅", informe: "📑", documento: "📄" };
       document.getElementById("calDia").innerHTML = `
         <h2>${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()].toLowerCase()} de ${d.getFullYear()}</h2>
@@ -7393,6 +7400,7 @@
         <div class="registro">
           <div class="tit">${html(x.actividad)}</div>
           <div class="det">${html(x.tipo)} · ${cuando(x)}${x.nota ? " · " + html(x.nota) : ""}${x.responsable ? " · " + html(x.responsable) : ""}</div>
+          ${detalleProg(x)}
           <div class="botones" style="grid-template-columns:1fr"><button type="button" class="btn btn-quitar" onclick="quitarActividad('${x.id}', this)">Quitar</button></div>
         </div>`).join("")}
         ${programa.some(x => x.importado) ? `<button type="button" class="btn btn-quitar" onclick="quitarProgramaExcel(this)">Quitar lo cargado desde Excel</button>` : ""}</details>` : "";
@@ -7499,11 +7507,91 @@
       return "";
     }
 
+    /* ----- Formato oficial CEX-FF-SG-03 ("Programa de prevención de riesgos" del contrato) -----
+       Encabezado en 2 filas (títulos + "Inicio"/"Término Estimado"). Columnas: N°, Código/Items, "Procedimiento" (= código del PTS),
+       "Actividad de Riesgo Crítico…" (= nombre de la actividad), Identificación de riesgo, Nivel de criticidad, Medidas de prevención,
+       Inicio y Término (en DÍAS desde el inicio del contrato), Responsable, N° de actividades programadas (K), Personal a capacitar, Versión.
+       K se reparte parejo en los meses del rango (como máximo una por mes). Se detecta por sus títulos, así que no depende del nombre de la hoja. */
+    function detectarFormatoCEX(filas) {
+      const nt = v => normalizar(String(v ?? "")).trim();
+      for (let i = 0; i < Math.min(filas.length, 20); i++) {
+        const f = (filas[i] || []).map(nt);
+        if (f.some(c => c.startsWith("actividad de riesgo")) && f.some(c => c.startsWith("procedimiento")) && f.some(c => c.startsWith("medidas de prevencion"))) return i;
+      }
+      return -1;
+    }
+    // "PST- 111", "pst111", "CEX-RE-SG-PST-0111" → "CEX-RE-SG-PST-111" (compara por número; sirve también para la matriz y la biblioteca)
+    const codigoPST = t => { const m = String(t ?? "").match(/PST[\s._-]*0*(\d{1,3})(?!\d)/i); return m ? "CEX-RE-SG-PST-" + m[1] : ""; };
+    const sumarDiasISO = (iso, n) => isoD(new Date(fechaD(iso).getTime() + n * 86400000));
+    function repartirMeses(desde, hasta, k) {
+      const meses = [];
+      for (let m = desde.slice(0, 7); m <= hasta.slice(0, 7) && meses.length < 240; m = sumarMeses(m, 1)) meses.push(m);
+      const n = Math.max(1, Math.min(k, meses.length));
+      return [...new Set(Array.from({ length: n }, (_, i) => meses[Math.floor(i * meses.length / n)]))];
+    }
+    // Devuelve { necesitaDia0 } si faltan los días de partida, o { acts, cols, sinUsar }
+    function leerProgramaCEX(filas, iCab, dia0) {
+      const nt = v => normalizar(String(v ?? "")).trim(), cab = (filas[iCab] || []).map(nt), sub = (filas[iCab + 1] || []).map(nt);
+      const col = (re, fs = [cab, sub]) => { for (const f of fs) { const c = f.findIndex(x => re.test(x)); if (c >= 0) return c; } return -1; };
+      const c = { num: 0, cod: col(/^codigo/), pts: col(/^procedimiento/), act: col(/^actividad de riesgo/), riesgo: col(/^identificacion de riesgo/), crit: col(/^nivel de criticidad/),
+                  med: col(/^medidas de prevencion/), ini: col(/^inicio/, [sub, cab]), fin: col(/^termino/, [sub, cab]), resp: col(/responsable/), k: col(/actividades programadas/),
+                  dest: col(/^personal a capacitar/), ver: col(/^version/) };
+      const desde = iCab + 1 + (sub.some(x => /^(inicio|termino)/.test(x)) ? 1 : 0);
+      const filasAct = filas.slice(desde).filter(f => String(f[c.act] ?? "").trim() && (typeof f[c.num] === "number" || /^\d+$/.test(String(f[c.num] ?? "").trim())));
+      const val = (f, i) => i >= 0 ? f[i] : "";
+      const esDias = v => typeof v === "number" && Number.isInteger(v) && v >= 0 && v < 20000;
+      if (filasAct.some(f => esDias(val(f, c.ini)) || esDias(val(f, c.fin))) && !dia0) return { necesitaDia0: true, n: filasAct.length };
+      const txt = (v, n) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
+      const acts = filasAct.map((f, n) => {
+        let ini = esDias(val(f, c.ini)) ? sumarDiasISO(dia0, val(f, c.ini)) : fechaDeCelda(val(f, c.ini)), fin = esDias(val(f, c.fin)) ? sumarDiasISO(dia0, val(f, c.fin)) : fechaDeCelda(val(f, c.fin));
+        if (!ini) ini = dia0 || hoyISO();
+        if (!fin || fin < ini) fin = ini;
+        const k = Math.max(1, Math.min(999, Math.round(+val(f, c.k) || 1))), meses = repartirMeses(ini, fin, k);
+        const actividad = txt(f[c.act], 200), medidas = txt(val(f, c.med), 600);
+        return { id: "p" + Date.now().toString(36) + n, actividad, detalle: "", tipo: tipoPrograma("", actividad + ": " + medidas), responsable: txt(val(f, c.resp), 200), frecuencia: "", seccion: "", nota: "",
+                 repite: "", hasta: "", importado: true, fecha: meses[0] + "-01", mes: true, meses, codigo: txt(val(f, c.cod), 30), pts: codigoPST(val(f, c.pts)) || txt(val(f, c.pts), 40),
+                 riesgos: txt(val(f, c.riesgo), 60), criticidad: txt(val(f, c.crit), 40), medidas, destinatarios: txt(val(f, c.dest), 200), metaN: k, rIni: ini, rFin: fin };
+      });
+      const nombres = { cod: "Código/Items", pts: "Procedimiento (PTS)", act: "Actividad", riesgo: "Identificación de riesgo", crit: "Nivel de criticidad", med: "Medidas de prevención", ini: "Inicio", fin: "Término", resp: "Responsable", k: "N° de actividades", dest: "Personal a capacitar" };
+      return { acts, cols: Object.keys(nombres).filter(k => c[k] >= 0).map(k => nombres[k]), sinUsar: Object.keys(nombres).filter(k => c[k] < 0).map(k => nombres[k]) };
+    }
+    const detalleProg = a => (a.pts || a.codigo || a.medidas || a.riesgos || a.destinatarios) ? `<details class="exportar cal-detalle-ext"><summary>Detalle</summary>
+      ${a.pts ? `<div class="det"><b>PTS:</b> ${html(a.pts)}</div>` : ""}${a.codigo ? `<div class="det"><b>Código de ítem:</b> ${html(a.codigo)}</div>` : ""}
+      ${a.riesgos ? `<div class="det"><b>Riesgo:</b> ${html(a.riesgos)}${a.criticidad ? " · criticidad " + html(a.criticidad) : ""}</div>` : ""}
+      ${a.medidas ? `<div class="det"><b>Medidas:</b> ${html(a.medidas)}</div>` : ""}
+      ${a.destinatarios ? `<div class="det"><b>Personal a capacitar:</b> ${html(a.destinatarios)}</div>` : ""}
+      ${+a.metaN ? `<div class="det"><b>Meta:</b> ${+a.metaN} actividad(es) en el contrato${/^\d{4}-\d{2}-\d{2}$/.test(a.rIni || "") && /^\d{4}-\d{2}-\d{2}$/.test(a.rFin || "") ? ` (del ${fechaCLde(a.rIni)} al ${fechaCLde(a.rFin)})` : ""}</div>` : ""}</details>` : "";
+    function pintarVistaPreviaPrograma() {
+      const caja = document.getElementById("progVistaPrevia"), p = progPendiente;
+      if (!p || !p.cex) { caja.style.display = "none"; return; }
+      caja.style.display = "block";
+      const dia0 = document.getElementById("progDia0").value, r = leerProgramaCEX(p.filas, p.iCab, dia0), ok = document.getElementById("progVistaOk");
+      document.getElementById("progVistaTitulo").textContent = `Detecté el formato CEX-FF-SG-03 en la hoja "${p.hoja}" de ${p.archivo}. Revisa antes de cargar.`;
+      if (r.necesitaDia0) {
+        document.getElementById("progVistaTxt").innerHTML = `<p class="ayuda">Las fechas "Inicio" y "Término" vienen en <b>días desde el inicio del contrato</b> (${r.n} actividades). Escribe la fecha del día 0 para calcular las fechas reales.</p>`;
+        ok.disabled = true; return;
+      }
+      ok.disabled = !r.acts.length;
+      const total = r.acts.reduce((s, a) => s + a.meses.length, 0), muestra = r.acts.slice(0, 3);
+      document.getElementById("progVistaTxt").innerHTML = `<p class="ayuda" style="margin:6px 0"><b>${r.acts.length} ${r.acts.length === 1 ? "actividad" : "actividades"}</b> · ${total} programaciones (la meta de cada actividad se reparte pareja entre los meses de su rango).</p>
+        <p class="ayuda" style="margin:6px 0">Columnas reconocidas: ${r.cols.map(html).join(", ")}.${r.sinUsar.length ? ` No encontré: ${r.sinUsar.map(html).join(", ")}.` : ""}</p>
+        ${muestra.map(a => `<div class="det">• <b>${html(a.actividad)}</b> · ${html(a.pts)} · ${a.meses.length} mes(es), de ${mesLargo(a.meses[0])} a ${mesLargo(a.meses.at(-1))}</div>`).join("")}`;
+    }
+    function cancelarVistaPrograma() { progPendiente = null; document.getElementById("progVistaPrevia").style.display = "none"; }
+    function cargarProgramaCEX() {
+      const p = progPendiente;
+      if (!p || !p.cex) return;
+      const r = leerProgramaCEX(p.filas, p.iCab, document.getElementById("progDia0").value);
+      if (!r.acts || !r.acts.length) return;
+      document.getElementById("progVistaPrevia").style.display = "none"; progPendiente = null;
+      cargarProgramaLeido(r.acts, p.archivo, { hoja: p.hoja });
+    }
+
     let progPendiente = null;
     async function importarProgramaExcel(input) {
       const a = input.files[0]; input.value = "";
       const msj = document.getElementById("msjImpProg"), caja = document.getElementById("progInicioCaja");
-      caja.style.display = "none";
+      caja.style.display = "none"; document.getElementById("progVistaPrevia").style.display = "none";
       if (!a) return;
       try {
         if (!window.XLSX) { msj.textContent = "Cargando lector de Excel…"; await cargarScript(URL_SHEETJS); }
@@ -7511,6 +7599,13 @@
         // Probamos hoja por hoja: el programa puede no estar en la primera
         for (const nombre of libro.SheetNames) {
           const filas = XLSX.utils.sheet_to_json(libro.Sheets[nombre], { header: 1, raw: true, defval: "" });
+          const iCEX = detectarFormatoCEX(filas);
+          if (iCEX >= 0) {   // formato oficial del contrato: vista previa antes de cargar
+            progPendiente = { filas, hoja: nombre, archivo: a.name, cex: true, iCab: iCEX };
+            document.getElementById("progDia0").value = /^\d{4}-\d{2}$/.test(infContrato.inicio || "") ? infContrato.inicio + "-01" : "";
+            msj.textContent = ""; pintarVistaPreviaPrograma();
+            return;
+          }
           const r = leerProgramaFilas(filas, +hoyISO().slice(0, 4));
           if (r.necesitaInicio) {
             progPendiente = { filas, hoja: nombre, archivo: a.name };
@@ -7532,16 +7627,19 @@
       cargarProgramaLeido(Array.isArray(r) ? r : [], progPendiente.archivo);
       progPendiente = null;
     }
-    function cargarProgramaLeido(nuevas, archivo) {
+    function cargarProgramaLeido(nuevas, archivo, meta = {}) {
       const msj = document.getElementById("msjImpProg");
       if (!nuevas.length) { msj.textContent = "No encontré actividades en ese Excel."; return; }
       const previas = programa.filter(a => a.importado);
+      let modo = "cargó";
       if (previas.length && confirm(`Ya hay ${previas.length} actividades cargadas desde Excel. ¿Las reemplazo por las de este archivo? (Aceptar = reemplazar · Cancelar = sumar)`)) {
         const ids = new Set(previas.map(a => a.id));
         programa = programa.filter(a => !ids.has(a.id));
-      }
+        modo = "reemplazó las anteriores";
+      } else if (previas.length) modo = "sumó a las anteriores";
       programa.push(...nuevas);
       guardar("pt_programa", programa);
+      bitacora("Programa importado", { doc: archivo, det: `${meta.hoja ? "hoja " + meta.hoja + " · " : ""}${nuevas.length} actividades · ${modo}` });
       const meses = nuevas.flatMap(a => a.meses || [a.fecha.slice(0, 7)]).sort();
       const total = nuevas.reduce((s, a) => s + (a.meses ? a.meses.length : 1), 0);
       msj.textContent = `✅ ${nuevas.length} actividades cargadas (${total} programaciones) de ${mesLargo(meses[0])} a ${mesLargo(meses.at(-1))}.`;
