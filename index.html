@@ -1512,6 +1512,9 @@
           <h2>Qué hacer en una emergencia</h2>
           <p class="ayuda">Pasos breves, uno por línea (opcional).</p>
           <textarea id="emerQue" rows="4" maxlength="1200" placeholder="1. Mantener la calma y avisar al residente&#10;2. Llamar a la ambulancia&#10;3. No mover al lesionado"></textarea>
+          <h2 style="margin-top:14px">Recursos del lugar</h2>
+          <p class="ayuda">Opcional, una línea por recurso: punto de encuentro, botiquín, extintor, oxígeno, radio o teléfono satelital, sectores sin señal.</p>
+          <textarea id="emerRecursos" rows="3" maxlength="600"></textarea>
           <p class="error" id="emerError"></p>
           <button type="button" class="btn btn-principal" onclick="guardarEmergencia()">Guardar y generar PDF</button>
           <button type="button" class="btn btn-secundario" id="emerCancelar" onclick="verEmergencia()">Cancelar</button>
@@ -8527,7 +8530,7 @@
         faena: textoCorto(e.faena, 120), direccion: textoCorto(e.direccion, 200), comoLlegar: textoCorto(e.comoLlegar, 400),
         contactos: (Array.isArray(e.contactos) ? e.contactos : []).filter(c => c && typeof c === "object").slice(0, 30).map(c => ({ rol: textoCorto(c.rol, 80), nombre: textoCorto(c.nombre, 80), tel: textoCorto(c.tel, 20) })),
         hospital: { nombre: textoCorto(h.nombre, 120), dir: textoCorto(h.dir, 200), tel: textoCorto(h.tel, 20), ruta: textoCorto(h.ruta, 400) },
-        queHacer: textoCorto(e.queHacer, 1200), actualizado: /^\d{4}-\d{2}-\d{2}$/.test(String(e.actualizado)) ? e.actualizado : ""
+        queHacer: textoCorto(e.queHacer, 1200), recursos: textoCorto(e.recursos, 600), actualizado: /^\d{4}-\d{2}-\d{2}$/.test(String(e.actualizado)) ? e.actualizado : ""
       };
     }
     let emergencia = validarEmergencia(leerGuardado("pt_emergencia", null));
@@ -8562,6 +8565,7 @@
         ${hosp ? `<div class="tarjeta"><h2>🏥 ${html(h.nombre || "Hospital o urgencia más cercana")}</h2>
           ${h.dir ? `<p style="margin:4px 0">📍 ${html(h.dir)}</p>` : ""}${enlaceTel(h.tel)}
           ${h.ruta ? `<p style="margin:8px 0 0"><b>Ruta:</b> ${html(h.ruta)}</p>` : ""}</div>` : ""}
+        ${e.recursos ? `<div class="tarjeta"><h2>🧰 Recursos del lugar</h2><p style="white-space:pre-line;margin:0">${html(e.recursos)}</p></div>` : ""}
         ${e.queHacer ? `<div class="tarjeta"><h2>Qué hacer</h2><p style="white-space:pre-line;margin:0">${html(e.queHacer)}</p></div>` : ""}
         <div class="tarjeta">
           <button type="button" class="btn btn-principal" onclick="editarEmergencia()">✏️ Editar la ficha</button>
@@ -8590,7 +8594,7 @@
       const e = emergencia || { faena: "", direccion: "", comoLlegar: "", contactos: CONTACTOS_EMERGENCIA_BASE, hospital: {}, queHacer: "" }, h = e.hospital || {};
       const v = (id, x) => document.getElementById(id).value = x || "";
       v("emerFaena", e.faena); v("emerDir", e.direccion); v("emerLlegar", e.comoLlegar);
-      v("emerHospNombre", h.nombre); v("emerHospDir", h.dir); v("emerHospTel", h.tel); v("emerHospRuta", h.ruta); v("emerQue", e.queHacer);
+      v("emerHospNombre", h.nombre); v("emerHospDir", h.dir); v("emerHospTel", h.tel); v("emerHospRuta", h.ruta); v("emerQue", e.queHacer); v("emerRecursos", e.recursos);
       const cont = document.getElementById("emerContactos");
       cont.innerHTML = "";
       e.contactos.forEach(c => agregarContactoEmergencia(c));
@@ -8599,7 +8603,7 @@
       document.getElementById("emerError").textContent = ""; document.getElementById("emerMsj").textContent = "";
       document.querySelectorAll("#emerEdicion textarea").forEach(autoAltura);
     }
-    const ETIQUETAS_EMERGENCIA = { faena: "faena", direccion: "dirección", comoLlegar: "cómo llegar", contactos: "teléfonos", hospital: "hospital", queHacer: "qué hacer" };
+    const ETIQUETAS_EMERGENCIA = { faena: "faena", direccion: "dirección", comoLlegar: "cómo llegar", contactos: "teléfonos", hospital: "hospital", queHacer: "qué hacer", recursos: "recursos del lugar" };
     function camposCambiadosEmergencia(a, b) {
       if (!a) return ["ficha nueva"];
       return Object.keys(ETIQUETAS_EMERGENCIA).filter(k => JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => ETIQUETAS_EMERGENCIA[k]);
@@ -8622,6 +8626,7 @@
         if (h.tel) c.parrafo(h.tel, { f: c.fB, tam: 22, color: c.ROJO });
         if (h.ruta) c.parrafo("Ruta: " + h.ruta, { tam: 10 });
       }
+      if (e.recursos) { c.titulo("Recursos del lugar"); e.recursos.split("\n").filter(l => l.trim()).forEach(l => c.parrafo(l, { vineta: "•", tam: 10.5 })); }
       if (e.queHacer) { c.titulo("Qué hacer en una emergencia"); e.queHacer.split("\n").filter(l => l.trim()).forEach(l => c.parrafo(l, { tam: 11 })); }
       c.pie();
       return await c.doc.save();
@@ -8638,7 +8643,7 @@
       const err = document.getElementById("emerError"), msj = document.getElementById("emerMsj"), val = id => document.getElementById(id).value.trim();
       const contactos = [...document.querySelectorAll("#emerContactos .emer-fila-edicion")].map(f => { const g = k => f.querySelector(`[data-k="${k}"]`).value.trim(); return { rol: g("rol"), nombre: g("nombre"), tel: g("tel") }; }).filter(c => c.tel || c.nombre);
       const nuevo = validarEmergencia({ faena: val("emerFaena"), direccion: val("emerDir"), comoLlegar: val("emerLlegar"), contactos,
-        hospital: { nombre: val("emerHospNombre"), dir: val("emerHospDir"), tel: val("emerHospTel"), ruta: val("emerHospRuta") }, queHacer: val("emerQue"), actualizado: hoyISO() });
+        hospital: { nombre: val("emerHospNombre"), dir: val("emerHospDir"), tel: val("emerHospTel"), ruta: val("emerHospRuta") }, queHacer: val("emerQue"), recursos: val("emerRecursos"), actualizado: hoyISO() });
       if (!nuevo.direccion) { err.textContent = "Escribe la dirección exacta de la faena."; return; }
       if (!nuevo.contactos.some(c => telLimpio(c.tel))) { err.textContent = "Agrega al menos un teléfono válido."; return; }
       if (nuevo.contactos.some(c => c.tel && !telLimpio(c.tel))) { err.textContent = "Hay un teléfono con formato raro: usa solo números (y + al inicio si es internacional)."; return; }
@@ -8669,7 +8674,9 @@
       const conservar = new Set([...CONSERVAR_SIEMPRE, ...(document.getElementById("ceroListado").checked ? CONSERVAR_LISTADO : [])]);
       const claves = [];
       for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(ESPACIO_DATOS + "pt_")) claves.push(k.slice(ESPACIO_DATOS.length)); }
+      const revisionEmergencia = vencimientos.find(v => v.id === "vEmergencia");   // el recordatorio de la ficha de emergencia sobrevive, como la ficha
       claves.filter(k => !conservar.has(k)).forEach(k => { try { localStorage.removeItem(k); } catch {} });
+      if (revisionEmergencia) guardar("pt_vencimientos", [revisionEmergencia]);
       // Registros (historial), entregas de EPP, fotos de hallazgos, bitácora y cola de Drive. La matriz y las IRL del paquete se quedan.
       for (const bd of ["prevencion-terreno" + ESPACIO_DATOS, "prevencion-epp" + ESPACIO_DATOS, "prevencion-hallazgos" + ESPACIO_DATOS, BD_AVISOS]) await borrarBD(bd);
       try { sessionStorage.removeItem("pt_doc_borrador"); } catch {}
