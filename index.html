@@ -5459,7 +5459,12 @@
       const otrosDocs = regs.filter(r => r.tipo === "documento" && r.plantilla !== "capacitacion");
       if (otrosDocs.length) nuevas.push(`Se emitieron ${otrosDocs.length} documento(s) de prevención: ${contar(otrosDocs.map(r => String(r.detalle).split(" · ")[0]))}.`);
       const rc = resumenCasiMes(k);
-      if (rc.total) nuevas.push(`${rc.total === 1 ? "Se registró 1 reporte preventivo" : `Se registraron ${rc.total} reportes preventivos`}: ${rc.porTipo["Casi accidente"]} casi accidente(s), ${rc.porTipo["Acto inseguro"]} acto(s) inseguro(s) y ${rc.porTipo["Condición insegura"]} condición(es) insegura(s).`);
+      if (rc.total) {
+        const n = (k, uno, varios) => rc.porTipo[k] ? `${rc.porTipo[k]} ${rc.porTipo[k] === 1 ? uno : varios}` : "";
+        const partes = [n("Casi accidente", "casi accidente", "casi accidentes"), n("Acto inseguro", "acto inseguro", "actos inseguros"), n("Condición insegura", "condición insegura", "condiciones inseguras")].filter(Boolean);
+        const lista = partes.length > 1 ? partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1] : partes[0];
+        nuevas.push(`${rc.total === 1 ? "Se registró 1 reporte preventivo" : `Se registraron ${rc.total} reportes preventivos`}: ${lista}.`);
+      }
       const acc = infListas.accidentes.filter(a => String(a.fecha).startsWith(k));
       nuevas.push(acc.length ? `Durante el mes de ${mesTxt} se registra(n) ${acc.length} accidente(s): ${acc.map(a => `${a.categoria || "accidente"} ${a.tipo ? "(" + a.tipo.toLowerCase() + ")" : ""} el ${fechaCLde(a.fecha)}`).join("; ")}. Se adjunta la investigación correspondiente.`
                              : `No se registran accidentes en el mes de ${mesTxt}.`);
