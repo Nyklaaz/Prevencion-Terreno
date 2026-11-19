@@ -1060,6 +1060,7 @@
           <div id="progVistaPrevia" class="ed-barra" style="display:none; position:static">
             <p class="ayuda" id="progVistaTitulo" style="margin:0 0 6px"></p>
             <label>Fecha del día 0 (inicio del contrato)</label><input type="date" id="progDia0" onchange="pintarVistaPreviaPrograma()">
+            <label>Llevar en la app desde (lo anterior se hizo en papel y no se carga)</label><input type="month" id="progDesde" onchange="pintarVistaPreviaPrograma()">
             <div id="progVistaTxt"></div>
             <div class="dos-col"><button type="button" class="btn btn-principal" id="progVistaOk" onclick="cargarProgramaCEX()">Cargar el programa</button>
               <button type="button" class="btn btn-secundario" onclick="cancelarVistaPrograma()">Cancelar</button></div>
@@ -7387,11 +7388,11 @@
     function pintarPrograma() {
       const cTot = cumplimiento("1900-01-01", "2999-12-31"), pMes = programadasEntre(`${calMes}-01`, `${calMes}-31`), cMes = { hechas: pMes.filter(x => x.hecha).length, total: pMes.length };
       const todosMeses = programa.flatMap(x => x.meses || [x.fecha.slice(0, 7)]).sort();
-      document.getElementById("progCumplimiento").innerHTML = programa.length
+      document.getElementById("progCumplimiento").innerHTML = programa.length && todosMeses.length
         ? `Programa de ${mesLargo(todosMeses[0])} a ${mesLargo(todosMeses.at(-1))} · Cumplimiento acumulado (lo ya vencido): <b>${cTot.hechas} de ${cTot.total}${cTot.total ? ` (${cTot.pct}%)` : ""}</b> · ${MESES[+calMes.slice(5) - 1]}: <b>${cMes.hechas} de ${cMes.total}</b>`
-        : "Todavía no hay actividades. Agrégalas una por una o carga tu programa desde Excel.";
+        : programa.length ? `Hay ${programa.length} actividad(es) cargadas, pero ninguna con programación en el calendario.` : "Todavía no hay actividades. Agrégalas una por una o carga tu programa desde Excel.";
       const rep = { "": "Una vez", semana: "Cada semana", mes: "Cada mes", "3m": "Cada 3 meses", "6m": "Cada 6 meses" };
-      const cuando = x => x.meses ? `${x.frecuencia ? html(x.frecuencia) + " · " : ""}${x.meses.length} mes(es), de ${mesLargo(x.meses[0])} a ${mesLargo(x.meses.at(-1))}`
+      const cuando = x => x.meses && !x.meses.length ? "Sin programación en el calendario" : x.meses ? `${x.frecuencia ? html(x.frecuencia) + " · " : ""}${x.meses.length} mes(es), de ${mesLargo(x.meses[0])} a ${mesLargo(x.meses.at(-1))}`
         : `${x.mes ? "Mes de " + MESES[+x.fecha.slice(5, 7) - 1].toLowerCase() : fechaCLde(x.fecha)} · ${rep[x.repite || ""]}${x.repite ? " hasta " + fechaCLde(x.hasta) : ""}`;
       const items = [...programa].sort((x, y) => (x.seccion || "").localeCompare(y.seccion || "") || x.fecha.localeCompare(y.fecha));
       let sec = null;
@@ -7530,7 +7531,7 @@
       return [...new Set(Array.from({ length: n }, (_, i) => meses[Math.floor(i * meses.length / n)]))];
     }
     // Devuelve { necesitaDia0 } si faltan los días de partida, o { acts, cols, sinUsar }
-    function leerProgramaCEX(filas, iCab, dia0) {
+    function leerProgramaCEX(filas, iCab, dia0, desdeMes = "") {
       const nt = v => normalizar(String(v ?? "")).trim(), cab = (filas[iCab] || []).map(nt), sub = (filas[iCab + 1] || []).map(nt);
       const col = (re, fs = [cab, sub]) => { for (const f of fs) { const c = f.findIndex(x => re.test(x)); if (c >= 0) return c; } return -1; };
       const c = { num: 0, cod: col(/^codigo/), pts: col(/^procedimiento/), act: col(/^actividad de riesgo/), riesgo: col(/^identificacion de riesgo/), crit: col(/^nivel de criticidad/),
@@ -7546,10 +7547,10 @@
         let ini = esDias(val(f, c.ini)) ? sumarDiasISO(dia0, val(f, c.ini)) : fechaDeCelda(val(f, c.ini)), fin = esDias(val(f, c.fin)) ? sumarDiasISO(dia0, val(f, c.fin)) : fechaDeCelda(val(f, c.fin));
         if (!ini) ini = dia0 || hoyISO();
         if (!fin || fin < ini) fin = ini;
-        const k = Math.max(1, Math.min(999, Math.round(+val(f, c.k) || 1))), meses = repartirMeses(ini, fin, k);
+        const k = Math.max(1, Math.min(999, Math.round(+val(f, c.k) || 1))), todas = repartirMeses(ini, fin, k), meses = desdeMes ? todas.filter(m => m >= desdeMes) : todas;
         const actividad = txt(f[c.act], 200), medidas = txt(val(f, c.med), 600);
-        return { id: "p" + Date.now().toString(36) + n, actividad, detalle: "", tipo: tipoPrograma("", actividad + ": " + medidas), responsable: txt(val(f, c.resp), 200), frecuencia: "", seccion: "", nota: "",
-                 repite: "", hasta: "", importado: true, fecha: meses[0] + "-01", mes: true, meses, codigo: txt(val(f, c.cod), 30), pts: codigoPST(val(f, c.pts)) || txt(val(f, c.pts), 40),
+        return { id: "p" + Date.now().toString(36) + n, actividad, detalle: "", tipo: tipoPrograma("", actividad + ": " + medidas), responsable: txt(val(f, c.resp), 200), frecuencia: "", seccion: "", nota: meses.length ? "" : `sin programación desde ${mesLargo(desdeMes)}`,
+                 repite: "", hasta: "", importado: true, fecha: (meses[0] || desdeMes || todas[0]) + "-01", mes: true, meses, mesesTotal: todas.length, codigo: txt(val(f, c.cod), 30), pts: codigoPST(val(f, c.pts)) || txt(val(f, c.pts), 40),
                  riesgos: txt(val(f, c.riesgo), 60), criticidad: txt(val(f, c.crit), 40), medidas, destinatarios: txt(val(f, c.dest), 200), metaN: k, rIni: ini, rFin: fin };
       });
       const nombres = { cod: "Código/Items", pts: "Procedimiento (PTS)", act: "Actividad", riesgo: "Identificación de riesgo", crit: "Nivel de criticidad", med: "Medidas de prevención", ini: "Inicio", fin: "Término", resp: "Responsable", k: "N° de actividades", dest: "Personal a capacitar" };
@@ -7565,26 +7566,26 @@
       const caja = document.getElementById("progVistaPrevia"), p = progPendiente;
       if (!p || !p.cex) { caja.style.display = "none"; return; }
       caja.style.display = "block";
-      const dia0 = document.getElementById("progDia0").value, r = leerProgramaCEX(p.filas, p.iCab, dia0), ok = document.getElementById("progVistaOk");
+      const dia0 = document.getElementById("progDia0").value, desde = document.getElementById("progDesde").value, r = leerProgramaCEX(p.filas, p.iCab, dia0, desde), ok = document.getElementById("progVistaOk");
       document.getElementById("progVistaTitulo").textContent = `Detecté el formato CEX-FF-SG-03 en la hoja "${p.hoja}" de ${p.archivo}. Revisa antes de cargar.`;
       if (r.necesitaDia0) {
         document.getElementById("progVistaTxt").innerHTML = `<p class="ayuda">Las fechas "Inicio" y "Término" vienen en <b>días desde el inicio del contrato</b> (${r.n} actividades). Escribe la fecha del día 0 para calcular las fechas reales.</p>`;
         ok.disabled = true; return;
       }
       ok.disabled = !r.acts.length;
-      const total = r.acts.reduce((s, a) => s + a.meses.length, 0), muestra = r.acts.slice(0, 3);
-      document.getElementById("progVistaTxt").innerHTML = `<p class="ayuda" style="margin:6px 0"><b>${r.acts.length} ${r.acts.length === 1 ? "actividad" : "actividades"}</b> · ${total} programaciones (la meta de cada actividad se reparte pareja entre los meses de su rango).</p>
+      const total = r.acts.reduce((s, a) => s + a.mesesTotal, 0), quedan = r.acts.reduce((s, a) => s + a.meses.length, 0), muestra = r.acts.slice(0, 3);
+      document.getElementById("progVistaTxt").innerHTML = `<p class="ayuda" style="margin:6px 0"><b>${r.acts.length} ${r.acts.length === 1 ? "actividad" : "actividades"}</b> · ${total} programaciones en total · <b>${quedan} desde ${desde ? mesLargo(desde) : "el inicio"}</b> (la meta de cada actividad se reparte pareja entre los meses de su rango).</p>
         <p class="ayuda" style="margin:6px 0">Columnas reconocidas: ${r.cols.map(html).join(", ")}.${r.sinUsar.length ? ` No encontré: ${r.sinUsar.map(html).join(", ")}.` : ""}</p>
-        ${muestra.map(a => `<div class="det">• <b>${html(a.actividad)}</b> · ${html(a.pts)} · ${a.meses.length} mes(es), de ${mesLargo(a.meses[0])} a ${mesLargo(a.meses.at(-1))}</div>`).join("")}`;
+        ${muestra.map(a => `<div class="det">• <b>${html(a.actividad)}</b> · ${html(a.pts)} · ${a.meses.length ? `${a.meses.length} mes(es), de ${mesLargo(a.meses[0])} a ${mesLargo(a.meses.at(-1))}` : "sin programación desde " + mesLargo(desde)}</div>`).join("")}`;
     }
     function cancelarVistaPrograma() { progPendiente = null; document.getElementById("progVistaPrevia").style.display = "none"; }
     function cargarProgramaCEX() {
       const p = progPendiente;
       if (!p || !p.cex) return;
-      const r = leerProgramaCEX(p.filas, p.iCab, document.getElementById("progDia0").value);
+      const desde = document.getElementById("progDesde").value, r = leerProgramaCEX(p.filas, p.iCab, document.getElementById("progDia0").value, desde);
       if (!r.acts || !r.acts.length) return;
       document.getElementById("progVistaPrevia").style.display = "none"; progPendiente = null;
-      cargarProgramaLeido(r.acts, p.archivo, { hoja: p.hoja });
+      cargarProgramaLeido(r.acts, p.archivo, { hoja: p.hoja, desde });
     }
 
     let progPendiente = null;
@@ -7603,6 +7604,7 @@
           if (iCEX >= 0) {   // formato oficial del contrato: vista previa antes de cargar
             progPendiente = { filas, hoja: nombre, archivo: a.name, cex: true, iCab: iCEX };
             document.getElementById("progDia0").value = /^\d{4}-\d{2}$/.test(infContrato.inicio || "") ? infContrato.inicio + "-01" : "";
+            document.getElementById("progDesde").value = hoyISO().slice(0, 7);
             msj.textContent = ""; pintarVistaPreviaPrograma();
             return;
           }
@@ -7639,10 +7641,10 @@
       } else if (previas.length) modo = "sumó a las anteriores";
       programa.push(...nuevas);
       guardar("pt_programa", programa);
-      bitacora("Programa importado", { doc: archivo, det: `${meta.hoja ? "hoja " + meta.hoja + " · " : ""}${nuevas.length} actividades · ${modo}` });
+      bitacora("Programa importado", { doc: archivo, det: `${meta.hoja ? "hoja " + meta.hoja + " · " : ""}${nuevas.length} actividades · ${modo}${meta.desde ? " · desde " + meta.desde : ""}` });
       const meses = nuevas.flatMap(a => a.meses || [a.fecha.slice(0, 7)]).sort();
       const total = nuevas.reduce((s, a) => s + (a.meses ? a.meses.length : 1), 0);
-      msj.textContent = `✅ ${nuevas.length} actividades cargadas (${total} programaciones) de ${mesLargo(meses[0])} a ${mesLargo(meses.at(-1))}.`;
+      msj.textContent = meses.length ? `✅ ${nuevas.length} actividades cargadas (${total} programaciones) de ${mesLargo(meses[0])} a ${mesLargo(meses.at(-1))}.` : `✅ ${nuevas.length} actividades cargadas, sin programaciones en el calendario (revisa el mes "desde").`;
       calMes = hoyISO().slice(0, 7);
       pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
     }
