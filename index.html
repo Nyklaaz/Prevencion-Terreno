@@ -642,6 +642,7 @@
       </div>
       <h2 class="seccion-t">Pendiente hoy</h2>
       <div id="diaPendientes"></div>
+      <button type="button" class="pend" id="diaRepetir" style="display:none" onclick="repetirDesdeMiDia()"></button>
       <h2 class="seccion-t">Terreno</h2>
       <div class="terreno">
         <button type="button" class="tile t-azul" onclick="mostrar('charla')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span id="menuCharla">Charla diaria + ART + Bloqueador</span></button>
@@ -734,6 +735,25 @@
 
     <!-- ========== CHARLA + ART ========== -->
     <section id="charla" class="pantalla">
+      <div class="tarjeta" id="charlaExpress">
+        <h2>⚡ Charla express</h2>
+        <p class="ayuda">Repite la última charla de un departamento: mismos datos, ART y asistentes, con la fecha y la hora de ahora. Las firmas no se copian: cada uno firma de nuevo.</p>
+        <div id="charlaRepetir"></div>
+        <details class="exportar" id="cuadrillasCaja"><summary>👥 Cuadrillas (cargar asistentes de un toque)</summary>
+          <div id="cuadrillasLista"></div>
+          <button type="button" class="btn btn-secundario" onclick="editarCuadrilla('')">+ Nueva cuadrilla</button>
+          <div id="cuaEditor" class="tarjeta" style="display:none; margin-top:10px">
+            <label>Nombre de la cuadrilla</label><input type="text" id="cuaNombre" maxlength="60" placeholder="Ej: Cuadrilla bacheo">
+            <input type="search" id="cuaBuscar" placeholder="🔍 Buscar por nombre o RUT" oninput="pintarMiembrosCuadrilla()" style="margin-top:8px">
+            <div id="cuaMiembros" class="lista-personal"></div>
+            <small id="cuaConteo"></small>
+            <p class="error" id="cuaError"></p>
+            <button type="button" class="btn btn-principal" onclick="guardarCuadrilla()">Guardar cuadrilla</button>
+            <button type="button" class="btn btn-secundario" onclick="cerrarCuadrilla()">Cancelar</button>
+          </div>
+        </details>
+        <p class="mensaje" id="charlaExpressMsj"></p>
+      </div>
       <form id="formCharla" onsubmit="revisar(event)" novalidate>
 
         <!-- DEPARTAMENTO: lo primero. Cada departamento hace su propio registro -->
@@ -2707,7 +2727,7 @@
       if (id === "casi") iniciarCasi();
       if (id === "criticos") pintarCriticos();
       if (id === "biblioteca") iniciarBiblioteca();
-      if (id === "charla") pintarUVCharla();
+      if (id === "charla") { pintarUVCharla(); pintarCharlaExpress(); }
       if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
       if (id === "matriz") iniciarMatriz();
@@ -2858,6 +2878,7 @@
           const claveCh = a.id + "|" + r.fecha;
           idsHistCharla[claveCh] = await guardarEnHistorial(idsHistCharla[claveCh] ?? null, "charla", pdf, r.fecha,
             `${a.nombre} · ${parte.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
+          guardarMoldeCharla(parte);
           nuevos.push(pdf);
         }
         pdfsListos = nuevos; pdfListo = nuevos[0];
@@ -5963,7 +5984,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_charla_ult"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -9916,15 +9937,142 @@
         if (ven.length) t.push(tarjetaDia("⏰", "Vencimientos (7 días)", ven.slice(0, 2).map(v => v.tipo + " " + v.quien).join(", "), "vencimientos", ven.length, ven.some(v => diasPara(v.vence) < 0)));
         const hal = hallazgos.filter(x => !x.cerrado);
         if (hal.length) t.push(tarjetaDia("📌", "Hallazgos abiertos", hal.some(x => x.plazo && x.plazo < hoy) ? "Hay con plazo vencido" : "", "hallazgos", hal.length, hal.some(x => x.plazo && x.plazo < hoy)));
+        pintarMiDiaRepetir();
         q("diaPendientes").innerHTML = t.length ? t.join("") : `<div class="tarjeta pend-ok">✅ Todo al día por hoy</div>`;
       } catch (e) { console.warn("Mi día", e); }
     }
     pintarMiDia();
     marcarTab("menu");
 
+    /* =====================================================================
+       CHARLA EXPRESS: repetir la última charla de un departamento y cuadrillas guardadas.
+       pt_charla_ult = { deptoId: { fecha, obra, ruta, kmDesde, kmHasta, etapas: [{ etapa, peligros, riesgos, medidas, epp }], asistentes: [{ nombre, rut, cargo }] } }
+       Es solo un "molde": NUNCA lleva firmas, bloqueador ni checklist (cada asistente firma de nuevo en el momento).
+       pt_cuadrillas = [{ id, nombre, miembros: [{ rut, nombre }] }] (configuración: se conserva en Empezar de cero y va al respaldo).
+       ===================================================================== */
+    const moldeValido = m => m && typeof m === "object" && /^\d{4}-\d{2}-\d{2}$/.test(String(m.fecha)) && Array.isArray(m.etapas) && Array.isArray(m.asistentes);
+    let charlaUlt = (() => {
+      const g = leerGuardado("pt_charla_ult", {}), o = {};
+      if (g && typeof g === "object") for (const [id, m] of Object.entries(g)) if (idSeguroTxt(id) && moldeValido(m)) o[id] = {
+        fecha: m.fecha, obra: textoCorto(m.obra, 300), ruta: textoCorto(m.ruta, 60), kmDesde: textoCorto(m.kmDesde, 20), kmHasta: textoCorto(m.kmHasta, 20),
+        etapas: m.etapas.slice(0, 40).filter(e => e && typeof e === "object").map(e => ({ etapa: textoCorto(e.etapa, 1500), peligros: textoCorto(e.peligros, 1500), riesgos: textoCorto(e.riesgos, 1500), medidas: textoCorto(e.medidas, 2500), epp: textoCorto(e.epp, 1500) })),
+        asistentes: m.asistentes.slice(0, 300).filter(a => a && typeof a === "object" && typeof a.rut === "string").map(a => ({ nombre: textoCorto(a.nombre, 80), rut: textoCorto(a.rut, 14), cargo: textoCorto(a.cargo, 80) })) };
+      return o;
+    })();
+    function guardarMoldeCharla(parte) {
+      const a = parte.arts[0];
+      charlaUlt[a.id] = { fecha: parte.fecha, obra: parte.obra, ruta: parte.ruta, kmDesde: parte.kmDesde, kmHasta: parte.kmHasta,
+        etapas: a.etapas.map(e => ({ etapa: e.etapa, peligros: e.peligros, riesgos: e.riesgos, medidas: e.medidas, epp: e.epp })),
+        asistentes: parte.trabajadores.map(t => ({ nombre: t.nombre, rut: t.rut, cargo: t.cargo })) };
+      guardar("pt_charla_ult", charlaUlt);
+    }
+    const moldesCharla = () => Object.entries(charlaUlt).filter(([id]) => buscarDepto(id)).sort((a, b) => b[1].fecha.localeCompare(a[1].fecha));
+    // Pone el cargo de un asistente recién agregado (igual que lo hace agregarTrabajador con el cargo recordado)
+    function fijarCargoTrab(div, cargo) {
+      if (!cargo) return;
+      const lista = div.querySelector(".t-cargo-lista"), texto = div.querySelector(".t-cargo"), de = todosLosCargos().find(c => normalizar(c) === normalizar(cargo));
+      if (de) { lista.value = de; texto.value = de; texto.style.display = "none"; texto.required = false; }
+      else { lista.value = "otro"; texto.value = cargo; texto.style.display = "block"; texto.required = true; }
+    }
+    // Agrega asistentes sin duplicar RUT; devuelve { nuevos, ya }
+    function agregarAsistentesExpress(lista) {
+      let nuevos = 0, ya = 0;
+      for (const p of lista) {
+        const r = claveRut(p.rut);
+        if (!r) continue;
+        if (document.querySelector(`.trabajador[data-rut="${r}"]`)) { ya++; continue; }
+        agregarTrabajador((listado?.lista || []).find(x => claveRut(x.rut) === r) || { nombre: p.nombre, rut: p.rut });
+        fijarCargoTrab([...document.querySelectorAll(".trabajador")].at(-1), p.cargo);
+        nuevos++;
+      }
+      pintarListado();
+      return { nuevos, ya };
+    }
+    const msjExpress = t => { const m = document.getElementById("charlaExpressMsj"); if (m) m.textContent = t; };
+    function repetirCharla(id) {
+      const m = charlaUlt[id], d = buscarDepto(id);
+      if (!m || !d) return;
+      mostrar("charla");
+      const q = n => document.querySelector(`#formCharla [name="${n}"]`);
+      q("fecha").value = hoyISO(); q("hora").value = new Date().toTimeString().slice(0, 5);
+      for (const c of ["obra", "ruta", "kmDesde", "kmHasta"]) if (m[c]) q(c).value = m[c];
+      if (!document.querySelector(`.art-depto[data-id="${id}"]`)) tocarDepto(id);
+      const cont = document.querySelector(`.art-depto[data-id="${id}"] .etapas`);
+      if (cont && m.etapas.length) { cont.innerHTML = ""; m.etapas.forEach(e => agregarEtapa(cont, e)); }
+      const r = agregarAsistentesExpress(m.asistentes);
+      pintarUVCharla();
+      msjExpress(`🔁 Repetida la charla de ${d.nombre} del ${fechaCLde(m.fecha)}: ${r.nuevos} asistente(s) agregados${r.ya ? ` (${r.ya} ya estaban)` : ""}. Fecha y hora de ahora; cada uno firma de nuevo.`);
+      window.scrollTo(0, 0);
+    }
+    function repetirDesdeMiDia() { const l = moldesCharla(); if (l.length === 1) repetirCharla(l[0][0]); else mostrar("charla"); }
+    function pintarMiDiaRepetir() {
+      const b = document.getElementById("diaRepetir"), l = moldesCharla();
+      if (!b) return;
+      b.style.display = l.length ? "flex" : "none";
+      if (l.length) b.innerHTML = `<span class="pend-ico">🔁</span><span><b>${l.length === 1 ? "Repetir la de ayer" : "Repetir una charla"}</b><small>${l.length === 1 ? `${html(buscarDepto(l[0][0]).nombre)} · ${fechaCLde(l[0][1].fecha)} · ${l[0][1].asistentes.length} asistentes` : "Elige el departamento en la Charla"}</small></span>`;
+    }
+    // ----- Cuadrillas -----
+    let cuadrillas = listaGuardada("pt_cuadrillas", c => idSeguroTxt(c.id)).map(c => ({ id: c.id, nombre: textoCorto(c.nombre, 60),
+      miembros: (Array.isArray(c.miembros) ? c.miembros : []).filter(m => m && typeof m.rut === "string").slice(0, 200).map(m => ({ rut: textoCorto(m.rut, 14), nombre: textoCorto(m.nombre, 80) })) }));
+    let cuaEditando = "", cuaSel = new Set();
+    function pintarCharlaExpress() {
+      const cont = document.getElementById("charlaRepetir");
+      if (!cont) return;
+      const l = moldesCharla();
+      cont.innerHTML = l.length ? l.map(([id, m]) => `<button type="button" class="btn btn-secundario" onclick="repetirCharla('${id}')">🔁 ${html(buscarDepto(id).icono || "")} ${html(buscarDepto(id).nombre)} · ${fechaCLde(m.fecha)} (${m.asistentes.length})</button>`).join("")
+        : `<p class="ayuda">Cuando generes una charla, aquí podrás repetirla con un toque.</p>`;
+      document.getElementById("cuadrillasLista").innerHTML = cuadrillas.length ? cuadrillas.map(c => `<div class="registro"><div class="tit">👥 ${html(c.nombre)}</div><div class="det">${c.miembros.length} trabajador(es)</div>
+        <div class="botones"><button type="button" class="btn btn-principal" onclick="cargarCuadrilla('${c.id}')">Cargar cuadrilla</button>
+          <button type="button" class="btn btn-secundario" onclick="editarCuadrilla('${c.id}')">Editar</button>
+          <button type="button" class="btn btn-quitar" onclick="borrarCuadrilla('${c.id}')">Borrar</button></div></div>`).join("") : `<p class="ayuda">Todavía no hay cuadrillas. Crea una con sus trabajadores del listado.</p>`;
+    }
+    function cargarCuadrilla(id) {
+      const c = cuadrillas.find(x => x.id === id);
+      if (!c) return;
+      const r = agregarAsistentesExpress(c.miembros);
+      msjExpress(`👥 Cuadrilla "${c.nombre}": ${r.nuevos} asistente(s) agregados${r.ya ? ` (${r.ya} ya estaban)` : ""}.`);
+    }
+    function editarCuadrilla(id) {
+      const c = cuadrillas.find(x => x.id === id);
+      cuaEditando = c ? c.id : ""; cuaSel = new Set(c ? c.miembros.map(m => claveRut(m.rut)) : []);
+      document.getElementById("cuaNombre").value = c ? c.nombre : ""; document.getElementById("cuaBuscar").value = ""; document.getElementById("cuaError").textContent = "";
+      document.getElementById("cuaEditor").style.display = "block";
+      pintarMiembrosCuadrilla();
+      document.getElementById("cuaNombre").focus();
+    }
+    function pintarMiembrosCuadrilla() {
+      const b = normalizar(document.getElementById("cuaBuscar").value), lista = (listado?.lista || []).slice().sort((x, y) => x.nombre.localeCompare(y.nombre, "es")).filter(p => !b || normalizar(p.nombre).includes(b) || (claveRut(b).length > 2 && claveRut(p.rut).includes(claveRut(b))));
+      document.getElementById("cuaMiembros").innerHTML = lista.length ? lista.map(p => `<label class="check-linea persona"><input type="checkbox" data-r="${claveRut(p.rut)}" ${cuaSel.has(claveRut(p.rut)) ? "checked" : ""} onchange="alternarMiembroCuadrilla(this)"> <span>${html(p.nombre)}</span><small>${html(p.rut)}</small></label>`).join("")
+        : `<p class="ayuda" style="padding:12px">${listado?.lista?.length ? "Nadie coincide." : "Carga primero el listado de personal."}</p>`;
+      document.getElementById("cuaConteo").textContent = `${cuaSel.size} seleccionado(s)`;
+    }
+    function alternarMiembroCuadrilla(i) { if (i.checked) cuaSel.add(i.dataset.r); else cuaSel.delete(i.dataset.r); document.getElementById("cuaConteo").textContent = `${cuaSel.size} seleccionado(s)`; }
+    function guardarCuadrilla() {
+      const err = document.getElementById("cuaError"), nombre = document.getElementById("cuaNombre").value.trim();
+      if (!nombre) { err.textContent = "Ponle un nombre a la cuadrilla."; return; }
+      if (!cuaSel.size) { err.textContent = "Marca al menos un trabajador."; return; }
+      const miembros = (listado?.lista || []).filter(p => cuaSel.has(claveRut(p.rut))).map(p => ({ rut: p.rut, nombre: p.nombre }));
+      const previa = cuadrillas.find(x => x.id === cuaEditando);
+      // Los marcados que ya no están en el listado se conservan con los datos de la cuadrilla
+      if (previa) for (const m of previa.miembros) if (cuaSel.has(claveRut(m.rut)) && !miembros.some(x => claveRut(x.rut) === claveRut(m.rut))) miembros.push(m);
+      if (previa) { previa.nombre = textoCorto(nombre, 60); previa.miembros = miembros; }
+      else cuadrillas.push({ id: "q" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), nombre: textoCorto(nombre, 60), miembros });
+      guardar("pt_cuadrillas", cuadrillas);
+      bitacora("Cuadrilla guardada", { doc: nombre, det: `${miembros.length} trabajador(es)` });
+      document.getElementById("cuaEditor").style.display = "none"; cuaEditando = ""; pintarCharlaExpress();
+    }
+    function cerrarCuadrilla() { document.getElementById("cuaEditor").style.display = "none"; cuaEditando = ""; }
+    function borrarCuadrilla(id) {
+      const c = cuadrillas.find(x => x.id === id);
+      if (!c || !confirm(`¿Borrar la cuadrilla "${c.nombre}"?`)) return;
+      cuadrillas = cuadrillas.filter(x => x.id !== id); guardar("pt_cuadrillas", cuadrillas);
+      bitacora("Cuadrilla borrada", { doc: c.nombre });
+      pintarCharlaExpress();
+    }
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
