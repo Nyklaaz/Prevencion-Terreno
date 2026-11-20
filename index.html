@@ -517,6 +517,9 @@
     .dia-obra { font-size: 15px; font-weight: 700; margin: 2px 0 12px; padding-right: 76px; }
     .dia-saludo { font-size: 24px; font-weight: 800; line-height: 1.15; padding-right: 76px; }
     .dia-uv { display: inline-block; min-height: 48px; margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 14px; background: rgba(255,255,255,.14); color: #fff; font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+    .dia-nube { display: inline-block; min-height: 40px; margin: 12px 0 0 8px; padding: 6px 12px; border: 0; border-radius: 14px; background: rgba(59,130,246,.45); color: #fff; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .dia-nube.rojo { background: #e11d48; }
+    .dia-nube.ok { background: rgba(255,255,255,.14); font-weight: 600; }
     .sos { position: absolute; right: 14px; top: 14px; width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--grad-rojo); color: #fff; font: inherit; font-weight: 900; font-size: 17px; letter-spacing: .04em; box-shadow: 0 0 0 4px rgba(225,29,72,.3), 0 8px 18px rgba(0,0,0,.4); cursor: pointer; transition: transform .15s ease; }
     .sos:active { transform: scale(.94); }
     .sos small { display: none; }
@@ -634,7 +637,7 @@
         <div class="dia-fecha" id="diaFecha"></div>
         <div class="dia-obra" id="diaObra"></div>
         <div class="dia-saludo" id="diaSaludo"></div>
-        <button type="button" class="dia-uv" id="diaUV" onclick="irAjusteId('obraLat')"></button>
+        <button type="button" class="dia-uv" id="diaUV" onclick="irAjusteId('obraLat')"></button><button type="button" class="dia-nube ok" id="diaNube" style="display:none" onclick="tocarNube()"></button>
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoPlazoAcc" style="display:none" onclick="mostrar('accidentes')"></button>
@@ -1477,6 +1480,7 @@
         <input type="text" id="ceroConfirma" autocomplete="off" autocapitalize="characters">
         <button type="button" class="btn btn-quitar" onclick="empezarDeCero()">🧹 Borrar los registros y empezar de cero</button>
         <p class="mensaje" id="msjCero"></p>
+        <div id="ceroBloqueo"></div>
       </div>
     </section>
 
@@ -2783,7 +2787,7 @@
       if (id === "historial") { pintarHistorial(); pintarBitacora(); }
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
-      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); }
+      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); mostrarBloqueoCero(); }
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
@@ -5475,7 +5479,62 @@
       publicarIndiceBib();   // el índice de la biblioteca sigue a lo que ya subió
       if (document.getElementById("historial").classList.contains("activa")) pintarHistorial();
     }
+    // Lo que todavía solo existe en este equipo: PDF del Historial sin id de Drive + archivos en la cola de subida.
+    // paraBorrar = lo que importa antes de Empezar de cero: no cuenta lo ya bajado en un zip ni los zips de respaldo que están en cola (ya los tiene la persona).
+    async function pendientesDrive(paraBorrar = false) {
+      const hechos = leerGuardado("pt_respaldoMes", {});
+      const sin = (await todosLosRegistros()).filter(r => !r.drive && !(paraBorrar && yaRespaldado(r, hechos)));
+      let cola = await colaDrive();
+      if (paraBorrar) cola = cola.filter(k => !String(k).startsWith("cola:respaldo-mes:"));
+      let viejo = Math.min(Infinity, ...sin.map(r => r.creado || Date.now()));
+      for (const k of cola.slice(0, 50)) { try { const it = await bdAvisos("readonly", st => st.get(k)); if (it && it.t) viejo = Math.min(viejo, Math.floor(it.t)); } catch {} }
+      return { sin, cola, total: sin.length + cola.length, viejo: viejo === Infinity ? 0 : viejo };
+    }
+    async function pintarNube() {
+      const b = document.getElementById("diaNube"); if (!b) return;
+      const conf = driveConfigurado(), p = await pendientesDrive();
+      if (!p.total && !conf) { b.style.display = "none"; return; }
+      b.style.display = "inline-block";
+      const viejo = p.total > 0 && p.viejo && Date.now() - p.viejo > 24 * 3600 * 1000;
+      b.className = "dia-nube " + (!p.total ? "ok" : viejo ? "rojo" : "");
+      b.textContent = p.total ? `☁️ ${p.total} sin subir` : "☁️ Todo en Drive";
+      b.title = p.total ? "Toca para subirlos ahora" : "Todo lo generado ya está en tu Drive";
+    }
+    async function tocarNube() {
+      const p = await pendientesDrive();
+      if (!driveConfigurado()) { alert(`${p.total} documento(s) están solo en este equipo. Para guardarlos en tu Drive, configura Google Drive (Empresa y formatos → Google Drive). Mientras tanto, saca el respaldo mensual.`); mostrar("empresa"); return; }
+      if (!p.total) { alert("Todo lo generado ya está en tu Google Drive."); return; }
+      if (!navigator.onLine) { alert(`${p.total} documento(s) esperando subir. Sin señal: se suben solos cuando vuelva internet. Siguen guardados en este equipo.`); return; }
+      if (!driveToken()) { alert(`${p.total} documento(s) esperando subir. El permiso de Google venció: te llevo a Google para reconectar (1 toque) y se suben solos.`); conectarDrive(); return; }
+      const b = document.getElementById("diaNube"); if (b) b.textContent = "☁️ Subiendo…";
+      await subirPendientesDrive(true);
+      const q = await pendientesDrive();
+      await pintarNube();
+      alert(q.total ? `Quedan ${q.total} sin subir (${leerGuardado("pt_drive_fallos", 0) ? "" : "probablemente mala señal o un error de Drive; "}se reintenta solo). Siguen guardados en este equipo.` : "✅ Todo quedó en tu Google Drive.");
+    }
+    // Empezar de cero protegido: no deja continuar con documentos que solo existen en este equipo
+    async function mostrarBloqueoCero() {
+      const caja = document.getElementById("ceroBloqueo"); if (!caja) return false;
+      const p = await pendientesDrive(true);
+      if (!p.total) { caja.innerHTML = ""; return false; }
+      caja.innerHTML = `<div class="inf-panel"><b>⛔ No puedes empezar de cero todavía.</b><br>Hay ${p.total} documento(s) (${p.sin.length} del Historial${p.cola.length ? ", " + p.cola.length + " en la cola de subida" : ""}) que solo existen en este equipo: no están en tu Drive ni en un respaldo. Si borras, se pierden.
+        <div class="dos-col" style="margin-top:8px"><button type="button" class="btn btn-principal" onclick="subirAntesDeBorrar()">☁️ Subir ahora</button><button type="button" class="btn btn-secundario" onclick="respaldoAntesDeBorrar()">💾 Sacar respaldo</button></div></div>`;
+      return true;
+    }
+    async function subirAntesDeBorrar() {
+      if (!driveConfigurado() || !driveToken()) { document.getElementById("msjCero").textContent = "Para subir necesitas Google Drive conectado: se abrirá Google para reconectar."; if (driveConfigurado()) conectarDrive(); else mostrar("empresa"); return; }
+      document.getElementById("msjCero").textContent = "Subiendo a tu Drive…";
+      await subirPendientesDrive(true);
+      document.getElementById("msjCero").textContent = (await mostrarBloqueoCero()) ? "Aún quedan documentos sin subir." : "✅ Todo está a salvo. Ya puedes escribir BORRAR y continuar.";
+    }
+    async function respaldoAntesDeBorrar() {
+      const hechos = leerGuardado("pt_respaldoMes", {});
+      const meses = [...new Set((await todosLosRegistros()).filter(r => !r.drive && !yaRespaldado(r, hechos)).map(mesDeRegistro))].sort();
+      for (const k of meses) if (!(await descargarRespaldoMes(k))) break;
+      document.getElementById("msjCero").textContent = (await mostrarBloqueoCero()) ? "Aún quedan documentos sin respaldar." : "✅ Respaldo hecho. Ya puedes escribir BORRAR y continuar.";
+    }
     async function pintarDrive(subidos = 0, error = "") {
+      pintarNube();
       const conf = driveConfigurado(), con = !!driveToken();
       if (con) { if (leerGuardado("pt_drive_activo", "") !== "1") guardar("pt_drive_activo", "1"); pedirCuentaDrive(); }
       const pend = conf ? (await todosLosRegistros()).filter(r => !r.drive).length + (await colaDrive()).length : 0;
@@ -10453,6 +10512,7 @@
     async function empezarDeCero() {
       const msj = document.getElementById("msjCero");
       if (document.getElementById("ceroConfirma").value.trim().toUpperCase() !== "BORRAR") { msj.textContent = 'Escribe BORRAR para confirmar.'; return; }
+      if (await mostrarBloqueoCero()) { msj.textContent = "Primero pon a salvo los documentos de arriba."; return; }
       if (!confirm("¿Borrar TODOS los registros de este equipo? Esto no se puede deshacer (la configuración se mantiene).")) return;
       msj.textContent = "Borrando…";
       const conservar = new Set([...CONSERVAR_SIEMPRE, ...(document.getElementById("ceroListado").checked ? CONSERVAR_LISTADO : [])]);
