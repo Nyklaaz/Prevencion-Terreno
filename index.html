@@ -6253,6 +6253,7 @@
           n++;
         }
         if (d.matriz && Array.isArray(d.matriz.filas)) { const mz = matrizValida(d.matriz); if (mz) try { await bdPaquete("readwrite", s => s.put(mz, "matriz")); } catch {} }
+        try { await blobRestaurado(); } catch {}   // un respaldo viejo no le gana a lo que ya está en Drive
         // Bitácora: si este equipo no tiene, se toma la del respaldo (solo eventos con la forma correcta)
         const bitRes = (Array.isArray(d.bitacora) ? d.bitacora : []).filter(e => e && typeof e.t === "string" && typeof e.ev === "string" && typeof e.h === "string" && Object.values(e).every(v => typeof v === "string"));
         if (bitRes.length && !(await leerBitacora()).length) { try { await bdAvisos("readwrite", s => s.put(bitRes.slice(-BITACORA_MAX), "bitacora")); } catch {} }
@@ -7605,6 +7606,7 @@
       try { localStorage.removeItem("pt_cfg_origen_sync"); localStorage.setItem("pt_paquete", JSON.stringify(liviano)); }
       catch (e) { document.getElementById("msjPaquete").textContent = "No hay espacio en este navegador para el paquete (¿logo muy pesado?). Libera espacio o achica el logo."; return; }
       if (irl) await bdPaquete("readwrite", s => s.put(irl, "irl")); else await bdPaquete("readwrite", s => s.delete("irl"));
+      try { await blobDetectar("irl"); } catch {}
       if (abrirEmpresa) sessionStorage.setItem("pt_abrirEmpresa", "1");
       location.reload();
     }
@@ -7710,6 +7712,7 @@
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; const texto = boton.textContent; boton.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = texto; }, 4000); return; }
       localStorage.removeItem("pt_paquete"); localStorage.removeItem("pt_cfg_origen_sync");
       try { await bdPaquete("readwrite", s => s.delete("irl")); } catch {}
+      try { await blobDetectar("irl"); } catch {}
       sessionStorage.setItem("pt_abrirEmpresa", "1");
       location.reload();
     }
@@ -10852,6 +10855,7 @@
       let nuevos = 0, quitados = 0, aplazado = false;
       try {
         for (const n of Object.keys(LS)) { const r = await lsSincronizar(n); nuevos += r.adoptados; quitados += r.quitados; aplazado = aplazado || r.aplazado; }
+        const bl = await blobsSincronizar(); nuevos += bl.recibidos; aplazado = aplazado || bl.aplazado;   // matriz e IRL propias
         lsUltima = lsUltimaMem = Date.now(); guardar("pt_ls_sync", lsUltima);
         if (aplazado) { lsExtra = "hay cambios de otro equipo; se aplican cuando no estés llenando algo"; setTimeout(() => lsSincronizarTodo(true), 60000); }
         else if (nuevos || quitados) lsExtra = `${nuevos} registro(s) recibidos de otro equipo${quitados ? `, ${quitados} quitado(s)` : ""}`;
@@ -11061,9 +11065,94 @@
     // Hallazgos con foto: en qué equipo quedó (las fotos no viajan)
     const textoFotoAjena = (letra, extra) => `<p class="ayuda" style="margin:6px 0">📷 ${extra}Foto en el equipo ${EQUIPOS[letra] ? EQUIPOS[letra].replace(/^\S+\s/, "") + " (" + letra + ")" : "que creó el hallazgo"}: las fotos no se comparten entre equipos todavía.</p>`;
 
+    /* =====================================================================
+       T4 · MATRIZ DE RIESGOS E IRL PROPIAS por Drive ("matriz.json" e "irl.json"). Son bloques grandes guardados en IndexedDB ("prevencion-paquete"), no en localStorage:
+       mismas reglas que la configuración compartida (por bloque: ver + mod; vacío adopta; primer contacto manda Drive; vaciado a propósito no se repone), pero la lectura
+       del equipo es asíncrona. Solo cambian cuando alguien carga el Excel de la matriz o guarda el editor de formatos (IRL), así que se leen de Drive solo si cambió el archivo.
+       Lo reemplazado queda en IndexedDB como "<bloque>_previo" (red de seguridad). Tope 4 MB por archivo. Las IRL del paquete INCLUIDO en la app no se suben (viajan con la app).
+       ===================================================================== */
+    const BLOB_MAX = 4 * 1024 * 1024;
+    const BLOBS = {
+      matriz: {
+        archivo: "matriz.json", clave: "matriz",
+        valida: v => matrizValida(v),
+        async poner(v) { await bdPaquete("readwrite", s => s.put(v, "matriz")); MATRIZ = v; try { pintarEstadoMatriz(); } catch {} }
+      },
+      irl: {
+        archivo: "irl.json", clave: "irl",
+        valida: v => (v && typeof v === "object" && normalizarIRL(v)) ? v : null,
+        async poner(v) { await bdPaquete("readwrite", s => s.put(v, "irl")); if (PAQUETE_PROPIO) { const n = normalizarIRL(v); if (n) window.IRL_DATOS = n; } }
+      }
+    };
+    let blobMetaObj = null;
+    const blobMeta = () => blobMetaObj || (blobMetaObj = leerGuardado("pt_blob_meta", {}));
+    const blobLeerLocal = async n => { try { const raw = await bdPaquete("readonly", s => s.get(BLOBS[n].clave)); return raw ? BLOBS[n].valida(raw) : null; } catch { return null; } };
+    const blobHuella = v => hashCfg(v ? JSON.stringify(v) : "null");
+    // Anota si el bloque cambió en este equipo (versión + hora)
+    async function blobDetectar(n) {
+      const meta = blobMeta(), m = meta[n] || (meta[n] = { h: "", v: 0, ver: 0, mod: 0, hl: "", visto: "" });
+      const val = await blobLeerLocal(n), h = blobHuella(val), vacio = !val;
+      if (h === m.hl && m.ev === vacio) return { m, val, h, vacio };
+      if (vacio && m.ev === false) m.vacio = true;
+      if (!vacio) m.vacio = false;
+      m.ev = vacio; m.hl = h;
+      if (!vacio && h !== m.h) { m.ver = Math.max(m.ver, m.v) + 1; m.mod = Date.now(); }
+      guardar("pt_blob_meta", meta);
+      return { m, val, h, vacio };
+    }
+    async function blobMarcar(n) { try { await blobDetectar(n); lsProgramar(); } catch {} }
+    // Tras restaurar un respaldo: lo restaurado cuenta como "ya visto" (no le gana a Drive)
+    async function blobRestaurado() {
+      const meta = blobMeta();
+      for (const n of Object.keys(BLOBS)) { const m = meta[n] || (meta[n] = { h: "", v: 0, ver: 0, mod: 0, hl: "", visto: "" }), val = await blobLeerLocal(n); m.h = m.hl = blobHuella(val); m.ev = !val; m.vacio = false; m.visto = ""; }
+      guardar("pt_blob_meta", meta);
+    }
+    async function blobLeerRemoto(n, forzar, m) {
+      const b = BLOBS[n], carpeta = await driveCarpeta([DRIVE_RAIZ]);
+      const q = `name='${b.archivo}' and '${carpeta}' in parents and trashed=false`;
+      const lista = await (await driveFetch(`${DRIVE_API}/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=modifiedTime%20desc&fields=files(id,modifiedTime)&spaces=drive`)).json();
+      const f = lista.files && lista.files[0];
+      if (!f) return { id: "", mt: "", R: null };
+      if (!forzar && m.visto && m.visto === f.modifiedTime) return { id: f.id, mt: f.modifiedTime, igual: true, R: null };
+      const txt = await (await driveFetch(`${DRIVE_API}/drive/v3/files/${encodeURIComponent(f.id)}?alt=media`)).text();
+      let j = null; try { j = txt.length <= BLOB_MAX + 4096 ? JSON.parse(txt) : null; } catch {}
+      const datos = j && j.v === 1 && j.datos ? b.valida(j.datos) : null;
+      return { id: f.id, mt: f.modifiedTime, R: datos ? { ver: Math.max(0, Math.floor(+j.ver || 0)), mod: lsClamp(j.mod), datos } : null, danado: !j };
+    }
+    async function blobSincronizar(n) {
+      const b = BLOBS[n], res = { adoptado: false, subido: false, aplazado: false };
+      const { m, val, h, vacio } = await blobDetectar(n);
+      const sucia = !vacio && h !== m.h;
+      const rem = await blobLeerRemoto(n, sucia || !m.visto || (vacio && !m.vacio), m);
+      if (rem.igual) return res;
+      const R = rem.R, hR = R ? blobHuella(R.datos) : null;
+      const d = decidirBloqueCfg(m, h, vacio, R, hR);
+      if (d.acc === "acordar") { m.h = h; m.hl = h; m.v = R.ver; m.ver = Math.max(m.ver, R.ver); }
+      else if (d.acc === "empujar") {
+        const ver = Math.max(m.ver, (R ? R.ver : 0) + 1), bytes = new TextEncoder().encode(JSON.stringify({ v: 1, ver, mod: m.mod || Date.now(), datos: val }));
+        if (bytes.length > BLOB_MAX) throw new Error(`${n === "irl" ? "las IRL" : "la matriz"} pesan más de 4 MB y no se comparten`);
+        await subirArchivoDrive(b.archivo, bytes, "application/json", [DRIVE_RAIZ], rem.id);
+        m.h = h; m.hl = h; m.v = ver; m.ver = ver; m.visto = ""; res.subido = true;
+      } else if (d.acc === "adoptar") {
+        if (hayDatosSinGuardar()) { res.aplazado = true; guardar("pt_blob_meta", blobMeta()); return res; }
+        if (val) { try { await bdPaquete("readwrite", s => s.put(val, b.clave + "_previo")); } catch {} }
+        lsAplicando = true;
+        try { await b.poner(R.datos); } finally { lsAplicando = false; }
+        Object.assign(m, { h: hR, hl: hR, v: R.ver, ver: R.ver, mod: R.mod, ev: false, vacio: false, visto: "" }); res.adoptado = true;
+      }
+      if (!res.subido && !res.adoptado && rem.mt && !rem.danado) m.visto = rem.mt;
+      guardar("pt_blob_meta", blobMeta());
+      return res;
+    }
+    async function blobsSincronizar() {
+      let recibidos = 0, aplazado = false;
+      for (const n of Object.keys(BLOBS)) { const r = await blobSincronizar(n); if (r.adoptado) recibidos++; if (r.aplazado) aplazado = true; }
+      return { recibidos, aplazado };
+    }
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind", "pt_blob_meta"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
@@ -11285,7 +11374,7 @@
         if (!mejor) { msj.textContent = 'No encontré una hoja con las columnas "Puestos de trabajo" y "Tareas".'; return; }
         const mz = matrizValida({ archivo: a.name, hoja: mejor.hoja.trim(), cargada: new Date().toISOString(), filas: mejor.filas });
         await bdPaquete("readwrite", s => s.put(mz, "matriz"));
-        MATRIZ = mz;
+        MATRIZ = mz; blobMarcar("matriz");
         bitacora("Matriz de riesgos cargada", { det: `${a.name} · hoja ${mz.hoja} · ${mz.filas.length} filas` });
         msj.textContent = `✅ Matriz cargada desde la hoja "${mz.hoja}".`;
         pintarEstadoMatriz();
