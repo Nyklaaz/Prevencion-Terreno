@@ -2733,8 +2733,20 @@
     avisoRed();
 
     if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+      const habiaSW = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {   // llegó una versión nueva de la app mientras estaba abierta
+        if (!habiaSW) return;
+        let t0 = 0; try { t0 = +sessionStorage.getItem("pt_sw_recarga") || 0; } catch {}
+        if (Date.now() - t0 < 10 * 60 * 1000) return;   // máx. 1 vez cada 10 min (sin bucles)
+        const intentar = n => {
+          let libre = false; try { libre = document.querySelector(".pantalla.activa")?.id === "menu" && !hayDatosSinGuardar() && !subiendoDrive; } catch {}
+          if (libre) { try { sessionStorage.setItem("pt_sw_recarga", String(Date.now())); } catch {} location.reload(); }
+          else if (n < 40) setTimeout(() => intentar(n + 1), 15000);
+        };
+        intentar(0);
+      });
       navigator.serviceWorker.register("sw.js")
-        .then(() => navigator.serviceWorker.ready)
+        .then(reg => { document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update().catch(() => {}); }); return navigator.serviceWorker.ready; })
         .then(() => {
           document.getElementById("estadoOffline").textContent = "✅ Lista para usar sin internet en este teléfono";
           // Pedimos que el navegador no borre el historial por falta de espacio
@@ -9655,7 +9667,7 @@
       finally { publicandoBib = false; if (republicarBib) { republicarBib = false; setTimeout(() => publicarIndiceBib(), 0); } }
     }
     // Sincronización AUTOMÁTICA: al abrir la app y al entrar a la Biblioteca (en segundo plano), al volver la señal y al volver a la app. El botón ↻ es solo el respaldo.
-    let ultimaSyncBib = +leerGuardado("pt_bib_sync", 0) || 0, sincronizandoBib = false, extraSyncBib = "";
+    let ultimaSyncBib = +leerGuardado("pt_bib_sync", 0) || 0, ultimaMemBib = 0, sincronizandoBib = false, extraSyncBib = "";   // ultimaMemBib: la espera de 2 min vale solo dentro de esta apertura
     const msjSyncBib = t => { const m = document.getElementById("bibSyncTxt"); if (m) m.textContent = t; };
     function hace(ms) { const m = Math.floor(ms / 60000); return m < 1 ? "hace un momento" : m < 60 ? "hace " + m + " min" : m < 1440 ? "hace " + Math.floor(m / 60) + " h" : "hace " + Math.floor(m / 1440) + " d"; }
     function textoSyncBib() {
@@ -9671,7 +9683,7 @@
         else { extraSyncBib = driveConfigurado() && navigator.onLine ? "sin conexión con Drive" : ""; textoSyncBib(); }
         return;
       }
-      if (respetarEspera && Date.now() - ultimaSyncBib < 120000) return;
+      if (respetarEspera && Date.now() - ultimaMemBib < 120000) return;
       sincronizandoBib = true; extraSyncBib = ""; textoSyncBib();
       try {
         const remoto = await leerIndiceRemotoBib();
@@ -9689,7 +9701,7 @@
         }
         for (const [id, t] of Object.entries(remoto.bajas)) { const l = biblioteca.find(x => x.id === id); if (l && t >= modBib(l)) quitadosAfuera++; }
         if (nuevos || actualizados) { guardarBib(); pintarBiblioteca(); }
-        ultimaSyncBib = Date.now(); guardar("pt_bib_sync", ultimaSyncBib);
+        ultimaSyncBib = ultimaMemBib = Date.now(); guardar("pt_bib_sync", ultimaSyncBib);
         extraSyncBib = nuevos || actualizados ? `${nuevos} nuevo(s), ${actualizados} actualizado(s)` : "";
         if (quitadosAfuera && !silencioso) extraSyncBib += (extraSyncBib ? "; " : "") + `${quitadosAfuera} lo quitaron en otro equipo (siguen aquí: usa “Quitar” si ya no los quieres)`;
         publicarIndiceBib();   // deja Drive con la fusión (si este equipo tenía algo que el índice no)
@@ -10588,7 +10600,9 @@
       }
       return { id: f.id, mt: f.modifiedTime, bloques, crudo, danado: !j };
     }
-    let sincronizandoCfg = false, ultimaSyncCfg = +leerGuardado("pt_cfg_sync", 0) || 0, extraCfg = "", temporizadorCfg = null;
+    let sincronizandoCfg = false, ultimaSyncCfg = +leerGuardado("pt_cfg_sync", 0) || 0, ultimaMemCfg = 0, reintentosCfg = 0, extraCfg = "", temporizadorCfg = null;   // ultimaMemCfg: la espera de 2 min vale solo dentro de esta apertura
+    // Equipo "nuevo": sin paquete y que nunca se ha puesto de acuerdo con Drive. Ahí no se espera nada: la configuración debe llegar en segundos.
+    function equipoNuevoCfg() { const m = leerGuardado("pt_cfg_meta", {}).paquete; return bloqueVacioCfg(leerBloqueCfg(["pt_paquete"])) && (!m || !m.h); }
     function hayCfgPendiente() {
       const meta = leerGuardado("pt_cfg_meta", {});
       return Object.values(CFG_ARCHIVOS).some(bl => Object.entries(bl).some(([b, claves]) => meta[b] && meta[b].hl !== meta[b].h && !bloqueVacioCfg(leerBloqueCfg(claves))));
@@ -10606,7 +10620,7 @@
         return;
       }
       detectarCambiosCfg();
-      if (respetarEspera && Date.now() - ultimaSyncCfg < 120000 && !hayCfgPendiente()) return;
+      if (respetarEspera && Date.now() - ultimaMemCfg < 120000 && !hayCfgPendiente() && !equipoNuevoCfg()) return;
       sincronizandoCfg = true; extraCfg = ""; textoSyncCfg();
       const adoptados = []; let conflicto = false, aplazados = 0;
       try {
@@ -10643,7 +10657,7 @@
           } else if (rem.mt && !rem.danado && aplazados === aplazadosAntes) meta._visto[arch] = rem.mt;
         }
         guardar("pt_cfg_meta", meta);
-        ultimaSyncCfg = Date.now(); guardar("pt_cfg_sync", ultimaSyncCfg);
+        ultimaSyncCfg = ultimaMemCfg = Date.now(); guardar("pt_cfg_sync", ultimaSyncCfg);
         if (aplazados) extraCfg = "hay cambios de otro equipo; se aplican cuando no estés llenando algo";
         if (adoptados.length) {
           sessionStorage.setItem("pt_cfg_recargas", String((+sessionStorage.getItem("pt_cfg_recargas") || 0) + 1));
@@ -10653,7 +10667,10 @@
           return;
         }
       } catch (e) { extraCfg = e.sinPermiso ? "Google Drive necesita reconectarse" : silencioso ? "sin conexión con Drive" : "no se pudo sincronizar (" + e.message + ")"; }
-      finally { sincronizandoCfg = false; textoSyncCfg(); }
+      finally {
+        sincronizandoCfg = false; textoSyncCfg();
+        if (equipoNuevoCfg() && reintentosCfg < 6) { reintentosCfg++; setTimeout(() => { if (!document.hidden) sincronizarCfg(true, false); else reintentosCfg--; }, 15000); }
+      }
     }
     // Al restaurar un respaldo: la configuración restaurada se toma como "ya vista" (no es un cambio local reciente). Si Drive tiene otra, gana Drive y lo restaurado queda en pt_cfg_previo.
     function marcarCfgRestaurada() {
