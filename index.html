@@ -722,6 +722,7 @@
           <button type="button" data-f="accidente" onclick="filtrarHist(this)">Accidentes</button>
           <button type="button" data-f="emergencia" onclick="filtrarHist(this)">Emergencia</button>
           <button type="button" data-f="casi" onclick="filtrarHist(this)">Casi accidentes</button>
+          <button type="button" data-f="biblioteca" onclick="filtrarHist(this)">Biblioteca</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
@@ -1657,6 +1658,7 @@
         <div class="inf-panel" id="bibUso"></div>
         <input type="search" id="bibBuscar" placeholder="🔍 Buscar por título, código o archivo" oninput="pintarBiblioteca()">
         <select id="bibTipo" onchange="pintarBiblioteca()"><option value="">Todos los tipos</option></select>
+        <button type="button" class="btn btn-secundario" style="margin-top:8px" onclick="indiceBibliotecaPDF()">🖨️ Índice en PDF</button>
         <div id="bibLista"></div>
       </div>
     </section>
@@ -3721,7 +3723,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG", casi: "CAS" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG", casi: "CAS", biblioteca: "BIB" };
     function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3816,7 +3818,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : r.tipo === "casi" ? "👁️" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : r.tipo === "casi" ? "👁️" : r.tipo === "biblioteca" ? "📚" : "📋"} ${html(r.asunto)}</div>
           ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
           ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
@@ -4758,7 +4760,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia", casi: "Casi accidentes" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia", casi: "Casi accidentes", biblioteca: "Índice de biblioteca" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -7673,7 +7675,7 @@
       return { acts, cols: Object.keys(nombres).filter(k => c[k] >= 0).map(k => nombres[k]), sinUsar: Object.keys(nombres).filter(k => c[k] < 0).map(k => nombres[k]) };
     }
     const detalleProg = a => (a.pts || a.codigo || a.medidas || a.riesgos || a.destinatarios) ? `<details class="exportar cal-detalle-ext"><summary>Detalle</summary>
-      ${a.pts ? `<div class="det"><b>PTS:</b> ${html(a.pts)}</div>` : ""}${a.codigo ? `<div class="det"><b>Código de ítem:</b> ${html(a.codigo)}</div>` : ""}
+      ${a.pts ? `<div class="det"><b>PTS:</b> ${html(a.pts)} ${verPTSBtn(a.pts)}</div>` : ""}${a.codigo ? `<div class="det"><b>Código de ítem:</b> ${html(a.codigo)}</div>` : ""}
       ${a.riesgos ? `<div class="det"><b>Riesgo:</b> ${html(a.riesgos)}${a.criticidad ? " · criticidad " + html(a.criticidad) : ""}</div>` : ""}
       ${a.medidas ? `<div class="det"><b>Medidas:</b> ${html(a.medidas)}</div>` : ""}
       ${a.destinatarios ? `<div class="det"><b>Personal a capacitar:</b> ${html(a.destinatarios)}</div>` : ""}
@@ -8994,8 +8996,8 @@
       if (cambio) guardarBib();
     }
     let bibCarga = [], bibReemplazaId = "";
-    function iniciarBiblioteca() {
-      sincronizarDriveIdsBib();
+    async function iniciarBiblioteca() {
+      sincronizarDriveIdsBib(); await sincronizarOfflineBib();
       const sel = document.getElementById("bibTipo");
       if (sel && sel.options.length < 2) sel.innerHTML = `<option value="">Todos los tipos</option>` + TIPOS_BIB.map(t => `<option>${html(t)}</option>`).join("");
       bibCarga = []; bibReemplazaId = "";
@@ -9003,7 +9005,7 @@
       pintarCargaBib(); pintarBiblioteca();
     }
     // Archivos elegidos: se revisan (código, tipo, título…) antes de cargarlos
-    function elegirArchivosBib(input, reemplazo = false) {
+    async function elegirArchivosBib(input, reemplazo = false) {
       const archivos = [...input.files]; input.value = "";
       const msj = document.getElementById("bibMsj");
       if (!archivos.length) return;
@@ -9011,11 +9013,13 @@
       const base = bibReemplazaId ? biblioteca.find(d => d.id === bibReemplazaId) : null;
       const aceptados = archivos.filter(f => MIME_BIB[extDe(f.name)] && f.size > 0 && f.size <= 100 * 1048576);
       if (aceptados.length < archivos.length) msj.textContent = `${archivos.length - aceptados.length} archivo(s) no sirven (solo PDF, Word o Excel, de hasta 100 MB).`; else msj.textContent = "";
+      await cargarMatriz();
       bibCarga = aceptados.slice(0, base ? 1 : 100).map(f => {
         const codigo = base ? base.codigo : codigoPST(f.name);
         return { file: f, codigo, tipo: base ? base.tipo : tipoSugeridoBib(f.name, codigo), titulo: base ? base.titulo : f.name.replace(/\.[a-z0-9]{2,5}$/i, "").replace(/[_]+/g, " ").trim(),
                  version: "", fecha: hoyISO() };
       });
+      bibCarga.forEach(c => c.off = base ? base.offline : offlinePorDefectoBib(c));
       pintarCargaBib();
     }
     function pintarCargaBib() {
@@ -9028,17 +9032,18 @@
             <div><label>Tipo</label><select id="bibC${i}_tipo">${TIPOS_BIB.map(t => `<option ${t === c.tipo ? "selected" : ""}>${html(t)}</option>`).join("")}</select></div></div>
           <label>Título</label><input type="text" id="bibC${i}_tit" maxlength="160" value="${html(c.titulo)}">
           <div class="dos-col"><div><label>Versión</label><input type="text" id="bibC${i}_ver" maxlength="30" value="${html(c.version)}" placeholder="Ej: Rev. 2"></div>
-            <div><label>Fecha del documento</label><input type="date" id="bibC${i}_fec" value="${html(c.fecha)}"></div></div></div>`;
+            <div><label>Fecha del documento</label><input type="date" id="bibC${i}_fec" value="${html(c.fecha)}"></div></div>
+          <label class="check-linea"><input type="checkbox" id="bibC${i}_off" ${c.off ? "checked" : ""}> Guardar sin conexión en este equipo</label></div>`;
       }).join("") + `<button type="button" class="btn btn-principal" onclick="cargarDocumentosBib()">Cargar ${bibCarga.length === 1 ? "el documento" : "los " + bibCarga.length + " documentos"} a la biblioteca</button>
         <button type="button" class="btn btn-secundario" onclick="bibCarga = []; bibReemplazaId = ''; pintarCargaBib()">Cancelar</button>`;
     }
     async function cargarDocumentosBib() {
       const msj = document.getElementById("bibMsj"), v = id => document.getElementById(id).value.trim();
       if (!driveConfigurado()) { msj.textContent = "Primero conecta Google Drive (Empresa y formatos → Google Drive): la biblioteca se guarda en tu Drive."; return; }
-      const lote = bibCarga.map((c, i) => ({ c, codigo: v(`bibC${i}_cod`), tipo: v(`bibC${i}_tipo`), titulo: v(`bibC${i}_tit`), version: v(`bibC${i}_ver`), fecha: v(`bibC${i}_fec`) }));
+      const lote = bibCarga.map((c, i) => ({ c, codigo: v(`bibC${i}_cod`), tipo: v(`bibC${i}_tipo`), titulo: v(`bibC${i}_tit`), version: v(`bibC${i}_ver`), fecha: v(`bibC${i}_fec`), off: document.getElementById(`bibC${i}_off`).checked }));
       const sinTitulo = lote.find(x => !x.titulo);
       if (sinTitulo) { msj.textContent = `Falta el título de ${sinTitulo.c.file.name}.`; return; }
-      let n = 0;
+      let n = 0; const avisos = [];
       for (const x of lote) {
         msj.textContent = `Preparando ${++n} de ${lote.length}…`;
         const ext = extDe(x.c.file.name), id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -9046,15 +9051,19 @@
         const d = { id, codigo: textoCorto(x.codigo, 40), tipo: TIPOS_BIB.includes(x.tipo) ? x.tipo : "Otro", titulo: textoCorto(x.titulo, 160), version: textoCorto(x.version, 30),
                     fecha: /^\d{4}-\d{2}-\d{2}$/.test(x.fecha) ? x.fecha : "", archivo: textoCorto(x.c.file.name, 120), ext, mime: MIME_BIB[ext], tam: bytes.byteLength, driveId: "", offline: false, reemplazadoPor: "", creado: Date.now() };
         await alDrive(d.archivo, bytes, d.mime, [DRIVE_RAIZ, "Biblioteca"], "bib:" + id);
+        if (x.off) {
+          if (usoLocalBib() + d.tam <= LIMITE_BIB_MB * 1048576) { try { await bdBiblioteca("readwrite", s => s.put({ bytes, mime: d.mime }, id)); d.offline = true; } catch { avisos.push(`No se pudo guardar "${d.titulo}" sin conexión.`); } }
+          else avisos.push(`"${d.titulo}" no cupo sin conexión (límite ${LIMITE_BIB_MB} MB).`);
+        }
         biblioteca.push(d);
         const previo = bibReemplazaId ? biblioteca.find(p => p.id === bibReemplazaId) : null;
-        if (previo) previo.reemplazadoPor = id;
+        if (previo) { previo.reemplazadoPor = id; if (previo.offline) { try { await bdBiblioteca("readwrite", s => s.delete(previo.id)); } catch {} previo.offline = false; } }
         guardarBib();
         bitacora(previo ? "Versión de la biblioteca reemplazada" : "Documento cargado a la biblioteca", { doc: `${d.codigo ? d.codigo + " · " : ""}${d.titulo}`, det: `${d.archivo} · ${mbTxt(d.tam)}${previo ? " · reemplaza " + (previo.version || previo.fecha) : ""}` });
       }
       bibCarga = []; bibReemplazaId = "";
       pintarCargaBib(); pintarBiblioteca();
-      msj.textContent = `✅ ${lote.length} documento(s) en la cola de subida a tu Drive${navigator.onLine ? "" : " (se suben cuando haya internet)"}.`;
+      msj.textContent = `✅ ${lote.length} documento(s) en la cola de subida a tu Drive${navigator.onLine ? "" : " (se suben cuando haya internet)"}.${avisos.length ? " " + avisos.join(" ") : ""}`;
     }
     function pintarBiblioteca() {
       const cont = document.getElementById("bibLista");
@@ -9062,25 +9071,138 @@
       sincronizarDriveIdsBib();
       const b = normalizar(document.getElementById("bibBuscar").value), tipo = document.getElementById("bibTipo").value;
       const vigentes = biblioteca.filter(d => !d.reemplazadoPor);
-      document.getElementById("bibUso").innerHTML = `<div class="inf-dato"><b>${vigentes.length}</b><small>Documentos</small></div><div class="inf-dato"><b>${vigentes.filter(d => d.driveId).length}</b><small>En tu Drive</small></div><div class="inf-dato"><b>${mbTxt(vigentes.reduce((s, d) => s + d.tam, 0))}</b><small>Total</small></div>`;
+      document.getElementById("bibUso").innerHTML = `<div class="inf-dato"><b>${vigentes.length}</b><small>Documentos</small></div><div class="inf-dato"><b>${vigentes.filter(d => d.driveId).length}</b><small>En tu Drive</small></div><div class="inf-dato"><b>${mbTxt(vigentes.reduce((s, d) => s + d.tam, 0))}</b><small>Total</small></div><div class="inf-dato"><b>${mbTxt(usoLocalBib())} / ${LIMITE_BIB_MB} MB</b><small>Sin conexión</small></div>`;
       const lista = biblioteca.filter(d => (!tipo || d.tipo === tipo) && (!b || normalizar(`${d.titulo} ${d.codigo} ${d.archivo} ${d.tipo}`).includes(b)))
         .sort((x, y) => (x.reemplazadoPor ? 1 : 0) - (y.reemplazadoPor ? 1 : 0) || (x.codigo ? 0 : 1) - (y.codigo ? 0 : 1) || (x.codigo || "").localeCompare(y.codigo || "", "es", { numeric: true }) || x.titulo.localeCompare(y.titulo, "es"));
       cont.innerHTML = lista.length ? lista.map(d => `<div class="registro ${d.reemplazadoPor ? "reemplazado" : ""}">
           <div class="tit">${{ PTS: "🛠️", MINSAL: "🏥", "Ley Karin": "⚖️", Política: "📜", "Plan de emergencia": "🚨", "Plan de residuos": "♻️" }[d.tipo] || "📄"} ${html(d.titulo)}</div>
           <div class="det">${d.codigo ? html(d.codigo) + " · " : ""}${html(d.tipo)}${d.version ? " · " + html(d.version) : ""}${d.fecha ? " · " + fechaCLde(d.fecha) : ""} · ${html(d.ext.toUpperCase())} ${mbTxt(d.tam)}<br>
-            ${d.reemplazadoPor ? "🔁 Reemplazado por una versión más nueva" : d.driveId ? "☁️ En tu Drive" : "⏳ Pendiente de subir a tu Drive"}</div>
+            ${d.reemplazadoPor ? "🔁 Reemplazado por una versión más nueva" : (d.driveId ? "☁️ En tu Drive" : "⏳ Pendiente de subir a tu Drive") + (d.offline ? " · 📥 Guardado en este equipo" : "")}</div>
           <div class="botones">
             <button type="button" class="btn btn-principal" onclick="abrirBib('${d.id}')">Abrir</button>
+            <button type="button" class="btn btn-secundario" onclick="compartirBib('${d.id}')">Compartir</button>
+            <button type="button" class="btn btn-secundario" onclick="alternarOfflineBib('${d.id}', this)">${d.offline ? "Quitar del equipo" : "Guardar sin conexión"}</button>
             ${d.reemplazadoPor ? "" : `<button type="button" class="btn btn-secundario" onclick="reemplazarBib('${d.id}')">Reemplazar</button>`}
             <button type="button" class="btn btn-quitar" onclick="quitarBib('${d.id}', this)">Quitar</button></div></div>`).join("")
         : `<p class="ayuda">${biblioteca.length ? "Nada con ese filtro." : "Todavía no hay documentos. Agrega tus PTS y demás documentos arriba."}</p>`;
     }
-    function abrirBib(id) {
-      const d = biblioteca.find(x => x.id === id), msj = document.getElementById("bibMsj");
-      if (!d) return;
-      if (d.driveId) { window.open(`https://drive.google.com/file/d/${d.driveId}/view`, "_blank", "noopener"); return; }
-      msj.textContent = "Todavía no termina de subir a tu Drive: se sube sola cuando hay internet y Drive está conectado.";
+    /* ----- Biblioteca sin conexión: copias en este equipo (IndexedDB), con límite de espacio ----- */
+    const LIMITE_BIB_MB = 150;
+    const usoLocalBib = () => biblioteca.filter(d => d.offline).reduce((s, d) => s + d.tam, 0);
+    function abrirBDBiblioteca() {
+      return new Promise((ok, falla) => {
+        const p = indexedDB.open("prevencion-biblioteca" + ESPACIO_DATOS, 1);
+        p.onupgradeneeded = () => p.result.createObjectStore("archivos");
+        p.onsuccess = () => ok(p.result);
+        p.onerror = () => falla(p.error);
+      });
     }
+    async function bdBiblioteca(modo, accion) {
+      const bd = await abrirBDBiblioteca();
+      return new Promise((ok, falla) => {
+        const tx = bd.transaction("archivos", modo);
+        const pedido = accion(tx.objectStore("archivos"));
+        tx.oncomplete = () => { ok(pedido.result); bd.close(); };
+        tx.onerror = () => { falla(tx.error); bd.close(); };
+      });
+    }
+    // El índice puede venir de un respaldo de otro equipo: "offline" solo vale si la copia está de verdad aquí
+    async function sincronizarOfflineBib() {
+      try {
+        const claves = new Set(await bdBiblioteca("readonly", s => s.getAllKeys()));
+        let cambio = false;
+        for (const d of biblioteca) if (d.offline !== claves.has(d.id)) { d.offline = claves.has(d.id); cambio = true; }
+        if (cambio) guardarBib();
+      } catch {}
+    }
+    let _cmMatriz = null, _cmCodigos = null;
+    function codigosEnMatriz() {
+      if (_cmMatriz === MATRIZ && _cmCodigos) return _cmCodigos;
+      const s = new Set();
+      if (MATRIZ) for (const f of MATRIZ.filas) for (const m of String(f.pts || "").matchAll(/PST[\s._-]*0*(\d{1,3})(?!\d)/gi)) s.add("CEX-RE-SG-PST-" + m[1]);
+      _cmMatriz = MATRIZ; _cmCodigos = s;
+      return s;
+    }
+    // Lo que se marca por defecto para guardar sin conexión: los PTS que cita tu matriz, los planes de emergencia y los MINSAL de UV, radiación e hipobaria
+    const offlinePorDefectoBib = c => (c.tipo === "PTS" && !!c.codigo && codigosEnMatriz().has(codigoPST(c.codigo))) || c.tipo === "Plan de emergencia" || (c.tipo === "MINSAL" && /\buv\b|radiaci|hipobaria/i.test(c.titulo));
+    const avisoBib = t => { if (document.getElementById("biblioteca").classList.contains("activa")) document.getElementById("bibMsj").textContent = t; else alert(t); };
+    // Bytes del documento: copia del equipo → archivo que aún espera en la cola de subida → descarga desde tu Drive (con el permiso vigente)
+    async function bytesBib(d) {
+      try { const c = await bdBiblioteca("readonly", s => s.get(d.id)); if (c && c.bytes) return new Uint8Array(c.bytes); } catch {}
+      try { const q = await bdAvisos("readonly", s => s.get("cola:bib:" + d.id)); if (q && q.bytes) return new Uint8Array(q.bytes); } catch {}
+      if (!d.driveId) throw new Error("Todavía no termina de subir a tu Drive.");
+      if (!navigator.onLine) throw new Error("Sin internet y sin copia en este equipo.");
+      return new Uint8Array(await (await driveFetch(`${DRIVE_API}/drive/v3/files/${encodeURIComponent(d.driveId)}?alt=media`)).arrayBuffer());
+    }
+    async function abrirBib(id) {
+      const d = biblioteca.find(x => x.id === id);
+      if (!d) return;
+      try {
+        let copia = null;
+        try { copia = await bdBiblioteca("readonly", s => s.get(d.id)); } catch {}
+        if (!(copia && copia.bytes) && d.driveId && navigator.onLine) { window.open(`https://drive.google.com/file/d/${d.driveId}/view`, "_blank", "noopener"); return; }   // con internet: se abre en Drive
+        const bytes = await bytesBib(d);
+        if (d.ext === "pdf") {
+          const w = window.open(URL.createObjectURL(new Blob([bytes], { type: "application/pdf" })), "_blank");
+          if (!w) { descargarArchivo(bytes, d.archivo, d.mime); avisoBib(`Se guardó ${d.archivo} en Descargas.`); }
+        } else await compartirBib(id);   // Word y Excel no se abren dentro de la app: se pasan a Word/Excel del equipo
+      } catch (e) { avisoBib(e.message + (d.offline ? "" : " Márcalo “Guardar sin conexión” cuando tengas señal.")); }
+    }
+    async function compartirBib(id) {
+      const d = biblioteca.find(x => x.id === id);
+      if (!d) return;
+      try {
+        const bytes = await bytesBib(d), datos = { files: [new File([bytes], d.archivo, { type: d.mime })], title: d.titulo, text: d.titulo };
+        if (navigator.canShare && navigator.canShare(datos)) { try { await navigator.share(datos); return; } catch (e) { if (e.name === "AbortError") return; } }
+        descargarArchivo(bytes, d.archivo, d.mime); avisoBib(`Se guardó ${d.archivo} en Descargas.`);
+      } catch (e) { avisoBib(e.message); }
+    }
+    async function alternarOfflineBib(id, boton) {
+      const d = biblioteca.find(x => x.id === id);
+      if (!d) return;
+      if (d.offline) {
+        try { await bdBiblioteca("readwrite", s => s.delete(d.id)); } catch {}
+        d.offline = false; guardarBib(); pintarBiblioteca(); return;
+      }
+      if (usoLocalBib() + d.tam > LIMITE_BIB_MB * 1048576) { avisoBib(`No cabe: el límite de este equipo es ${LIMITE_BIB_MB} MB (hoy ${mbTxt(usoLocalBib())}). Quita alguna copia.`); return; }
+      boton.disabled = true; boton.textContent = "Guardando…";
+      try {
+        const bytes = await bytesBib(d);
+        await bdBiblioteca("readwrite", s => s.put({ bytes, mime: d.mime }, d.id));
+        d.offline = true; guardarBib();
+        bitacora("Documento guardado sin conexión", { doc: `${d.codigo ? d.codigo + " · " : ""}${d.titulo}`, det: mbTxt(d.tam) });
+      } catch (e) { avisoBib("No se pudo guardar sin conexión: " + e.message); }
+      pintarBiblioteca();
+    }
+    // ----- Enlace "Ver PTS" (matriz, ART y programa): busca el código en el índice de la biblioteca -----
+    function verPTSBtn(texto) {
+      const cods = [...new Set([...String(texto ?? "").matchAll(/PST[\s._-]*0*(\d{1,3})(?!\d)/gi)].map(m => m[1]))].slice(0, 4);
+      return cods.map(n => `<button type="button" class="btn btn-secundario" style="padding:3px 10px;width:auto;display:inline-block;margin:2px 4px 2px 0" onclick="verPTS('CEX-RE-SG-PST-${n}')">📖 Ver PTS-${n}</button>`).join("");
+    }
+    async function verPTS(codigo) {
+      const d = biblioteca.find(x => x.codigo === codigo && !x.reemplazadoPor);
+      if (!d) { avisoBib(`El ${codigo.replace("CEX-RE-SG-", "")} aún no está en la biblioteca: cárgalo en Biblioteca de documentos.`); return; }
+      await abrirBib(d.id);
+    }
+    // ----- Índice impreso (para tener la lista en papel de lo que hay en la obra) -----
+    async function indiceBibliotecaPDF() {
+      const vig = biblioteca.filter(d => !d.reemplazadoPor);
+      if (!vig.length) { avisoBib("Todavía no hay documentos para el índice."); return; }
+      try {
+        const c = await nuevoPDFSimple("ÍNDICE DE LA BIBLIOTECA DE DOCUMENTOS", `${EMPRESA.nombre || ""} · ${vig.length} documentos · Emitido el ${fechaCLde(hoyISO())}`);
+        for (const t of TIPOS_BIB) {
+          const l = vig.filter(d => d.tipo === t).sort((x, y) => (x.codigo ? 0 : 1) - (y.codigo ? 0 : 1) || (x.codigo || "").localeCompare(y.codigo || "", "es", { numeric: true }) || x.titulo.localeCompare(y.titulo, "es"));
+          if (!l.length) continue;
+          c.titulo(`${t} (${l.length})`);
+          for (const d of l) c.parrafo(`${d.codigo ? d.codigo + " · " : ""}${d.titulo}${d.version ? " · " + d.version : ""}${d.fecha ? " · " + fechaCLde(d.fecha) : ""}`, { tam: 9, vineta: "•" });
+        }
+        c.pie();
+        const pdf = { bytes: await c.doc.save(), nombreArchivo: `Indice_biblioteca_${hoyISO()}.pdf`, asunto: `Índice de la biblioteca de documentos – ${fechaCLde(hoyISO())}` };
+        await guardarEnHistorial(null, "biblioteca", pdf, hoyISO(), `${vig.length} documento(s)`);
+        await compartirPDFEPP(pdf.bytes, pdf.nombreArchivo, pdf.asunto, document.getElementById("bibMsj"));
+      } catch (e) { avisoBib("No se pudo armar el índice: " + e.message); }
+    }
+
     function reemplazarBib(id) {
       bibReemplazaId = id;
       document.getElementById("bibMsj").textContent = "Elige el archivo de la versión nueva.";
@@ -9815,7 +9937,7 @@
       const chip = (campo, x, etq) => x && !tiene(campo, x) ? `<button type="button" class="asis-chip" data-campo="${campo}" data-texto="${html(x)}" onclick="agregarSugerencia(this)">+ ${etq}: ${html(x.length > 70 ? x.slice(0, 70) + "…" : x)}</button>` : "";
       return `<div class="mz-asis"><p class="ayuda" style="margin:0 0 4px"><b>De tu matriz de riesgos</b>${depto ? " (" + html(depto.cargo) + ")" : ""}:</p>` +
         res.map(({ f, mio }) => `<div class="mz-item"><b>${html(f.t)}</b> ${insigniaVEP(f.v)}${mio ? "" : ` <small>(${html(f.pu)})</small>`}<br>
-          ${chip("peligros", f.pe, "Peligro")}${chip("riesgos", f.r, "Riesgo")}${chip("medidas", f.m, "Medida")}</div>`).join("") + `</div>`;
+          ${chip("peligros", f.pe, "Peligro")}${chip("riesgos", f.r, "Riesgo")}${chip("medidas", f.m, "Medida")}${f.pts ? "<br>" + verPTSBtn(f.pts) : ""}</div>`).join("") + `</div>`;
     }
     // Pantalla de consulta
     let mzLimite = 60;
@@ -9836,7 +9958,7 @@
       const lista = MATRIZ.filas.filter(f => (!pu || f.pu === pu) && (!pr || f.pr === pr) && (!altos || f.v >= 8) && (!b || normalizar(`${f.t} ${f.pe} ${f.r} ${f.m} ${f.pr} ${f.pu} ${f.ri}`).includes(b)));
       document.getElementById("mzLista").innerHTML = `<p class="ayuda">${lista.length} fila(s)</p>` + lista.slice(0, mzLimite).map(f => `<div class="mz-fila">
           <b>${html(f.t)}</b> ${insigniaVEP(f.v)}
-          <small>${html(f.pu)}${f.pr ? " · " + html(f.pr) : ""}${f.pts ? " · " + html(f.pts) : ""}</small>
+          <small>${html(f.pu)}${f.pr ? " · " + html(f.pr) : ""}${f.pts ? " · " + html(f.pts) : ""}</small>${f.pts ? "<div>" + verPTSBtn(f.pts) + "</div>" : ""}
           <div style="margin-top:6px"><b>Peligro:</b> ${html(f.pe)}<br><b>Riesgo:</b> ${html(f.r)}${f.ri ? ` <small style="display:inline">(${html(f.ci)} ${html(f.ri)})</small>` : ""}<br><b>Medida:</b> ${html(f.m)}${f.l ? `<br><small>Requisito legal: ${html(f.l)}</small>` : ""}</div>
         </div>`).join("") + (lista.length > mzLimite ? `<button type="button" class="btn btn-secundario" onclick="mzLimite += 60; pintarMatriz()">Mostrar más (${lista.length - mzLimite} restantes)</button>` : "");
     }
