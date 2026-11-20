@@ -5333,7 +5333,7 @@
         scope: "https://www.googleapis.com/auth/drive.file", include_granted_scopes: "true", state: estado });
       // Renovación silenciosa: si la sesión de Google sigue abierta y el permiso ya se dio, Google devuelve el token sin pantalla
       if (silencioso) { p.set("prompt", "none"); const hint = leerGuardado("pt_drive_hint", ""); if (/^[^\s@]+@[^\s@]+$/.test(hint)) p.set("login_hint", hint); sessionStorage.setItem("pt_drive_silencioso", "1"); }
-      else { sessionStorage.removeItem("pt_drive_silencioso"); sessionStorage.removeItem("pt_drive_requiere"); }
+      else { sessionStorage.removeItem("pt_drive_silencioso"); sessionStorage.removeItem("pt_drive_requiere"); guardar("pt_drive_fallos", 0); }
       location.assign("https://accounts.google.com/o/oauth2/v2/auth?" + p);
     }
     // Al volver de Google el permiso viene en la dirección (#access_token=…): se revisa que sea nuestro pedido y se borra de la dirección
@@ -5344,8 +5344,8 @@
       sessionStorage.removeItem("pt_drive_estado");
       if (!esperado || p.get("state") !== esperado) return;   // no lo pedimos nosotros: se ignora
       const eraSilencioso = sessionStorage.getItem("pt_drive_silencioso") === "1"; sessionStorage.removeItem("pt_drive_silencioso");
-      if (p.get("access_token")) { sessionStorage.setItem("pt_drive_token", JSON.stringify({ token: p.get("access_token"), vence: Date.now() + (+p.get("expires_in") || 3600) * 1000 })); sessionStorage.removeItem("pt_drive_requiere"); }
-      else if (eraSilencioso) { sessionStorage.setItem("pt_drive_requiere", "1"); try { localStorage.setItem("pt_drive_fallo", String(Date.now())); } catch {} }   // Google pidió pantalla: ahí sí hace falta que toque el aviso
+      if (p.get("access_token")) { sessionStorage.setItem("pt_drive_token", JSON.stringify({ token: p.get("access_token"), vence: Date.now() + (+p.get("expires_in") || 3600) * 1000 })); sessionStorage.removeItem("pt_drive_requiere"); try { localStorage.setItem("pt_drive_fallos", "0"); } catch {} }
+      else if (eraSilencioso) { sessionStorage.setItem("pt_drive_requiere", "1"); try { localStorage.setItem("pt_drive_fallo", String(Date.now())); localStorage.setItem("pt_drive_fallos", String((+JSON.parse(localStorage.getItem("pt_drive_fallos") || "0") || 0) + 1)); } catch {} }   // Google pidió pantalla: ahí sí hace falta que toque el aviso
       else sessionStorage.setItem("pt_drive_error", String(p.get("error") || "error").slice(0, 60));
       const volver = sessionStorage.getItem("pt_drive_volver"); sessionStorage.removeItem("pt_drive_volver");
       if (volver && /^[a-z]+$/.test(volver)) setTimeout(() => mostrar(volver), 300);
@@ -5490,7 +5490,7 @@
       const aviso = document.getElementById("avisoDrive");
       if (aviso) {
         // Solo se muestra si de verdad hace falta tu toque: no hay permiso, hay cosas esperando y la renovación silenciosa no pudo (o no corresponde intentarla)
-        const ver = conf && !con && pend > 0 && (sessionStorage.getItem("pt_drive_requiere") === "1" || leerGuardado("pt_drive_activo", "") !== "1" || Date.now() - (+leerGuardado("pt_drive_fallo", 0) || 0) < ESPERA_TRAS_FALLO);
+        const ver = conf && !con && pend > 0 && (sessionStorage.getItem("pt_drive_requiere") === "1" || leerGuardado("pt_drive_activo", "") !== "1" || (+leerGuardado("pt_drive_fallos", 0) || 0) >= 2 || Date.now() - (+leerGuardado("pt_drive_fallo", 0) || 0) < ESPERA_TRAS_FALLO);
         aviso.style.display = ver ? "block" : "none";
         if (ver) aviso.innerHTML = `<b>☁️ Reconectar Google Drive</b><span>${pend} documento(s) esperando subir a tu Drive. Google pide que confirmes: toca para reconectar (1 toque).</span>`;
       }
@@ -5510,9 +5510,18 @@
     const ESPERA_RENOVAR = 10 * 60 * 1000, ESPERA_TRAS_FALLO = 2 * 3600 * 1000;
     function puedeRenovarSolo() {
       if (!driveConfigurado() || leerGuardado("pt_drive_activo", "") !== "1" || driveToken() || !navigator.onLine || document.hidden) return false;
-      if (sessionStorage.getItem("pt_drive_requiere") === "1") return false;
+      if (sessionStorage.getItem("pt_drive_requiere") === "1" || (+leerGuardado("pt_drive_fallos", 0) || 0) >= 2) return false;   // tras 2 fallos seguidos solo el toque del usuario lo reintenta
+      if (hayDatosSinGuardar()) return false;
       const ahora = Date.now();
       return ahora - (+leerGuardado("pt_drive_intento", 0) || 0) > ESPERA_RENOVAR && ahora - (+leerGuardado("pt_drive_fallo", 0) || 0) > ESPERA_TRAS_FALLO;
+    }
+    // Un campo con texto, una firma dibujada o la hoja rápida abierta: la redirección lo borraría
+    function hayDatosSinGuardar() {
+      const hoja = document.getElementById("halRapido"); if (hoja && hoja.style.display !== "none") return true;
+      const pant = document.querySelector(".pantalla.activa"); if (!pant) return false;
+      for (const c of pant.querySelectorAll("input, textarea")) if (!["checkbox", "radio", "button", "submit", "file", "hidden", "search"].includes(c.type) && String(c.value || "").trim()) return true;
+      for (const c of pant.querySelectorAll("canvas")) { try { const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; for (let i = 3; i < d.length; i += 4) if (d[i]) return true; } catch {} }
+      return false;
     }
     let renovandoDrive = false;
     function renovarDriveSilencioso() {
