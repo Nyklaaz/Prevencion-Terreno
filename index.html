@@ -2932,6 +2932,7 @@
         error.textContent = "No se cargó la herramienta de PDF (¿sin internet al abrir la app?). Abre la app con señal e inténtalo de nuevo.";
         return;
       }
+      for (const a of r.arts) if (!(await avisarDuplicadoDoc("charla", a.id + "|" + r.fecha, `la charla de ${a.nombre} del ${fechaCLde(r.fecha)}`))) { error.textContent = "Cancelado: esa charla ya estaba hecha en otro equipo."; return; }
       error.textContent = r.arts.length > 1 ? `Generando ${r.arts.length} PDF (uno por departamento)…` : "Generando PDF…";
       try {
         // Un registro por departamento: misma charla, su ART y solo sus trabajadores
@@ -2954,6 +2955,7 @@
           };
           // Solo se reemplaza si es la MISMA charla corregida (mismo departamento y fecha); otro día es un registro nuevo
           const claveCh = a.id + "|" + r.fecha;
+          pdf.claveDup = claveDupDoc("charla", claveCh);
           idsHistCharla[claveCh] = await guardarEnHistorial(idsHistCharla[claveCh] ?? null, "charla", pdf, r.fecha,
             `${a.nombre} · ${parte.trabajadores.length} asistente(s) · Ruta ${r.ruta}`);
           guardarMoldeCharla(parte);
@@ -3637,6 +3639,7 @@
       if (r.ingreso) { ingresos[rut] = r.ingreso; guardar("pt_ingreso", ingresos); }
       guardar("pt_relator", { nombre: r.relator, cargo: r.cargoRel, obra: r.obra });
 
+      if (!(await avisarDuplicadoDoc("irl", claveRut(r.rut) + "|" + r.cargoId + "|" + r.fecha, `la IRL de ${r.nombre} (${r.cargoNombre}) del ${fechaCLde(r.fecha)}`))) { error.textContent = "Cancelado: esa IRL ya estaba hecha en otro equipo."; return; }
       error.textContent = "Generando PDF de la IRL…";
       try {
         const bytes = await crearPDF_IRL(r);
@@ -3648,6 +3651,7 @@
         };
         // Solo se reemplaza si es la MISMA IRL corregida (mismo trabajador, cargo y fecha); otra persona es un registro nuevo
         const claveIRL = claveRut(r.rut) + "|" + r.cargoId + "|" + r.fecha;
+        pdfIRL.claveDup = claveDupDoc("irl", claveIRL);
         idHistIRL = idsHistIRL[claveIRL] = await guardarEnHistorial(idsHistIRL[claveIRL] ?? null, "irl", pdfIRL, r.fecha, `${r.cargoNombre} · ${r.nombre} · RUT ${r.rut}${r.adicionales.length ? " · también: " + r.adicionales.map(a => a.nombre).join(", ") : ""} · ${IRL_DATOS.tipos_induccion[r.tipo] || ""}`);
         error.textContent = "";
         document.getElementById("infoPDFIRL").textContent = `${pdfIRL.nombreArchivo} · ${Math.round(pdfIRL.bytes.length / 1024)} KB${pdfIRL.folio ? " · Folio " + pdfIRL.folio : ""}`;
@@ -4052,6 +4056,7 @@
                            ...(previo ? { reemplaza: previo.folio || "" } : {}) };
         const id = await operacionBD("readwrite", s => s.put(registro));
         if (previo) await operacionBD("readwrite", s => s.put({ ...previo, reemplazadoPor: pdf.folio || "", reemplazadoEn: Date.now() }));
+        try { docsIndiceAgregar(pdf, tipo, fecha, previo ? previo.folio : ""); } catch (e) { console.warn("No se pudo anotar en el índice de documentos", e); }
         bitacora(previo ? "Corregido" : "Generado", { folio: pdf.folio, doc: pdf.asunto, reemplaza: previo ? previo.folio : "" });
         subirPendientesDrive();   // a Google Drive, si está conectado (si no, queda en cola)
         return id;
@@ -4091,11 +4096,13 @@
       document.getElementById("resumenHist").textContent =
         `${regs.length} PDF guardados en este teléfono (${mb.toFixed(1)} MB)` + (visibles.length !== regs.length ? ` · mostrando ${visibles.length}` : "");
 
+      const dupInfo = gruposDupHist();
       lista.innerHTML = visibles.map(r => `
         <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
           <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : r.tipo === "casi" ? "👁️" : r.tipo === "biblioteca" ? "📚" : r.tipo === "relevo" ? "🔄" : "📋"} ${html(r.asunto)}</div>
           ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
           ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
+          ${dupInfo.get(r.folio) ? `<div class="hist-reemplazado" style="color:#b8102a">⚠️ Posible duplicado: también se hizo en ${etiquetaDup(dupInfo.get(r.folio))}. <button type="button" class="btn btn-secundario" style="margin:6px 0 0;min-height:36px" onclick="dupDejar('${html(r.folio)}')">Dejar ambos</button></div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
           <div class="botones">
             <button class="btn btn-principal" onclick="compartirHist(${+r.id})">📤 Compartir</button>
@@ -4427,6 +4434,7 @@
         guardar("pt_extintores", ckExtGuardados);
       }
 
+      if (!(await avisarDuplicadoDoc("check", ckId + "|" + JSON.stringify(r.campos), `el check list ${r.nombre} del ${fechaCLde(r.campos.fecha)}`))) { error.textContent = "Cancelado: ese check list ya estaba hecho en otro equipo."; return; }
       error.textContent = "Generando PDF del check list…";
       try {
         const bytes = await crearPDF_Check(r);
@@ -4439,6 +4447,7 @@
         };
         // Solo se reemplaza si es el MISMO check list corregido (misma lista y mismos datos: patente, fecha, obra…)
         const claveCk = ckId + "|" + JSON.stringify(r.campos);
+        pdfCheck.claveDup = claveDupDoc("check", claveCk);
         idHistCheck = idsHistCheck[claveCk] = await guardarEnHistorial(idsHistCheck[claveCk] ?? null, "check", pdfCheck, r.campos.fecha,
           `${r.nombre}${quien ? " · " + quien : ""} · ${r.malas ? r.malas + " observación(es)" : "sin observaciones"}`);
         error.textContent = "";
@@ -5317,11 +5326,13 @@
       if (correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { msj.textContent = "El correo no parece válido (o déjalo en blanco)."; return; }
       if (!cT.dataset.firmado) { msj.textContent = "Falta la firma del trabajador."; return; }
       if (!prev || !cP.dataset.firmado) { msj.textContent = "Falta el nombre y la firma de quien registra."; return; }
+      if (!(await avisarDuplicadoDoc("consentimiento", r, `el consentimiento de ${p.nombre}`))) { msj.textContent = "Cancelado: ese consentimiento ya estaba firmado en otro equipo."; return; }
       msj.textContent = "Generando…";
       try {
         const fecha = hoyISO();
         const bytes = await crearPDF_Consentimiento({ p, correo, prev, firmaT: cT.toDataURL("image/png"), firmaP: cP.toDataURL("image/png"), fecha });
         const pdf = { bytes, nombreArchivo: `Consentimiento_firma_electronica_${String(p.nombre).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w-]+/g, "_")}_${fecha}.pdf`, asunto: `Consentimiento de firma electrónica – ${p.nombre} – ${fechaCLde(fecha)}` };
+        pdf.claveDup = claveDupDoc("consentimiento", r);
         await guardarEnHistorial(null, "consentimiento", pdf, fecha, `${p.nombre} · RUT ${p.rut}`);
         consentimientos[r] = { nombre: p.nombre, rutTxt: p.rut, fecha, folio: pdf.folio || "", correo };
         guardar("pt_consentimientos", consentimientos);
@@ -5486,7 +5497,7 @@
             const id = await subirArchivoDrive(r.nombreArchivo || "registro.pdf", new Uint8Array(r.pdf), r.mime || "application/pdf", rutaDrive(r), r.driveAnterior);
             // Solo se marca si el registro no cambió mientras subía (si se volvió a generar, el nuevo sube en la próxima vuelta)
             const actual = await operacionBD("readonly", s => s.get(r.id));
-            if (actual && actual.creado === r.creado) { const { driveAnterior, ...resto } = actual; await operacionBD("readwrite", s => s.put({ ...resto, drive: id })); n++; }
+            if (actual && actual.creado === r.creado) { const { driveAnterior, ...resto } = actual; await operacionBD("readwrite", s => s.put({ ...resto, drive: id })); n++; try { docsIndiceDrive(actual.folio, id); } catch {} }
           } catch (e) { error = e.message; if (e.sinPermiso) { otraVueltaDrive = false; break; } }
           }
           if (driveToken()) for (const k of await colaDrive()) {
@@ -10906,9 +10917,93 @@
       guardar = function (clave) { const r = _guardarLs.apply(this, arguments); if (LS_CLAVES.has(clave) && !lsAplicando) lsProgramar(); return r; };
     }
 
+    /* =====================================================================
+       ÍNDICE DE DOCUMENTOS GENERADOS (T2): cada charla, IRL, check list, consentimiento o documento deja una línea liviana en Drive ("docs-indice.json"):
+         { fo: folio, t: tipo, k: clave (qué documento es: ej. charla|depto|fecha), f: fecha, e: letra del equipo, ts: momento, di: id en Drive, rr: reemplazado por, ok: duplicado aceptado }
+       ANTES de generar se mira ese índice (con señal, leyéndolo en el momento): si ya hay uno hecho en OTRO equipo, se avisa y la persona elige (Ver / Hacer otra igual / Cancelar).
+       Sin señal: se genera igual y se avisa; al volver la señal, si dos equipos hicieron lo mismo, el Historial lo marca "posible duplicado" (Dejar ambos).
+       Nunca se borra nada solo. Una corrección en el mismo equipo no cuenta como duplicado (el original queda "reemplazado por").
+       ===================================================================== */
+    const DOC_DIAS = 120;
+    const docCorte = () => new Date(Date.now() - DOC_DIAS * 864e5).toLocaleDateString("sv-SE");
+    const normDoc = o => ({ fo: textoCorto(o.fo, 30), t: textoCorto(o.t, 20), k: textoCorto(o.k, 80), f: fechaLs(o.f), e: EQUIPOS[o.e] ? o.e : "", ts: Math.max(0, Math.floor(+o.ts || 0)), di: idDriveValido(o.di) ? o.di : "", rr: textoCorto(o.rr, 30), ok: o.ok ? 1 : 0 });
+    const docsInd = () => { const a = leerGuardado("pt_docs_ind", []); return Array.isArray(a) ? a.filter(x => x && typeof x === "object" && /^[\w-]{3,30}$/.test(String(x.fo))) : []; };
+    const claveDupDoc = (tipo, raw) => tipo + "|" + (String(raw).length > 40 ? hashCfg(String(raw)) : String(raw)).slice(0, 60);
+    LS.docs = {
+      archivo: "docs-indice.json", claves: ["pt_docs_ind"],
+      leer() { const m = new Map(), c = docCorte(); for (const x of docsInd()) { const d = normDoc(x); if (d.fo && d.t && d.k && d.f && d.f >= c) m.set(d.fo, d); } return m; },
+      limpiar(d) { if (!d || typeof d !== "object") return null; const x = normDoc(d); return x.fo && x.t && x.k && x.f && x.f >= docCorte() ? x : null; },
+      aplicar(adoptar) { const arr = docsInd(); for (const [fo, d] of adoptar) { const i = arr.findIndex(x => x.fo === fo); if (i >= 0) arr[i] = d; else arr.push(d); } guardar("pt_docs_ind", arr); }
+    };
+    let dupAceptado = "";
+    function docsIndiceAgregar(pdf, tipo, fecha, previoFolio) {
+      if (!pdf.claveDup || !pdf.folio) return;
+      const arr = docsInd().filter(x => String(x.f || "") >= docCorte());
+      if (previoFolio) { const p = arr.find(x => x.fo === previoFolio); if (p) p.rr = pdf.folio; }
+      const aceptado = dupAceptado && dupAceptado === pdf.claveDup; if (aceptado) dupAceptado = "";
+      arr.push(normDoc({ fo: pdf.folio, t: tipo, k: pdf.claveDup, f: fecha, e: letraEquipo(), ts: Date.now(), ok: aceptado }));
+      guardar("pt_docs_ind", arr); lsProgramar();
+    }
+    function docsIndiceDrive(folio, id) { if (!folio) return; const arr = docsInd(), x = arr.find(y => y.fo === folio); if (x && x.di !== id) { x.di = id; guardar("pt_docs_ind", arr); lsProgramar(); } }
+    // Documentos con la misma clave hechos en OTRO equipo (no están en el Historial de este) y que nadie reemplazó
+    async function duplicadosDoc(tipo, raw) {
+      const k = claveDupDoc(tipo, raw), propios = new Set((await todosLosRegistros()).map(r => r.folio).filter(Boolean));
+      return docsInd().filter(x => x.t === tipo && x.k === k && !x.rr && !propios.has(x.fo)).map(normDoc);
+    }
+    const esperar = ms => new Promise(r => setTimeout(r, ms));
+    function avisoDoc(texto) {
+      const d = document.createElement("div");
+      d.setAttribute("role", "status"); d.id = "avisoDocToast";
+      d.style.cssText = "position:fixed;left:12px;right:12px;bottom:84px;z-index:70;background:#0b1830;color:#fff;border-radius:12px;padding:12px 14px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:680px;margin:0 auto";
+      d.textContent = "⚠️ " + texto; document.body.appendChild(d); setTimeout(() => d.remove(), 8000);
+    }
+    function dialogoDuplicado(etiqueta, d, n) {
+      return new Promise(ok => {
+        const quien = EQUIPOS[d.e] ? EQUIPOS[d.e].replace(/^\S+\s/, "") : "otro equipo", cuando = d.ts ? new Date(d.ts).toLocaleString("es-CL") : fechaCLde(d.f);
+        const fondo = document.createElement("div"); fondo.className = "hoja-rapida"; fondo.style.display = "flex"; fondo.setAttribute("role", "dialog"); fondo.setAttribute("aria-modal", "true");
+        fondo.innerHTML = `<div class="hoja-panel"><h2 style="margin:0 0 8px;font-size:18px">⚠️ Ya existe ${html(etiqueta)}</h2><p style="margin:0 0 8px">Se hizo en <b>${html(quien)}</b> el ${html(cuando)} (folio ${html(d.fo)})${n > 1 ? ` y ${n - 1} más` : ""}.</p><p class="ayuda" id="dupVer"></p>
+          <button type="button" class="btn btn-secundario" id="dupBtnVer">👁️ Ver</button><button type="button" class="btn btn-principal" id="dupBtnOtra">➕ Hacer otra igual</button><button type="button" class="btn btn-quitar" id="dupBtnCancelar">Cancelar</button></div>`;
+        document.body.appendChild(fondo);
+        const cerrar = r => { fondo.remove(); ok(r); };
+        fondo.querySelector("#dupBtnOtra").onclick = () => cerrar("otra"); fondo.querySelector("#dupBtnCancelar").onclick = () => cerrar("cancelar");
+        fondo.querySelector("#dupBtnVer").onclick = () => { if (d.di) window.open("https://drive.google.com/file/d/" + encodeURIComponent(d.di) + "/view", "_blank", "noopener"); else fondo.querySelector("#dupVer").textContent = "Todavía no está en tu Drive (se sube cuando ese equipo tenga señal)."; };
+      });
+    }
+    // Devuelve true si se puede seguir generando; false si la persona canceló. Nunca bloquea: sin señal solo avisa.
+    async function avisarDuplicadoDoc(tipo, raw, etiqueta) {
+      let sinVerificar = false;
+      if (driveConfigurado()) {
+        if (!navigator.onLine || !driveToken()) sinVerificar = true;
+        else {
+          for (let i = 0; i < 20 && lsOcupado; i++) await esperar(200);
+          if (lsOcupado) sinVerificar = true;
+          else {
+            lsOcupado = true; let fin = false;
+            const p = lsSincronizar("docs", true).catch(() => { sinVerificar = true; }); p.finally(() => { fin = true; lsOcupado = false; });
+            await Promise.race([p, esperar(4000)]); if (!fin) sinVerificar = true;
+          }
+        }
+      }
+      const dups = await duplicadosDoc(tipo, raw);
+      if (dups.length) {
+        if ((await dialogoDuplicado(etiqueta, dups[0], dups.length)) !== "otra") return false;
+        dupAceptado = claveDupDoc(tipo, raw);
+      } else if (sinVerificar) avisoDoc("Sin señal con Drive: si este documento ya se hizo en otro equipo, quedará marcado como posible duplicado en el Historial.");
+      return true;
+    }
+    // Grupos con la misma clave y 2 o más documentos sin aceptar: folio -> los otros documentos del grupo
+    function gruposDupHist() {
+      const g = new Map(), res = new Map();
+      for (const x of docsInd().map(normDoc)) { if (x.rr) continue; const k = x.t + "|" + x.k; (g.get(k) || g.set(k, []).get(k)).push(x); }
+      for (const l of g.values()) if (l.filter(x => !x.ok).length >= 2) for (const x of l) if (!x.ok) res.set(x.fo, l.filter(y => y.fo !== x.fo));
+      return res;
+    }
+    function dupDejar(folio) { const arr = docsInd(), x = arr.find(y => y.fo === folio); if (x) { x.ok = 1; guardar("pt_docs_ind", arr); lsProgramar(); } pintarHistorial(); }
+    const etiquetaDup = (otros) => otros.map(o => `${EQUIPOS[o.e] ? EQUIPOS[o.e].replace(/^\S+\s/, "") : "otro equipo"} · folio ${html(o.fo)}`).join("; ");
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
@@ -11961,12 +12056,14 @@
         if (e.el) { if (e.el.tagName === "INPUT" || e.el.tagName === "SELECT" || e.el.tagName === "TEXTAREA") e.el.classList.add("campo-falta"); e.el.scrollIntoView({ behavior: "smooth", block: "center" }); }
         return;
       }
+      if (!(await avisarDuplicadoDoc("documento", `${d.pid}|${d.fecha}|${normalizar(d.principal)}`, `${d.pl.nombre} – ${d.principal} del ${fechaCLde(d.fecha)}`))) { error.textContent = "Cancelado: ese documento ya estaba hecho en otro equipo."; return; }
       error.textContent = "Generando el PDF…";
       try {
         const bytes = await crearPDF_Documento(d);
         pdfDoc = { bytes, prefijo: d.pl.prefijo, nombreArchivo: `${slugArchivo(d.pl.nombre)}_${slugArchivo(d.principal)}_${d.fecha}.pdf`, asunto: `${d.pl.nombre} – ${d.principal} – ${fechaCLde(d.fecha)}` };
         const detalle = [d.pl.nombre, d.principal, d.nAsis ? `${d.nAsis} asistente(s)` : "", d.horasPersona ? `${decimalCL(d.horasPersona)} horas-persona` : ""].filter(Boolean).join(" · ");
         const clave = `${d.pid}|${d.fecha}|${normalizar(d.principal)}`;
+        pdfDoc.claveDup = claveDupDoc("documento", clave);
         idsHistDoc[clave] = await guardarEnHistorial(idsHistDoc[clave] ?? null, "documento", pdfDoc, d.fecha, detalle, { plantilla: d.pid, asistentes: d.nAsis, horasPersona: d.horasPersona });
         // Programa anual: las actividades marcadas quedan cumplidas
         const marcadas = [...document.querySelectorAll("#docPrograma input:checked")].map(x => x.value).filter(v => /^[\w-]+\|\d{4}-\d{2}-\d{2}$/.test(v));
