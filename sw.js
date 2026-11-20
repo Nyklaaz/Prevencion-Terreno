@@ -10,9 +10,9 @@
    en el mismo sitio no se borran entre ellas.
    ===================================================================== */
 const BASE = "prevencion:" + self.registration.scope + ":";
-const VERSION = BASE + "2026-11-19f";
+const VERSION = BASE + "2026-11-20a";
 const ARCHIVOS = ["./", "./index.html", "./plantillas.js", "./pdf-lib.min.js", "./xlsx.full.min.js",
-                  "./manifest.json", "./icono-192.png", "./icono-512.png"];
+                  "./manifest.json", "./apr-icono-192.png", "./apr-icono-512.png", "./apr-icono-maskable-192.png", "./apr-icono-maskable-512.png", "./apr-bienvenida.jpg"];
 // "reload"/"no-cache": se pide SIEMPRE al servidor (si no cambió, responde rápido), nunca una copia vieja del navegador
 const fresco = url => new Request(url, { cache: "reload" });
 const ESPERA_RED = 4000;   // con señal mala, a los 4 segundos usamos la copia guardada

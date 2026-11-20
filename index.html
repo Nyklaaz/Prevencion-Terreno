@@ -26,7 +26,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Prevención en Terreno</title>
+  <title>APR</title>
   <!-- Librería para crear el PDF, descargada desde unpkg (versión fija 1.17.1) -->
   <!-- App instalable: nombre, ícono y colores al agregarla a la pantalla de inicio -->
   <link rel="manifest" href="manifest.json">
@@ -34,7 +34,8 @@
   <!-- Seguridad: la app solo carga sus propios archivos (ninguno de internet) y no puede enviar datos a otros sitios -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
   <meta name="referrer" content="no-referrer">
-  <link rel="apple-touch-icon" href="icono-192.png">
+  <link rel="apple-touch-icon" href="apr-icono-192.png">
+  <meta name="apple-mobile-web-app-title" content="APR">
   <!-- Librería para crear el PDF: ahora va en un archivo propio (pdf-lib.min.js), así funciona sin internet -->
   <script src="pdf-lib.min.js"></script>
   <!-- Plantillas Excel del informe mensual y del IFOS SAFI -->
@@ -494,14 +495,31 @@
     .plazo-fila { display: block; padding: 8px 0; border-bottom: 1px solid #e5e9f4; }
     .plazo-cerrado { opacity: .7; }
     .plazo-card a.btn { text-decoration: none; display: block; text-align: center; }
+    /* Bienvenida APR */
+    #splashApr { position: fixed; inset: 0; z-index: 100; background: #0b1830; display: flex; align-items: center; justify-content: center; transition: opacity .3s ease; }
+    #splashApr img { width: min(70vmin, 420px); height: auto; border-radius: 24px; }
+    #splashApr.fuera { opacity: 0; pointer-events: none; }
+    @media (prefers-reduced-motion: reduce) { #splashApr { transition: none; } }
   </style>
 </head>
 
 <body>
+  <div id="splashApr" role="presentation" aria-hidden="true"><img src="apr-bienvenida.jpg" alt=""></div>
+  <script>
+    // Bienvenida breve: una vez por sesión, máximo ~1,2 s; un toque la salta. Nunca bloquea (si algo falla, se oculta sola).
+    (function () {
+      var el = document.getElementById("splashApr"), visto = false;
+      try { visto = sessionStorage.getItem("apr_splash") === "1"; sessionStorage.setItem("apr_splash", "1"); } catch (e) {}
+      if (visto) { el.parentNode.removeChild(el); return; }
+      var cerrar = function () { el.classList.add("fuera"); setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 350); };
+      el.addEventListener("click", cerrar); el.addEventListener("touchstart", cerrar, { passive: true });
+      setTimeout(cerrar, 1200);
+    })();
+  </script>
   <header>
     <button class="volver" id="btnVolver" onclick="mostrar('menu')" style="visibility:hidden">←</button>
     <img id="logoCabecera" class="logo" alt="Logo empresa">
-    <h1 id="titulo">Prevención en Terreno</h1>
+    <h1 id="titulo">APR</h1>
     <span id="sinRed" class="sin-red" style="display:none">Sin conexión</span>
   </header>
 
@@ -509,7 +527,7 @@
     <!-- ========== MENÚ ========== -->
     <section id="menu" class="pantalla activa">
       <div class="tarjeta bienvenida" id="bienvenida" style="display:none">
-        <h2>Bienvenido/a a Prevención en Terreno</h2>
+        <h2>Bienvenido/a a APR</h2>
         <p>Herramienta gratuita y de código abierto para prevencionistas: charla diaria y ART, IRL (DS 44), check list e informe mensual, sin papel y sin internet.</p>
         <p><b>Para empezar</b>, carga los datos de tu empresa y tus formatos.</p>
         <button class="btn btn-principal" onclick="mostrar('empresa')">Configurar mi empresa</button>
@@ -574,7 +592,7 @@
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v4H4z"/><path d="M6 10v9h12v-9"/><path d="M10 14h4"/></svg></span><span class="menu-txt">Historial<small>Todos los PDF generados en este teléfono</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <p class="estado-offline" id="estadoOffline"></p>
-      <p class="ayuda" style="text-align:center;margin-top:18px;font-size:12px">Prevención en Terreno · Software libre (GPL v3) · Gratis para siempre</p>
+      <p class="ayuda" style="text-align:center;margin-top:18px;font-size:12px">APR · Prevención en Terreno · Software libre (GPL v3) · Gratis para siempre</p>
     </section>
 
     <!-- ========== CHARLA + ART ========== -->
@@ -2529,7 +2547,7 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos" };
+      const titulos = { menu: "APR", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos" };
       if (id === "casi") iniciarCasi();
       if (id === "criticos") pintarCriticos();
       if (id === "biblioteca") iniciarBiblioteca();
