@@ -640,6 +640,7 @@
         <button type="button" class="dia-uv" id="diaUV" onclick="irAjusteId('obraLat')"></button><button type="button" class="dia-nube ok" id="diaNube" style="display:none" onclick="tocarNube()"></button>
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
+      <p class="mensaje" id="cfgAviso" style="display:none"></p>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoPlazoAcc" style="display:none" onclick="mostrar('accidentes')"></button>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
       <button type="button" class="aviso-programa" id="avisoDrive" style="display:none" onclick="conectarDrive()"></button>
@@ -1377,6 +1378,7 @@
         <h2>Google Drive</h2>
         <p class="ayuda">Cada PDF que generes se guarda solo en tu Google Drive, en la carpeta "Prevención en Terreno", ordenado por mes y tipo. Sin señal, queda en cola y sube apenas haya internet. La app solo puede ver los archivos que ella misma crea en tu Drive.</p>
         <p class="mensaje" id="driveEstado"></p>
+        <p class="mensaje" id="cfgSync" style="display:flex;align-items:center;gap:8px;margin:8px 0"><span id="cfgSyncTxt" style="flex:1"></span><button type="button" id="cfgRefrescar" aria-label="Sincronizar la configuración con Drive" title="Sincronizar la configuración" onclick="sincronizarCfg(false)" style="background:none;border:1px solid var(--borde,#c9d3e6);border-radius:8px;min-width:36px;min-height:36px;font-size:18px;line-height:1;color:inherit;cursor:pointer">↻</button></p>
         <div class="dos-col" style="margin-top:10px">
           <button type="button" class="btn btn-principal" style="margin:0" onclick="conectarDrive()">☁️ Conectar Google Drive</button>
           <button type="button" class="btn btn-secundario" style="margin:0" onclick="subirPendientesDrive(true)">Subir pendientes</button>
@@ -2787,7 +2789,7 @@
       if (id === "historial") { pintarHistorial(); pintarBitacora(); }
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
-      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); mostrarBloqueoCero(); }
+      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); mostrarBloqueoCero(); textoSyncCfg(); }
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
@@ -7549,6 +7551,9 @@
     async function cargarIRLPaquete() {
       let irl = null;
       if (PAQUETE_PROPIO) { try { irl = await bdPaquete("readonly", s => s.get("irl")); } catch {} }
+      // Paquete traído de otro equipo por Drive (las IRL no viajan): si este equipo trae las IRL incluidas, se siguen usando
+      if (PAQUETE_PROPIO && !irl && localStorage.getItem("pt_cfg_origen_sync") === "1" && window.PAQUETE_INCLUIDO && window.PAQUETE_INCLUIDO.irl) irl = window.PAQUETE_INCLUIDO.irl;
+      else if (PAQUETE_PROPIO) { /* paquete propio: solo sus IRL */ }
       else if (window.PAQUETE_INCLUIDO && window.PAQUETE_INCLUIDO.irl) irl = window.PAQUETE_INCLUIDO.irl;
       const n = normalizarIRL(irl);
       if (n) window.IRL_DATOS = n;
@@ -7557,7 +7562,7 @@
     async function activarPaquete(p, abrirEmpresa = true) {
       const { irl, ...liviano } = p;
       await bitacora("Formatos cambiados", { det: p.nombre || p.empresa?.nombre || "" });
-      try { localStorage.setItem("pt_paquete", JSON.stringify(liviano)); }
+      try { localStorage.removeItem("pt_cfg_origen_sync"); localStorage.setItem("pt_paquete", JSON.stringify(liviano)); }
       catch (e) { document.getElementById("msjPaquete").textContent = "No hay espacio en este navegador para el paquete (¿logo muy pesado?). Libera espacio o achica el logo."; return; }
       if (irl) await bdPaquete("readwrite", s => s.put(irl, "irl")); else await bdPaquete("readwrite", s => s.delete("irl"));
       if (abrirEmpresa) sessionStorage.setItem("pt_abrirEmpresa", "1");
@@ -7568,6 +7573,7 @@
       // Si se edita el paquete incluido, se guarda una copia propia completa (con sus IRL)
       if (!PAQUETE_PROPIO && window.PAQUETE_INCLUIDO?.irl) await bdPaquete("readwrite", s => s.put(window.PAQUETE_INCLUIDO.irl, "irl"));
       localStorage.setItem("pt_paquete", JSON.stringify(liviano));
+      detectarCambiosCfg(); programarSyncCfg();
     }
 
     async function pintarEmpresa() {
@@ -7662,7 +7668,7 @@
     }
     async function quitarPaquete(boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; const texto = boton.textContent; boton.textContent = "¿Seguro? Toca otra vez"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = texto; }, 4000); return; }
-      localStorage.removeItem("pt_paquete");
+      localStorage.removeItem("pt_paquete"); localStorage.removeItem("pt_cfg_origen_sync");
       try { await bdPaquete("readwrite", s => s.delete("irl")); } catch {}
       sessionStorage.setItem("pt_abrirEmpresa", "1");
       location.reload();
@@ -9692,7 +9698,7 @@
       } finally { sincronizandoBib = false; textoSyncBib(); }
     }
     // Sincronización en segundo plano (sin molestar)
-    const autoSyncDrive = () => { if (!document.hidden) { traerBibliotecaDrive(true, true); } };
+    const autoSyncDrive = () => { if (!document.hidden) { traerBibliotecaDrive(true, true); sincronizarCfg(true, true); } };
     window.addEventListener("online", () => setTimeout(autoSyncDrive, 1500));
     document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(autoSyncDrive, 800); });
 
@@ -10504,9 +10510,161 @@
       } catch (e) { console.warn(e); err.textContent = "No se pudo armar el PDF: " + e.message; msj.textContent = ""; }
     }
 
+    /* =====================================================================
+       CONFIGURACIÓN COMPARTIDA POR DRIVE (mismo patrón que la biblioteca): lo que se llena en "Empresa y formatos" y los datos del contrato viajan por tu Drive,
+       así el notebook, la tablet y el teléfono tienen lo mismo. Dos archivos en "Prevención en Terreno/":
+         config-equipo.json  -> bloques: contrato, responsables, emergencia, obra (ubicación UV + medidas + rutas)
+         config-paquete.json -> bloque: paquete (empresa, logo, representante, datos de accidentes, departamentos, textos de charla, checklists y plantillas; SIN las IRL)
+       Cada bloque = { ver, mod, datos }. Reglas (por bloque):
+        - Un equipo VACÍO toma lo de Drive sin preguntar. Primer contacto con datos distintos en ambos: gana Drive (lo reemplazado queda en pt_cfg_previo).
+        - Si solo cambió este equipo -> se sube. Si solo cambió Drive -> se adopta (y la app se recarga una vez). Si cambiaron los dos -> gana el "mod" más reciente (desempata "ver").
+        - "ver" se incrementa en cada cambio local y siempre queda sobre la versión de Drive vista: un reloj atrasado NO hace perder un cambio hecho sobre lo ya sincronizado.
+        - Un bloque que quedó vacío a propósito (ej. "Volver a los formatos incluidos") no se repone solo ni se sube vacío.
+       No viajan: token/estado de Drive, tema, registros, contraseña de respaldo, listado de personal, cuadrillas, programa anual, IRL ni matriz (ver reporte).
+       ===================================================================== */
+    const CFG_ARCHIVOS = {
+      "config-equipo.json": { contrato: ["pt_inf_contrato"], responsables: ["pt_responsables"], emergencia: ["pt_emergencia"], obra: ["pt_obra_geo", "pt_uv_medidas", "pt_rutas"] },
+      "config-paquete.json": { paquete: ["pt_paquete"] }
+    };
+    const CFG_MAX = { "config-equipo.json": 600 * 1024, "config-paquete.json": 3 * 1024 * 1024 };
+    const CFG_CLAVES = new Set(Object.values(CFG_ARCHIVOS).flatMap(b => Object.values(b).flat()));
+    const hashCfg = t => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return t.length + ":" + (h >>> 0).toString(36); };
+    const leerBloqueCfg = claves => claves.map(k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } });
+    const vacioCfg = v => v === null || v === undefined || v === "" || (typeof v === "object" && !Object.keys(v).length);
+    const bloqueVacioCfg = datos => datos.every(vacioCfg);
+    const huellaBloqueCfg = datos => hashCfg(JSON.stringify(datos));
+    const aObjetoCfg = (claves, datos) => Object.fromEntries(claves.map((k, i) => [k, datos[i] ?? null]));
+    // Anota los cambios hechos en este equipo (con su versión y hora). Barato: se llama al guardar, al abrir y antes de sincronizar.
+    function detectarCambiosCfg() {
+      const meta = leerGuardado("pt_cfg_meta", {}); let cambio = false;
+      for (const bl of Object.values(CFG_ARCHIVOS)) for (const [b, claves] of Object.entries(bl)) {
+        const datos = leerBloqueCfg(claves), h = huellaBloqueCfg(datos), vacio = bloqueVacioCfg(datos), m = meta[b] || (meta[b] = { h: "", v: 0, ver: 0, mod: 0, hl: "" });
+        if (h === m.hl && m.ev === vacio) continue;
+        if (vacio && m.ev === false) m.vacio = true;   // lo dejaron vacío a propósito
+        if (!vacio) m.vacio = false;
+        m.ev = vacio; m.hl = h; cambio = true;
+        if (!vacio && h !== m.h) { m.ver = Math.max(m.ver, m.v) + 1; m.mod = Date.now(); }
+      }
+      if (cambio) guardar("pt_cfg_meta", meta);
+      return cambio;
+    }
+    // Qué hacer con un bloque: "nada" | "acordar" | "adoptar" | "empujar" (+ conflicto)
+    function decidirBloqueCfg(m, hL, vacioL, R, hR, ahora = Date.now()) {
+      if (!R) return { acc: vacioL ? "nada" : "empujar" };
+      if (hR === hL) return { acc: "acordar" };
+      if (vacioL) return { acc: m.vacio ? "nada" : "adoptar" };
+      const cambioLocal = hL !== m.h, cambioRemoto = hR !== m.h;
+      if (!cambioLocal && cambioRemoto) return { acc: "adoptar" };
+      if (cambioLocal && !cambioRemoto) return { acc: "empujar" };
+      if (!m.h) return { acc: "adoptar", conflicto: true };   // primer contacto con datos distintos: manda Drive
+      const t = x => Math.min(+x || 0, ahora + 864e5);
+      const gana = t(m.mod) > t(R.mod) || (t(m.mod) === t(R.mod) && m.ver > R.ver);
+      return { acc: gana ? "empujar" : "adoptar", conflicto: true };
+    }
+    function bloqueRemotoValido(claves, b) {
+      if (!b || typeof b !== "object" || !b.datos || typeof b.datos !== "object" || Array.isArray(b.datos)) return null;
+      const datos = claves.map(k => b.datos[k] ?? null);
+      if (datos.some(v => !(v === null || ["object", "string", "number", "boolean"].includes(typeof v)))) return null;
+      const i = claves.indexOf("pt_paquete");
+      if (i >= 0 && datos[i] !== null && (typeof datos[i] !== "object" || datos[i].formato !== "prevencion-terreno/paquete")) return null;
+      return { ver: Math.max(0, Math.floor(+b.ver || 0)), mod: Math.max(0, Math.floor(+b.mod || 0)), datos };
+    }
+    // Lee un archivo de configuración de Drive. Si no cambió desde la última vez (modifiedTime) y no hay nada local pendiente, no lo descarga.
+    async function leerCfgRemoto(arch, forzar) {
+      const carpeta = await driveCarpeta([DRIVE_RAIZ]);
+      const q = `name='${arch}' and '${carpeta}' in parents and trashed=false`;
+      const lista = await (await driveFetch(`${DRIVE_API}/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=modifiedTime%20desc&fields=files(id,modifiedTime)&spaces=drive`)).json();
+      const f = lista.files && lista.files[0];
+      if (!f) return { id: "", mt: "", bloques: {}, crudo: {} };
+      const visto = (leerGuardado("pt_cfg_meta", {})._visto || {})[arch];
+      if (!forzar && visto && visto === f.modifiedTime) return { id: f.id, mt: f.modifiedTime, igual: true, bloques: {}, crudo: {} };
+      const txt = await (await driveFetch(`${DRIVE_API}/drive/v3/files/${encodeURIComponent(f.id)}?alt=media`)).text();
+      let j = null; try { j = txt.length <= CFG_MAX[arch] ? JSON.parse(txt) : null; } catch {}
+      const bloques = {}, crudo = {};
+      if (j && j.v === 1 && j.bloques && typeof j.bloques === "object") {
+        for (const [b, claves] of Object.entries(CFG_ARCHIVOS[arch])) { const v = bloqueRemotoValido(claves, j.bloques[b]); if (v) bloques[b] = v; }
+        for (const [b, v] of Object.entries(j.bloques)) if (/^[a-z]{1,20}$/.test(b)) crudo[b] = v;   // se conservan tal cual (incluso los que esta versión no conoce)
+      }
+      return { id: f.id, mt: f.modifiedTime, bloques, crudo, danado: !j };
+    }
+    let sincronizandoCfg = false, ultimaSyncCfg = +leerGuardado("pt_cfg_sync", 0) || 0, extraCfg = "", temporizadorCfg = null;
+    function hayCfgPendiente() {
+      const meta = leerGuardado("pt_cfg_meta", {});
+      return Object.values(CFG_ARCHIVOS).some(bl => Object.entries(bl).some(([b, claves]) => meta[b] && meta[b].hl !== meta[b].h && !bloqueVacioCfg(leerBloqueCfg(claves))));
+    }
+    function textoSyncCfg(t) {
+      const el = document.getElementById("cfgSyncTxt"); if (!el) return;
+      el.textContent = t || (sincronizandoCfg ? "☁️ Sincronizando la configuración…" : !driveConfigurado() ? "Con Google Drive conectado, la configuración se comparte entre tus equipos." : ultimaSyncCfg ? `☁️ Configuración al día ${hace(Date.now() - ultimaSyncCfg)}${extraCfg ? " · " + extraCfg : ""}` : "☁️ Configuración aún sin sincronizar");
+    }
+    function programarSyncCfg() { clearTimeout(temporizadorCfg); temporizadorCfg = setTimeout(() => sincronizarCfg(true), 4000); }
+    async function sincronizarCfg(silencioso = true, respetarEspera = false) {
+      if (sincronizandoCfg) return;
+      if (!driveConfigurado() || !navigator.onLine || !driveToken()) {
+        if (!silencioso) textoSyncCfg(!driveConfigurado() ? "Primero conecta Google Drive." : !navigator.onLine ? "Sin señal: se sincroniza sola cuando vuelva internet." : "Google Drive necesita reconectarse (aviso de Mi día).");
+        else { if (driveConfigurado() && navigator.onLine) extraCfg = "sin conexión con Drive"; textoSyncCfg(); }
+        return;
+      }
+      detectarCambiosCfg();
+      if (respetarEspera && Date.now() - ultimaSyncCfg < 120000 && !hayCfgPendiente()) return;
+      sincronizandoCfg = true; extraCfg = ""; textoSyncCfg();
+      const adoptados = []; let conflicto = false, aplazados = 0;
+      try {
+        const meta = leerGuardado("pt_cfg_meta", {}); meta._visto = meta._visto || {};
+        for (const [arch, bl] of Object.entries(CFG_ARCHIVOS)) {
+          const sucia = Object.entries(bl).some(([b, claves]) => meta[b] && meta[b].hl !== meta[b].h && !bloqueVacioCfg(leerBloqueCfg(claves)));
+          const rem = await leerCfgRemoto(arch, sucia || !meta._visto[arch]);
+          if (rem.igual) continue;
+          const subir = {}, aplazadosAntes = aplazados;
+          for (const [b, claves] of Object.entries(bl)) {
+            const m = meta[b] || (meta[b] = { h: "", v: 0, ver: 0, mod: 0, hl: "" });
+            const datosL = leerBloqueCfg(claves), hL = huellaBloqueCfg(datosL), vacioL = bloqueVacioCfg(datosL);
+            const R = rem.bloques[b] || null, hR = R ? huellaBloqueCfg(R.datos) : null;
+            const d = decidirBloqueCfg(m, hL, vacioL, R, hR);
+            if (d.acc === "acordar") { m.h = hL; m.hl = hL; m.v = R.ver; m.ver = Math.max(m.ver, R.ver); }
+            else if (d.acc === "empujar") { const ver = Math.max(m.ver, (R ? R.ver : 0) + 1); subir[b] = { ver, mod: m.mod || Date.now(), datos: aObjetoCfg(claves, datosL), h: hL }; }
+            else if (d.acc === "adoptar") {
+              if (hayDatosSinGuardar() || (+sessionStorage.getItem("pt_cfg_recargas") || 0) >= 3) { aplazados++; continue; }   // no se recarga con algo a medio llenar
+              if (!vacioL) { const prev = leerGuardado("pt_cfg_previo", {}); prev[b] = { datos: aObjetoCfg(claves, datosL), cuando: Date.now() }; guardar("pt_cfg_previo", prev); }
+              claves.forEach((k, i) => { const v = R.datos[i]; try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch {} });
+              if (b === "paquete") { try { localStorage.setItem("pt_cfg_origen_sync", "1"); } catch {} }
+              Object.assign(m, { h: hR, hl: hR, v: R.ver, ver: R.ver, mod: R.mod, ev: false, vacio: false });
+              adoptados.push(b); if (d.conflicto) conflicto = true;
+            }
+          }
+          if (Object.keys(subir).length) {
+            const bloques = { ...rem.crudo };
+            for (const [b, s] of Object.entries(subir)) bloques[b] = { ver: s.ver, mod: s.mod, datos: s.datos };
+            const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, actualizado: Date.now(), bloques }));
+            if (bytes.length > CFG_MAX[arch]) { extraCfg = "la configuración es demasiado grande para compartirla"; continue; }
+            await subirArchivoDrive(arch, bytes, "application/json", [DRIVE_RAIZ], rem.id);
+            for (const s of Object.entries(subir)) { const m = meta[s[0]]; m.h = s[1].h; m.hl = s[1].h; m.v = s[1].ver; m.ver = s[1].ver; }
+            meta._visto[arch] = "";   // la próxima vez se vuelve a leer (el modifiedTime nuevo lo pone Drive)
+          } else if (rem.mt && !rem.danado && aplazados === aplazadosAntes) meta._visto[arch] = rem.mt;
+        }
+        guardar("pt_cfg_meta", meta);
+        ultimaSyncCfg = Date.now(); guardar("pt_cfg_sync", ultimaSyncCfg);
+        if (aplazados) extraCfg = "hay cambios de otro equipo; se aplican cuando no estés llenando algo";
+        if (adoptados.length) {
+          sessionStorage.setItem("pt_cfg_recargas", String((+sessionStorage.getItem("pt_cfg_recargas") || 0) + 1));
+          sessionStorage.setItem("pt_cfg_aviso", conflicto ? "Configuración actualizada desde otro equipo (se usó la más reciente)" : "Configuración actualizada desde otro equipo");
+          bitacora("Configuración actualizada desde Drive", { det: adoptados.join(", ") });
+          setTimeout(() => location.reload(), 300);
+          return;
+        }
+      } catch (e) { extraCfg = e.sinPermiso ? "Google Drive necesita reconectarse" : silencioso ? "sin conexión con Drive" : "no se pudo sincronizar (" + e.message + ")"; }
+      finally { sincronizandoCfg = false; textoSyncCfg(); }
+    }
+    // Cualquier cambio de configuración hecho aquí se anota y se sube en unos segundos
+    {
+      const _guardarCfg = guardar;
+      guardar = function (clave) { const r = _guardarCfg.apply(this, arguments); if (CFG_CLAVES.has(clave) && detectarCambiosCfg()) programarSyncCfg(); return r; };
+    }
+    detectarCambiosCfg();
+    try { const a = sessionStorage.getItem("pt_cfg_aviso"); if (a) { sessionStorage.removeItem("pt_cfg_aviso"); extraCfg = a; const c = document.getElementById("cfgAviso"); if (c) { c.textContent = "☁️ " + a; c.style.display = "block"; setTimeout(() => { c.style.display = "none"; }, 20000); } } } catch {}
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
