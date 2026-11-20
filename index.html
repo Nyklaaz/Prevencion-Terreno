@@ -641,6 +641,7 @@
       </div>
       <p class="empresa-activa" id="empresaActiva"></p>
       <p class="mensaje" id="cfgAviso" style="display:none"></p>
+      <button type="button" class="aviso-programa" id="avisoEquipo" style="display:none" onclick="mostrar('ajustes')"><b>🔖 ¿Qué equipo es este?</b><span>Elígelo en Ajustes (Notebook, Tablet o Teléfono): así cada documento nuevo dice dónde se hizo. Toca aquí.</span></button>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoPlazoAcc" style="display:none" onclick="mostrar('accidentes')"></button>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
       <button type="button" class="aviso-programa" id="avisoDrive" style="display:none" onclick="conectarDrive()"></button>
@@ -731,6 +732,15 @@
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><span class="menu-txt">Empezar de cero<small>Borra los registros de este equipo y conserva la configuración</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <label class="menu-btn ajuste-tema"><span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></span><span class="menu-txt">Modo oscuro<small>Cambia los colores de la pantalla</small></span><input type="checkbox" id="temaOscuro" onchange="cambiarTema(this.checked)" aria-label="Modo oscuro"></label>
+      <div class="tarjeta" id="equipoCaja">
+        <h2>Este equipo</h2>
+        <p class="ayuda" id="equipoTxt"></p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <button type="button" id="equipoN" class="btn btn-secundario" style="margin:0" onclick="elegirEquipo('N')">💻 Notebook</button>
+          <button type="button" id="equipoT" class="btn btn-secundario" style="margin:0" onclick="elegirEquipo('T')">📱 Tablet</button>
+          <button type="button" id="equipoP" class="btn btn-secundario" style="margin:0" onclick="elegirEquipo('P')">📞 Teléfono</button>
+        </div>
+      </div>
       <button class="menu-btn" onclick="mostrar('acerca')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span><span class="menu-txt">Acerca de<small>APR · versión y licencia</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
@@ -1379,6 +1389,7 @@
         <p class="ayuda">Cada PDF que generes se guarda solo en tu Google Drive, en la carpeta "Prevención en Terreno", ordenado por mes y tipo. Sin señal, queda en cola y sube apenas haya internet. La app solo puede ver los archivos que ella misma crea en tu Drive.</p>
         <p class="mensaje" id="driveEstado"></p>
         <p class="mensaje" id="cfgSync" style="display:flex;align-items:center;gap:8px;margin:8px 0"><span id="cfgSyncTxt" style="flex:1"></span><button type="button" id="cfgRefrescar" aria-label="Sincronizar la configuración con Drive" title="Sincronizar la configuración" onclick="sincronizarCfg(false)" style="background:none;border:1px solid var(--borde,#c9d3e6);border-radius:8px;min-width:36px;min-height:36px;font-size:18px;line-height:1;color:inherit;cursor:pointer">↻</button></p>
+        <p class="mensaje" id="lsSync" style="display:flex;align-items:center;gap:8px;margin:8px 0"><span id="lsSyncTxt" style="flex:1"></span><button type="button" id="lsRefrescar" aria-label="Sincronizar personas y listas con Drive" title="Sincronizar personas y listas" onclick="sincronizarListas(false)" style="background:none;border:1px solid var(--borde,#c9d3e6);border-radius:8px;min-width:36px;min-height:36px;font-size:18px;line-height:1;color:inherit;cursor:pointer">↻</button></p>
         <div class="dos-col" style="margin-top:10px">
           <button type="button" class="btn btn-principal" style="margin:0" onclick="conectarDrive()">☁️ Conectar Google Drive</button>
           <button type="button" class="btn btn-secundario" style="margin:0" onclick="subirPendientesDrive(true)">Subir pendientes</button>
@@ -2494,9 +2505,12 @@
         if (lista.length) { guardarCargosMulti(rut, lista); conCargo++; }
         else if (!cargos[rut]) { cargos[rut] = tipoTitulo(p.cargo); guardar("pt_cargos", cargos); }
       }
+      const antes = ((listado && listado.lista) || []).map(p => claveRut(p.rut)), despues = new Set(datos.lista.map(p => claveRut(p.rut)));
       listado = datos;
       guardar("pt_listado", datos);
       mostrarListado();
+      const quitados = antes.filter(k => k.length > 2 && !despues.has(k));
+      if (quitados.length) lsBaja("trabajadores", quitados);   // el Excel nuevo los dejó fuera a propósito: la baja viaja a los otros equipos
     }
 
     function mostrarListado() {
@@ -2801,7 +2815,7 @@
       if (id === "historial") { pintarHistorial(); pintarBitacora(); }
       if (id === "chequeo") iniciarCheck();
       if (id === "informe") iniciarInforme();
-      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); mostrarBloqueoCero(); textoSyncCfg(); }
+      if (id === "empresa") { pintarEmpresa(); pintarDrive(); pintarVersion(); pintarConsentimientos(); mostrarBloqueoCero(); textoSyncCfg(); textoLs(); }
       if (id === "calendario") iniciarCalendario();
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
@@ -3987,7 +4001,7 @@
     const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG", casi: "CAS", biblioteca: "BIB", relevo: "REL" };
     function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
-      return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
+      return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}${letraEquipo() ? "-" + letraEquipo() : ""}-${[...r].map(x => abc[x % abc.length]).join("")}`;
     }
     async function huella(bytes) {
       if (!crypto.subtle) return "";
@@ -6297,7 +6311,7 @@
           if (r.folio) d.setKeywords(["prevencion-terreno", "folio:" + r.folio]);   // el folio sigue siendo verificable en el PC
           const pdf = await d.save(), hashCopia = await huella(pdf);   // la copia separada en el PC también se reconoce como original
           await operacionBD("readwrite", s => s.put({ ...(r.tipo === "documento" ? { plantilla: idSeguroTxt(r.plantilla) ? r.plantilla : "", asistentes: +r.asistentes || 0, horasPersona: +r.horasPersona || 0 } : {}), tipo: r.tipo, fecha: r.fecha, asunto: r.asunto, detalle: r.detalle, nombreArchivo: r.nombreArchivo, creado: r.creado, folio: r.folio || "", hash: r.hash || "", hashCopia, pdf,
-            version: +r.version || 1, ...(/^[A-Z]{2,4}-\d{6}-[A-Z0-9]{4}$/.test(r.reemplaza || "") ? { reemplaza: r.reemplaza } : {}), ...(/^[A-Z]{2,4}-\d{6}-[A-Z0-9]{4}$/.test(r.reemplazadoPor || "") ? { reemplazadoPor: r.reemplazadoPor } : {}) }));
+            version: +r.version || 1, ...(/^[A-Z]{2,4}-\d{6}(-[NTP])?-[A-Z0-9]{4}$/.test(r.reemplaza || "") ? { reemplaza: r.reemplaza } : {}), ...(/^[A-Z]{2,4}-\d{6}(-[NTP])?-[A-Z0-9]{4}$/.test(r.reemplazadoPor || "") ? { reemplazadoPor: r.reemplazadoPor } : {}) }));
           nuevos++;
         }
         bitacora("Registros cargados del celular", { det: `${a.name} · ${nuevos} nuevo(s)` });
@@ -9711,7 +9725,7 @@
       } finally { sincronizandoBib = false; textoSyncBib(); }
     }
     // Sincronización en segundo plano (sin molestar)
-    const autoSyncDrive = () => { if (!document.hidden) { traerBibliotecaDrive(true, true); sincronizarCfg(true, true); } };
+    const autoSyncDrive = () => { if (!document.hidden) { traerBibliotecaDrive(true, true); sincronizarCfg(true, true); lsSincronizarTodo(true, true); } };
     window.addEventListener("online", () => setTimeout(autoSyncDrive, 1500));
     document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(autoSyncDrive, 800); });
 
@@ -10355,7 +10369,7 @@
     function borrarCuadrilla(id) {
       const c = cuadrillas.find(x => x.id === id);
       if (!c || !confirm(`¿Borrar la cuadrilla "${c.nombre}"?`)) return;
-      cuadrillas = cuadrillas.filter(x => x.id !== id); guardar("pt_cuadrillas", cuadrillas);
+      cuadrillas = cuadrillas.filter(x => x.id !== id); guardar("pt_cuadrillas", cuadrillas); lsBaja("cuadrillas", [id]);
       bitacora("Cuadrilla borrada", { doc: c.nombre });
       pintarCharlaExpress();
     }
@@ -10690,9 +10704,211 @@
     detectarCambiosCfg();
     try { const a = sessionStorage.getItem("pt_cfg_aviso"); if (a) { sessionStorage.removeItem("pt_cfg_aviso"); extraCfg = a; const c = document.getElementById("cfgAviso"); if (c) { c.textContent = "☁️ " + a; c.style.display = "block"; setTimeout(() => { c.style.display = "none"; }, 20000); } } } catch {}
 
+    /* =====================================================================
+       ESTE EQUIPO (N notebook · T tablet · P teléfono): la letra va en los folios NUEVOS (CH-261124-T-XXXX) para saber dónde se hizo cada documento.
+       pt_equipo es de cada equipo: se conserva en "Empezar de cero" y NO va en el respaldo (un respaldo no debe cambiar qué equipo es este).
+       ===================================================================== */
+    const EQUIPOS = { N: "💻 Notebook", T: "📱 Tablet", P: "📞 Teléfono" };
+    const letraEquipo = () => { const v = leerGuardado("pt_equipo", ""); return EQUIPOS[v] ? v : ""; };
+    function elegirEquipo(l) { if (!EQUIPOS[l]) return; guardar("pt_equipo", l); pintarEquipo(); }
+    function pintarEquipo() {
+      const l = letraEquipo();
+      for (const k of Object.keys(EQUIPOS)) { const b = document.getElementById("equipo" + k); if (b) b.className = "btn " + (k === l ? "btn-principal" : "btn-secundario"); }
+      const t = document.getElementById("equipoTxt");
+      if (t) t.textContent = l ? `Este equipo es: ${EQUIPOS[l]}. Los documentos nuevos llevan la letra ${l} en su folio.` : "Elige qué equipo es este: cada documento nuevo dirá en cuál se hizo y así no se confunden entre equipos.";
+      const a = document.getElementById("avisoEquipo"); if (a) a.style.display = l ? "none" : "block";
+    }
+    pintarEquipo();
+
+    /* =====================================================================
+       SINCRONIZACIÓN DE LISTAS POR DRIVE (trabajadores, cuadrillas… y las de las tandas siguientes). Un archivo por dominio en "Prevención en Terreno/":
+         { v:1, actualizado, items: { id: { ver, mod, d } }, bajas: { id: momento }, extra }
+       - Se fusiona POR REGISTRO. Solo cambió aquí → sube; solo cambió Drive → se adopta (sin recargar la app, se repinta); cambiaron los dos → gana el "mod" más reciente (desempata "ver").
+         "ver" siempre queda sobre lo visto en Drive: un reloj atrasado no pierde un cambio hecho sobre lo ya sincronizado.
+       - NUNCA se borra solo: lo que desaparece de un equipo sin que nadie lo pida vuelve desde Drive. Solo una baja pedida a propósito (lsBaja) viaja como "baja"
+         y se anula si el registro se vuelve a crear después.
+       - Si el usuario está llenando algo, lo que llega de otro equipo se aplica después (lo propio sí sube).
+       ===================================================================== */
+    const LS = {};
+    const LS_MAX = 3 * 1024 * 1024;
+    let lsOcupado = false, lsAplicando = false, lsUltima = +leerGuardado("pt_ls_sync", 0) || 0, lsUltimaMem = 0, lsExtra = "", lsTemp = null, lsReintentos = 0;
+    const lsMeta = () => leerGuardado("pt_ls_meta", {});
+    const huellaLs = it => hashCfg(JSON.stringify(it));
+    const lsClamp = x => Math.min(Math.max(0, Math.floor(+x || 0)), Date.now() + 864e5);
+    function lsDetectar(nombre, meta) {
+      const dom = LS[nombre], m = meta[nombre] || (meta[nombre] = { it: {}, bajas: {}, visto: "", bp: false });
+      let cambio = false;
+      for (const [id, it] of dom.leer()) {
+        const h = huellaLs(it), x = m.it[id];
+        if (!x) { m.it[id] = { h, ha: "", va: 0, ver: 1, mod: Date.now() }; cambio = true; }
+        else if (x.h !== h) { x.h = h; x.ver = Math.max(x.ver, x.va) + 1; x.mod = Date.now(); cambio = true; }
+      }
+      return cambio;
+    }
+    // Quitar a propósito (lo pidió la persona): deja una baja que viaja a los otros equipos
+    function lsBaja(nombre, ids) {
+      const meta = lsMeta(), m = meta[nombre] || (meta[nombre] = { it: {}, bajas: {}, visto: "", bp: false });
+      for (const id of ids) { m.bajas[id] = Date.now(); delete m.it[id]; }
+      m.bp = true; guardar("pt_ls_meta", meta); lsProgramar();
+    }
+    function lsProgramar() { if (lsAplicando) return; clearTimeout(lsTemp); lsTemp = setTimeout(() => lsSincronizarTodo(true), 4000); }
+    async function lsLeerRemoto(dom, forzar, meta) {
+      const carpeta = await driveCarpeta([DRIVE_RAIZ]);
+      const q = `name='${dom.archivo}' and '${carpeta}' in parents and trashed=false`;
+      const lista = await (await driveFetch(`${DRIVE_API}/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=modifiedTime%20desc&fields=files(id,modifiedTime)&spaces=drive`)).json();
+      const f = lista.files && lista.files[0];
+      if (!f) return { id: "", mt: "", items: {}, bajas: {}, extra: null };
+      if (!forzar && meta.visto && meta.visto === f.modifiedTime) return { id: f.id, mt: f.modifiedTime, igual: true, items: {}, bajas: {}, extra: null };
+      const txt = await (await driveFetch(`${DRIVE_API}/drive/v3/files/${encodeURIComponent(f.id)}?alt=media`)).text();
+      let j = null; try { j = txt.length <= LS_MAX ? JSON.parse(txt) : null; } catch {}
+      const items = {}, bajas = {};
+      if (j && j.v === 1 && j.items && typeof j.items === "object") for (const [id, e] of Object.entries(j.items).slice(0, 20000)) {
+        if (!/^[\w-]{1,40}$/.test(id) || !e || typeof e !== "object") continue;
+        const d = dom.limpiar(e.d, id); if (d) items[id] = { ver: Math.max(0, Math.floor(+e.ver || 0)), mod: lsClamp(e.mod), d };
+      }
+      if (j && j.bajas && typeof j.bajas === "object") for (const [id, t] of Object.entries(j.bajas)) if (/^[\w-]{1,40}$/.test(id) && +t > 0) bajas[id] = lsClamp(t);
+      return { id: f.id, mt: f.modifiedTime, items, bajas, extra: j && j.extra && typeof j.extra === "object" ? j.extra : null, danado: !j };
+    }
+    // Sincroniza un dominio. Devuelve cuántos registros llegaron/quitaron de otros equipos y cuántos subió.
+    async function lsSincronizar(nombre, forzar = false) {
+      const dom = LS[nombre], meta = lsMeta(); lsDetectar(nombre, meta);
+      const m = meta[nombre], res = { adoptados: 0, quitados: 0, subidos: 0, aplazado: false };
+      const sucia = m.bp || Object.values(m.it).some(x => x.h !== x.ha);
+      const rem = await lsLeerRemoto(dom, sucia || forzar || !m.visto, m);
+      if (rem.igual) return res;
+      const local = dom.leer(), bajas = { ...rem.bajas };
+      for (const [id, t] of Object.entries(m.bajas)) bajas[id] = Math.max(bajas[id] || 0, t);
+      const adoptar = new Map(), quitar = new Set(), subir = new Map();
+      for (const id of new Set([...local.keys(), ...Object.keys(rem.items)])) {
+        const L = local.get(id), x = m.it[id], R = rem.items[id], t = bajas[id] || 0;
+        const modL = x && L ? x.mod : 0, modR = R ? R.mod : 0;
+        if (t && t >= modL && t >= modR) { if (L) quitar.add(id); delete m.it[id]; continue; }   // baja vigente
+        if (t) delete bajas[id];                                                                    // se volvió a crear después de la baja
+        if (L && !R) { subir.set(id, { ver: x.ver, mod: x.mod, d: L }); continue; }
+        if (!L && R) { adoptar.set(id, R); continue; }
+        const hL = huellaLs(L), hR = huellaLs(R.d);
+        if (hL === hR) { x.h = hL; x.ha = hL; x.va = R.ver; x.ver = Math.max(x.ver, R.ver); continue; }
+        const cl = hL !== x.ha, cr = hR !== x.ha;
+        const gana = !x.ha ? "R" : (!cl && cr) ? "R" : (cl && !cr) ? "L" : (x.mod > R.mod || (x.mod === R.mod && x.ver > R.ver)) ? "L" : "R";
+        if (gana === "R") adoptar.set(id, R); else subir.set(id, { ver: Math.max(x.ver, R.ver + 1), mod: x.mod, d: L });
+      }
+      // Lo que llega de otros equipos no se aplica con algo a medio llenar (se reintenta enseguida)
+      if ((adoptar.size || quitar.size) && hayDatosSinGuardar()) { res.aplazado = true; adoptar.clear(); quitar.clear(); }
+      if (adoptar.size || quitar.size) {
+        lsAplicando = true;
+        try { dom.aplicar(new Map([...adoptar].map(([id, R]) => [id, R.d])), quitar); } finally { lsAplicando = false; }
+        const l2 = dom.leer();
+        for (const [id, R] of adoptar) { const h = l2.has(id) ? huellaLs(l2.get(id)) : huellaLs(R.d); m.it[id] = { h, ha: h, va: R.ver, ver: R.ver, mod: R.mod }; }
+        res.adoptados = adoptar.size; res.quitados = quitar.size;
+      }
+      if (rem.extra && dom.extraAplicar) { try { dom.extraAplicar(rem.extra); } catch {} }
+      const pushBajas = Object.keys(bajas).some(id => bajas[id] !== (rem.bajas[id] || 0));
+      if (subir.size || pushBajas || m.bp) {
+        const items = {};
+        for (const [id, R] of Object.entries(rem.items)) items[id] = { ver: R.ver, mod: R.mod, d: R.d };
+        for (const [id, v] of subir) items[id] = v;
+        for (const id of Object.keys(bajas)) delete items[id];
+        const hace180 = Date.now() - 180 * 864e5;
+        for (const id of Object.keys(bajas)) if (bajas[id] < hace180) delete bajas[id];
+        const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, actualizado: Date.now(), items, bajas, extra: dom.extraLeer ? dom.extraLeer() : undefined }));
+        if (bytes.length > LS_MAX) throw new Error("la lista es demasiado grande para compartirla");
+        await subirArchivoDrive(dom.archivo, bytes, "application/json", [DRIVE_RAIZ], rem.id);
+        for (const [id, v] of subir) { const x = m.it[id]; if (x) { x.ha = x.h; x.va = v.ver; x.ver = v.ver; } }
+        m.bajas = bajas; m.bp = false; m.visto = ""; res.subidos = subir.size;
+      } else if (rem.mt && !rem.danado) m.visto = rem.mt;
+      guardar("pt_ls_meta", meta);
+      return res;
+    }
+    function textoLs(t) {
+      const el = document.getElementById("lsSyncTxt"); if (!el) return;
+      el.textContent = t || (lsOcupado ? "☁️ Sincronizando personas y listas…" : !driveConfigurado() ? "Con Google Drive conectado, las personas y listas se comparten entre tus equipos." : lsUltima ? `☁️ Personas y listas al día ${hace(Date.now() - lsUltima)}${lsExtra ? " · " + lsExtra : ""}` : "☁️ Personas y listas aún sin sincronizar");
+    }
+    function lsHayPendiente() { const meta = lsMeta(); return Object.entries(LS).some(([n, d]) => { const m = meta[n]; return !m || m.bp || [...d.leer()].some(([id, it]) => !m.it[id] || m.it[id].h !== huellaLs(it) || m.it[id].h !== m.it[id].ha); }); }
+    async function lsSincronizarTodo(silencioso = true, respetarEspera = false) {
+      if (lsOcupado) return;
+      if (!driveConfigurado() || !navigator.onLine || !driveToken()) { if (!silencioso) textoLs(!driveConfigurado() ? "Primero conecta Google Drive." : !navigator.onLine ? "Sin señal: se sincroniza sola cuando vuelva internet." : "Google Drive necesita reconectarse (aviso de Mi día)."); else { if (driveConfigurado() && navigator.onLine) lsExtra = "sin conexión con Drive"; textoLs(); } return; }
+      const vacio = Object.values(LS).every(d => d.leer().size === 0);
+      if (respetarEspera && Date.now() - lsUltimaMem < 120000 && !lsHayPendiente() && !vacio) return;
+      lsOcupado = true; lsExtra = ""; textoLs();
+      let nuevos = 0, quitados = 0, aplazado = false;
+      try {
+        for (const n of Object.keys(LS)) { const r = await lsSincronizar(n); nuevos += r.adoptados; quitados += r.quitados; aplazado = aplazado || r.aplazado; }
+        lsUltima = lsUltimaMem = Date.now(); guardar("pt_ls_sync", lsUltima);
+        if (aplazado) { lsExtra = "hay cambios de otro equipo; se aplican cuando no estés llenando algo"; setTimeout(() => lsSincronizarTodo(true), 60000); }
+        else if (nuevos || quitados) lsExtra = `${nuevos} registro(s) recibidos de otro equipo${quitados ? `, ${quitados} quitado(s)` : ""}`;
+      } catch (e) { lsExtra = e.sinPermiso ? "Google Drive necesita reconectarse" : silencioso ? "sin conexión con Drive" : "no se pudo sincronizar (" + e.message + ")"; }
+      finally {
+        lsOcupado = false; textoLs();
+        if (vacio && Object.values(LS).every(d => d.leer().size === 0) && lsReintentos < 6) { lsReintentos++; setTimeout(() => { if (!document.hidden) lsSincronizarTodo(true); else lsReintentos--; }, 15000); }
+      }
+    }
+    const sincronizarListas = silencioso => lsSincronizarTodo(silencioso);
+
+    // ----- Dominio: trabajadores (listado, cargos, departamentos, fichas…) por RUT -----
+    const fechaLs = x => /^\d{4}-\d{2}-\d{2}$/.test(String(x ?? "")) ? String(x) : "";
+    function normTrab(o) {
+      const f = o.fi && typeof o.fi === "object" ? o.fi : {};
+      return { n: textoCorto(o.n, 100), r: textoCorto(o.r, 14), i: fechaLs(o.i), c: textoCorto(o.c, 120), nac: fechaLs(o.nac), m: o.m ? 1 : 0,
+        cg: textoCorto(o.cg, 80), dp: textoCorto(o.dp, 60), cm: (Array.isArray(o.cm) ? o.cm : []).slice(0, 10).map(x => textoCorto(x, 80)), ir: textoCorto(o.ir, 40), ig: fechaLs(o.ig),
+        li: o.li === 1 || o.li === 0 ? o.li : -1, ad: (Array.isArray(o.ad) ? o.ad : []).slice(0, 10).map(x => textoCorto(x, 40)),
+        fi: { nombres: textoCorto(f.nombres, 100), apPat: textoCorto(f.apPat, 60), apMat: textoCorto(f.apMat, 60), nac: fechaLs(f.nac) } };
+    }
+    LS.trabajadores = {
+      archivo: "trabajadores.json",
+      claves: ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL", "pt_licencia", "pt_irl_adic", "pt_fichas"],
+      leer() {
+        const m = new Map();
+        for (const p of (listado && listado.lista) || []) {
+          const k = claveRut(p.rut); if (k.length < 3) continue;
+          m.set(k, normTrab({ n: p.nombre, r: p.rut, i: p.ingreso, c: p.cargo, nac: p.nac, m: p.manual, cg: cargos[k], dp: deptosPorRut[k], cm: cargosMulti[k], ir: cargosIRL[k], ig: ingresos[k],
+            li: licencias[k] === true ? 1 : licencias[k] === false ? 0 : -1, ad: adicionalesIRL[k], fi: fichasTrab[k] }));
+        }
+        return m;
+      },
+      limpiar(d, id) { return d && typeof d === "object" && textoCorto(d.n, 100) ? normTrab(d) : null; },
+      aplicar(adoptar, quitar) {
+        if (!listado) listado = { obra: "", lista: [], cargado: new Date().toLocaleDateString("es-CL") };
+        const poner = (obj, k, v) => { if (v) obj[k] = v; else delete obj[k]; };
+        for (const [k, d] of adoptar) {
+          const base = { nombre: d.n, rut: d.r || formatearRut(k), ingreso: d.i, cargo: d.c, ...(d.nac ? { nac: d.nac } : {}), ...(d.m ? { manual: true } : {}) };
+          const p = listado.lista.find(x => claveRut(x.rut) === k);
+          if (p) { for (const kk of ["ingreso", "cargo", "nac", "manual"]) delete p[kk]; Object.assign(p, base); } else listado.lista.push(base);
+          poner(cargos, k, d.cg); poner(deptosPorRut, k, d.dp); poner(cargosMulti, k, d.cm.length ? d.cm : null); poner(cargosIRL, k, d.ir); poner(ingresos, k, d.ig);
+          if (d.li === 1) licencias[k] = true; else if (d.li === 0) licencias[k] = false; else delete licencias[k];
+          poner(adicionalesIRL, k, d.ad.length ? d.ad : null);
+          poner(fichasTrab, k, d.fi.nombres || d.fi.apPat || d.fi.apMat || d.fi.nac ? d.fi : null);
+        }
+        if (quitar.size) listado.lista = listado.lista.filter(p => !quitar.has(claveRut(p.rut)));
+        guardar("pt_listado", listado); guardar("pt_cargos", cargos); guardar("pt_cargos_multi", cargosMulti); guardar("pt_deptos", deptosPorRut); guardar("pt_ingreso", ingresos);
+        guardar("pt_cargoIRL", cargosIRL); guardar("pt_licencia", licencias); guardar("pt_irl_adic", adicionalesIRL); guardar("pt_fichas", fichasTrab);
+        for (const f of [mostrarListado, pintarListaIRL, pintarTrabajadores, actualizarAsistentes]) { try { f(); } catch {} }
+      },
+      extraLeer() { return { obra: textoCorto(listado && listado.obra, 120) }; },
+      extraAplicar(e) { if (listado && !listado.obra && typeof e.obra === "string" && e.obra) { listado.obra = textoCorto(e.obra, 120); guardar("pt_listado", listado); } }
+    };
+
+    // ----- Dominio: cuadrillas -----
+    const normCuadrilla = c => ({ nombre: textoCorto(c.nombre, 60), miembros: (Array.isArray(c.miembros) ? c.miembros : []).filter(m => m && typeof m.rut === "string").slice(0, 200).map(m => ({ rut: textoCorto(m.rut, 14), nombre: textoCorto(m.nombre, 80) })) });
+    LS.cuadrillas = {
+      archivo: "cuadrillas.json", claves: ["pt_cuadrillas"],
+      leer() { const m = new Map(); for (const c of cuadrillas) if (idSeguroTxt(c.id)) m.set(c.id, normCuadrilla(c)); return m; },
+      limpiar(d) { return d && typeof d === "object" && textoCorto(d.nombre, 60) ? normCuadrilla(d) : null; },
+      aplicar(adoptar, quitar) {
+        for (const [id, d] of adoptar) { const c = cuadrillas.find(x => x.id === id); if (c) Object.assign(c, d); else cuadrillas.push({ id, ...d }); }
+        if (quitar.size) cuadrillas = cuadrillas.filter(c => !quitar.has(c.id));
+        guardar("pt_cuadrillas", cuadrillas);
+        try { pintarCharlaExpress(); } catch {}
+      }
+    };
+    const LS_CLAVES = new Set(Object.values(LS).flatMap(d => d.claves));
+    {
+      const _guardarLs = guardar;
+      guardar = function (clave) { const r = _guardarLs.apply(this, arguments); if (LS_CLAVES.has(clave) && !lsAplicando) lsProgramar(); return r; };
+    }
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
