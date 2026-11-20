@@ -1845,6 +1845,8 @@
         <div class="inf-panel" id="bibUso"></div>
         <input type="search" id="bibBuscar" placeholder="🔍 Buscar por título, código o archivo" oninput="pintarBiblioteca()">
         <select id="bibTipo" onchange="pintarBiblioteca()"><option value="">Todos los tipos</option></select>
+        <button type="button" class="btn btn-secundario" style="margin-top:8px" onclick="traerBibliotecaDrive()">☁️ Traer biblioteca desde Drive</button>
+        <p class="mensaje" id="bibSync"></p>
         <button type="button" class="btn btn-secundario" style="margin-top:8px" onclick="indiceBibliotecaPDF()">🖨️ Índice en PDF</button>
         <div id="bibLista"></div>
       </div>
@@ -5464,6 +5466,7 @@
         } while (otraVueltaDrive);
       } finally { subiendoDrive = false; }
       await pintarDrive(n, error);
+      publicarIndiceBib();   // el índice de la biblioteca sigue a lo que ya subió
       if (document.getElementById("historial").classList.contains("activa")) pintarHistorial();
     }
     async function pintarDrive(subidos = 0, error = "") {
@@ -6029,7 +6032,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_charla_ult", "pt_ubic_ultima"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_charla_ult", "pt_ubic_ultima", "pt_biblioteca_bajas"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -9222,10 +9225,7 @@
     const MIME_BIB = { pdf: "application/pdf", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                        xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
     const idDriveValido = x => /^[\w-]{10,80}$/.test(String(x ?? ""));
-    let biblioteca = listaGuardada("pt_biblioteca", d => idSeguroTxt(d.id) && TIPOS_BIB.includes(d.tipo)).map(d => ({
-      id: d.id, codigo: textoCorto(d.codigo, 40), tipo: d.tipo, titulo: textoCorto(d.titulo, 160), version: textoCorto(d.version, 30), fecha: /^\d{4}-\d{2}-\d{2}$/.test(String(d.fecha)) ? d.fecha : "",
-      archivo: textoCorto(d.archivo, 120), ext: MIME_BIB[d.ext] ? d.ext : "", mime: Object.values(MIME_BIB).includes(d.mime) ? d.mime : "", tam: +d.tam > 0 ? +d.tam : 0,
-      driveId: idDriveValido(d.driveId) ? d.driveId : "", offline: !!d.offline, reemplazadoPor: idSeguroTxt(d.reemplazadoPor) ? d.reemplazadoPor : "", creado: +d.creado || 0 }));
+    let biblioteca = listaGuardada("pt_biblioteca", d => idSeguroTxt(d.id) && TIPOS_BIB.includes(d.tipo)).map(d => limpiarDocBib(d)).filter(Boolean);
     const guardarBib = () => guardar("pt_biblioteca", biblioteca);
     const extDe = n => ((String(n).match(/\.([a-z0-9]{2,5})$/i) || [])[1] || "").toLowerCase();
     const mbTxt = b => (b / 1048576).toFixed(b >= 10485760 ? 0 : 1).replace(".", ",") + " MB";
@@ -9254,6 +9254,7 @@
       bibCarga = []; bibReemplazaId = "";
       document.getElementById("bibMsj").textContent = "";
       pintarCargaBib(); pintarBiblioteca();
+      msjSyncBib(""); traerBibliotecaDrive(true);
     }
     // Archivos elegidos: se revisan (código, tipo, título…) antes de cargarlos
     async function elegirArchivosBib(input, reemplazo = false) {
@@ -9300,7 +9301,7 @@
         const ext = extDe(x.c.file.name), id = "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
         const bytes = new Uint8Array(await x.c.file.arrayBuffer());
         const d = { id, codigo: textoCorto(x.codigo, 40), tipo: TIPOS_BIB.includes(x.tipo) ? x.tipo : "Otro", titulo: textoCorto(x.titulo, 160), version: textoCorto(x.version, 30),
-                    fecha: /^\d{4}-\d{2}-\d{2}$/.test(x.fecha) ? x.fecha : "", archivo: textoCorto(x.c.file.name, 120), ext, mime: MIME_BIB[ext], tam: bytes.byteLength, driveId: "", offline: false, reemplazadoPor: "", creado: Date.now() };
+                    fecha: /^\d{4}-\d{2}-\d{2}$/.test(x.fecha) ? x.fecha : "", archivo: textoCorto(x.c.file.name, 120), ext, mime: MIME_BIB[ext], tam: bytes.byteLength, driveId: "", offline: false, reemplazadoPor: "", creado: Date.now(), mod: Date.now() };
         await alDrive(d.archivo, bytes, d.mime, [DRIVE_RAIZ, "Biblioteca"], "bib:" + id);
         if (x.off) {
           if (usoLocalBib() + d.tam <= LIMITE_BIB_MB * 1048576) { try { await bdBiblioteca("readwrite", s => s.put({ bytes, mime: d.mime }, id)); d.offline = true; } catch { avisos.push(`No se pudo guardar "${d.titulo}" sin conexión.`); } }
@@ -9308,7 +9309,7 @@
         }
         biblioteca.push(d);
         const previo = bibReemplazaId ? biblioteca.find(p => p.id === bibReemplazaId) : null;
-        if (previo) { previo.reemplazadoPor = id; if (previo.offline) { try { await bdBiblioteca("readwrite", s => s.delete(previo.id)); } catch {} previo.offline = false; } }
+        if (previo) { previo.reemplazadoPor = id; previo.mod = Date.now(); if (previo.offline) { try { await bdBiblioteca("readwrite", s => s.delete(previo.id)); } catch {} previo.offline = false; } }
         guardarBib();
         bitacora(previo ? "Versión de la biblioteca reemplazada" : "Documento cargado a la biblioteca", { doc: `${d.codigo ? d.codigo + " · " : ""}${d.titulo}`, det: `${d.archivo} · ${mbTxt(d.tam)}${previo ? " · reemplaza " + (previo.version || previo.fecha) : ""}` });
       }
@@ -9466,9 +9467,107 @@
       const motivo = prompt(`¿Por qué se quita "${d.titulo}" de la biblioteca?\n(Se quita del índice de este equipo; el archivo NO se borra de tu Drive. Queda en la bitácora)`, "");
       if (motivo === null || !motivo.trim()) { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; return; }
       biblioteca = biblioteca.filter(x => x.id !== id); guardarBib();
+      bajasBib[id] = Date.now(); guardar("pt_biblioteca_bajas", bajasBib);
       try { await bdAvisos("readwrite", s => s.delete("cola:bib:" + id)); } catch {}   // si aún no subía, se saca de la cola
       bitacora("Documento quitado de la biblioteca", { doc: `${d.codigo ? d.codigo + " · " : ""}${d.titulo}`, motivo: motivo.trim() });
-      pintarBiblioteca();
+      pintarBiblioteca(); publicarIndiceBib();
+    }
+
+    /* =====================================================================
+       BIBLIOTECA ENTRE EQUIPOS: el índice también vive en tu Drive ("Biblioteca/indice-biblioteca.json"), así el PC, la tablet y el teléfono ven lo mismo.
+       { v: 1, actualizado, docs: [mismo formato del índice, sin "offline"], bajas: { id: momento } }
+       - Se publica solo cuando el equipo tiene señal y permiso: se LEE el índice de Drive, se FUSIONA por id (gana la entrada con "mod" más reciente; el driveId y
+         reemplazadoPor se completan con lo que tenga cualquiera) y se escribe de vuelta. Así dos equipos que suben a la vez no se pisan.
+       - Solo se publican los documentos que ya terminaron de subir (con driveId). Las copias sin conexión (offline) son de cada equipo.
+       - "Traer biblioteca desde Drive" agrega y actualiza lo que falte aquí, sin borrar nada local. Quitar un documento del índice deja una "baja" (pt_biblioteca_bajas)
+         para que no vuelva a aparecer en ese equipo ni en el índice de Drive; no borra lo que otro equipo ya tenga en su lista.
+       ===================================================================== */
+    const NOMBRE_INDICE_BIB = "indice-biblioteca.json";
+    let bajasBib = (() => { const b = leerGuardado("pt_biblioteca_bajas", {}), o = {}; if (b && typeof b === "object") for (const [id, t] of Object.entries(b)) if (idSeguroTxt(id) && +t > 0) o[id] = +t; return o; })();
+    function limpiarDocBib(d) {
+      if (!d || typeof d !== "object" || !idSeguroTxt(d.id) || !TIPOS_BIB.includes(d.tipo)) return null;
+      return { id: d.id, codigo: textoCorto(d.codigo, 40), tipo: d.tipo, titulo: textoCorto(d.titulo, 160), version: textoCorto(d.version, 30), fecha: /^\d{4}-\d{2}-\d{2}$/.test(String(d.fecha)) ? d.fecha : "",
+        archivo: textoCorto(d.archivo, 120), ext: MIME_BIB[d.ext] ? d.ext : "", mime: Object.values(MIME_BIB).includes(d.mime) ? d.mime : "", tam: +d.tam > 0 ? +d.tam : 0,
+        driveId: idDriveValido(d.driveId) ? d.driveId : "", offline: !!d.offline, reemplazadoPor: idSeguroTxt(d.reemplazadoPor) ? d.reemplazadoPor : "", creado: +d.creado || 0, mod: +d.mod || +d.creado || 0 };
+    }
+    const modBib = d => d.mod || d.creado || 0;
+    // Lo que se publica: solo lo que ya está en Drive; un "reemplazado por" que aún no subió se omite para no dejar al otro equipo con el viejo oculto y el nuevo sin aparecer
+    function publicablesBib() {
+      sincronizarDriveIdsBib();
+      const conDrive = new Set(biblioteca.filter(d => d.driveId).map(d => d.id));
+      return biblioteca.filter(d => d.driveId).map(({ offline, ...d }) => ({ ...d, reemplazadoPor: conDrive.has(d.reemplazadoPor) ? d.reemplazadoPor : "" }));
+    }
+    function fusionarIndiceBib(a, b, bajasA, bajasB) {
+      const bajas = { ...bajasB };
+      for (const [id, t] of Object.entries(bajasA)) bajas[id] = Math.max(+bajas[id] || 0, +t);
+      const mapa = new Map();
+      for (const d of [...b, ...a]) {
+        const p = mapa.get(d.id);
+        if (!p) { mapa.set(d.id, { ...d }); continue; }
+        const [n, v] = modBib(d) >= modBib(p) ? [d, p] : [p, d];
+        mapa.set(d.id, { ...n, driveId: n.driveId || v.driveId, reemplazadoPor: n.reemplazadoPor || v.reemplazadoPor, mod: Math.max(modBib(n), modBib(v)) });
+      }
+      return { docs: [...mapa.values()].filter(d => !(bajas[d.id] && bajas[d.id] >= modBib(d))), bajas };
+    }
+    // Lee el índice de Drive (el más reciente si hubiera más de uno). Con el permiso drive.file se ve lo que creó esta misma app (mismo cliente OAuth) en cualquier equipo.
+    async function leerIndiceRemotoBib() {
+      const carpeta = await driveCarpeta([DRIVE_RAIZ, "Biblioteca"]);
+      const q = `name='${NOMBRE_INDICE_BIB}' and '${carpeta}' in parents and trashed=false`;
+      const lista = await (await driveFetch(`${DRIVE_API}/drive/v3/files?q=${encodeURIComponent(q)}&orderBy=modifiedTime%20desc&fields=files(id)&spaces=drive`)).json();
+      const id = lista.files && lista.files[0] && lista.files[0].id;
+      if (!id) return { id: "", docs: [], bajas: {} };
+      let j = null;
+      try { j = await (await driveFetch(`${DRIVE_API}/drive/v3/files/${encodeURIComponent(id)}?alt=media`)).json(); } catch (e) { if (e.sinPermiso) throw e; }   // índice dañado: se trata como vacío y el siguiente guardado lo rehace
+      if (!j || j.v !== 1 || !Array.isArray(j.docs)) return { id, docs: [], bajas: {}, danado: true };
+      const bajas = {};
+      if (j.bajas && typeof j.bajas === "object") for (const [k, t] of Object.entries(j.bajas)) if (idSeguroTxt(k) && +t > 0) bajas[k] = +t;
+      return { id, docs: j.docs.slice(0, 2000).map(limpiarDocBib).filter(Boolean).map(d => ({ ...d, offline: false })), bajas };
+    }
+    let publicandoBib = false, republicarBib = false;
+    async function publicarIndiceBib(forzar = false) {
+      if (!driveConfigurado() || !driveToken() || !navigator.onLine) return false;
+      if (publicandoBib) { republicarBib = true; return false; }   // llegó un cambio mientras publicaba: se vuelve a publicar al terminar
+      const mias = publicablesBib(), huella = JSON.stringify([mias, bajasBib]);
+      if (!forzar && leerGuardado("pt_bib_pub", "") === huella) return false;   // nada nuevo desde la última publicación
+      publicandoBib = true;
+      try {
+        const remoto = await leerIndiceRemotoBib(), fus = fusionarIndiceBib(mias, remoto.docs, bajasBib, remoto.bajas);
+        const bytes = new TextEncoder().encode(JSON.stringify({ v: 1, actualizado: Date.now(), docs: fus.docs, bajas: fus.bajas }));
+        await subirArchivoDrive(NOMBRE_INDICE_BIB, bytes, "application/json", [DRIVE_RAIZ, "Biblioteca"], remoto.id);
+        guardar("pt_bib_pub", huella);
+        return true;
+      } catch (e) { console.warn("No se pudo publicar el índice de la biblioteca", e); return false; }
+      finally { publicandoBib = false; if (republicarBib) { republicarBib = false; setTimeout(() => publicarIndiceBib(), 0); } }
+    }
+    const msjSyncBib = t => { const m = document.getElementById("bibSync"); if (m) m.textContent = t; };
+    // Trae lo que falte desde el índice de Drive; no borra nada local. silencioso = al abrir la Biblioteca (solo habla si hay novedades)
+    async function traerBibliotecaDrive(silencioso = false) {
+      if (!driveConfigurado()) { if (!silencioso) msjSyncBib("Primero conecta Google Drive (Empresa y formatos → Google Drive): ahí está tu biblioteca."); return; }
+      if (!navigator.onLine) { if (!silencioso) msjSyncBib("Sin señal: ves la biblioteca que ya tienes en este equipo. Cuando tengas internet, toca de nuevo “Traer biblioteca desde Drive”."); return; }
+      if (!driveToken()) { if (!silencioso) msjSyncBib("El permiso de Google venció: reconecta Google Drive (Empresa y formatos → Google Drive) y vuelve a intentarlo."); return; }
+      if (!silencioso) msjSyncBib("Buscando en tu Drive…");
+      try {
+        const remoto = await leerIndiceRemotoBib();
+        if (!remoto.id) { if (!silencioso) msjSyncBib("En tu Drive todavía no hay un índice de la biblioteca. Súbelo desde el equipo donde cargaste los documentos (se publica solo al terminar de subir)."); return; }
+        let nuevos = 0, actualizados = 0, quitadosAfuera = 0;
+        for (const r of remoto.docs) {
+          if (!r.driveId) continue;
+          if (bajasBib[r.id] && bajasBib[r.id] >= modBib(r)) continue;   // este equipo lo quitó a propósito
+          const l = biblioteca.find(x => x.id === r.id);
+          if (!l) { biblioteca.push({ ...r, offline: false }); nuevos++; continue; }
+          if (modBib(r) > modBib(l) || (!l.driveId && r.driveId) || (r.reemplazadoPor && !l.reemplazadoPor)) {
+            const offline = l.offline, sig = modBib(r) > modBib(l) ? r : l;
+            Object.assign(l, sig, { driveId: sig.driveId || l.driveId || r.driveId, reemplazadoPor: sig.reemplazadoPor || l.reemplazadoPor || r.reemplazadoPor, offline, mod: Math.max(modBib(l), modBib(r)) });
+            actualizados++;
+          }
+        }
+        for (const [id, t] of Object.entries(remoto.bajas)) { const l = biblioteca.find(x => x.id === id); if (l && t >= modBib(l)) quitadosAfuera++; }
+        if (nuevos || actualizados) { guardarBib(); pintarBiblioteca(); }
+        // Si el índice de Drive está dañado o le faltan documentos de este equipo, se vuelve a publicar aunque no haya cambios locales
+        const faltan = publicablesBib().some(d => !remoto.docs.some(r => r.id === d.id) && !(remoto.bajas[d.id] >= modBib(d)));
+        publicarIndiceBib(!!remoto.danado || faltan);
+        msjSyncBib(nuevos || actualizados || quitadosAfuera ? `☁️ ${nuevos} nuevo(s), ${actualizados} actualizado(s)${quitadosAfuera ? `; ${quitadosAfuera} lo quitaron en otro equipo (siguen aquí: usa “Quitar” si ya no los quieres)` : ""}.` : (silencioso ? "" : "☁️ Ya tienes toda la biblioteca al día."));
+      } catch (e) { if (!silencioso) msjSyncBib(e.sinPermiso ? "El permiso de Google venció: reconecta Google Drive y vuelve a intentarlo." : "No se pudo leer el índice de Drive (" + e.message + "). Intenta de nuevo con mejor señal."); }
     }
 
     /* =====================================================================
@@ -10281,7 +10380,7 @@
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
