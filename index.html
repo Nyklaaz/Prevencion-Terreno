@@ -1489,6 +1489,8 @@
         <p class="ayuda">Borra de <b>este equipo</b> todos los registros (charlas, IRL, check list, EPP, documentos, accidentes, hallazgos, vencimientos, consentimientos, fichas, informes, historial y bitácora) y <b>conserva la configuración</b>: formatos, datos de la empresa y del representante, Google Drive, contraseña de respaldo, matriz de riesgos, datos del contrato, programa anual y nombres recordados.</p>
         <p class="ayuda">No borra nada de tu Google Drive (esa carpeta la borras tú, si corresponde). Si tienes algo real, primero guarda un respaldo.</p>
         <label class="check-linea"><input type="checkbox" id="ceroListado"> Conservar el listado de personal y sus cargos</label>
+        <p class="ayuda">Con Google Drive y varios equipos, lo que se sincroniza (trabajadores, hallazgos, vencimientos, casi accidentes, plazos, avance del programa) <b>vuelve solo desde Drive</b> después de borrarlo aquí.</p>
+        <label class="check-linea"><input type="checkbox" id="ceroOtros"> También quitar eso de los demás equipos (deja una baja en Drive; los PDF no se tocan)</label>
         <label>Para confirmar, escribe <b>BORRAR</b></label>
         <input type="text" id="ceroConfirma" autocomplete="off" autocapitalize="characters">
         <button type="button" class="btn btn-quitar" onclick="empezarDeCero()">🧹 Borrar los registros y empezar de cero</button>
@@ -7877,7 +7879,7 @@
     }
     function marcarProgramada(id, f, hecha) {
       const k = id + "|" + f;
-      if (hecha) programaHecho[k] = { cuando: new Date().toISOString() }; else delete programaHecho[k];
+      if (hecha) programaHecho[k] = { cuando: new Date().toISOString() }; else { delete programaHecho[k]; lsBaja("avance", [idAvance(k)]); }
       guardar("pt_programa_hecho", programaHecho);
       pintarCalendario(); pintarDiaCal(calDiaSel && calDiaSel.slice(0, 7) === f.slice(0, 7) ? calDiaSel : f); pintarPrograma(); avisoProgramaMenu();
     }
@@ -7904,9 +7906,11 @@
     }
     function quitarActividad(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
+      const clavesHechas = Object.keys(programaHecho).filter(k => k.startsWith(id + "|"));
       programa = programa.filter(a => a.id !== id);
       for (const k of Object.keys(programaHecho)) if (k.startsWith(id + "|")) delete programaHecho[k];
       guardar("pt_programa", programa); guardar("pt_programa_hecho", programaHecho);
+      lsBaja("programa", [id]); if (clavesHechas.length) lsBaja("avance", clavesHechas.map(idAvance));
       pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
     }
     function pintarPrograma() {
@@ -8161,6 +8165,7 @@
       if (previas.length && confirm(`Ya hay ${previas.length} actividades cargadas desde Excel. ¿Las reemplazo por las de este archivo? (Aceptar = reemplazar · Cancelar = sumar)`)) {
         const ids = new Set(previas.map(a => a.id));
         programa = programa.filter(a => !ids.has(a.id));
+        lsBaja("programa", [...ids]);
         modo = "reemplazó las anteriores";
       } else if (previas.length) modo = "sumó a las anteriores";
       programa.push(...nuevas);
@@ -8174,7 +8179,8 @@
     }
     function quitarProgramaExcel(b) {
       if (b.dataset.confirmar !== "1") { b.dataset.confirmar = "1"; b.textContent = "¿Seguro? Toca de nuevo"; setTimeout(() => { b.dataset.confirmar = ""; b.textContent = "Quitar lo cargado desde Excel"; }, 4000); return; }
-      programa = programa.filter(a => !a.importado); guardar("pt_programa", programa);
+      const idsQ = programa.filter(a => a.importado).map(a => a.id);
+      programa = programa.filter(a => !a.importado); guardar("pt_programa", programa); if (idsQ.length) lsBaja("programa", idsQ);
       pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu();
     }
 
@@ -8310,8 +8316,8 @@
       }).join("");
       for (const h of lista) {
         const fotos = [];
-        if (h.foto) { const f = await fotoHal(h.id + "|antes"); if (esFotoSegura(f)) fotos.push(`<figure><img src="${f}" alt="Antes"><figcaption>Antes</figcaption></figure>`); }
-        if (h.fotoCierre) { const f = await fotoHal(h.id + "|cierre"); if (esFotoSegura(f)) fotos.push(`<figure><img src="${f}" alt="Después"><figcaption>Después</figcaption></figure>`); }
+        if (h.foto) { const f = await fotoHal(h.id + "|antes"); if (esFotoSegura(f)) fotos.push(`<figure><img src="${f}" alt="Antes"><figcaption>Antes</figcaption></figure>`); else fotos.push(textoFotoAjena(h.fe, "")); }
+        if (h.fotoCierre) { const f = await fotoHal(h.id + "|cierre"); if (esFotoSegura(f)) fotos.push(`<figure><img src="${f}" alt="Después"><figcaption>Después</figcaption></figure>`); else fotos.push(textoFotoAjena(h.fec || h.fe, "Cierre: ")); }
         const caja = document.getElementById("halF_" + h.id);
         if (caja) caja.innerHTML = fotos.join("");
       }
@@ -8332,7 +8338,7 @@
       const u = leerUbic("hal"); if (u.error) { msj.textContent = u.error; return; }
       const h = { id: nuevoIdHal(), fecha: hoyISO(), desc, lugar: v("halLugar"), origen: v("halOrigen"), riesgo: v("halRiesgo"), accion: v("halAccion"), resp: v("halResp"), plazo: v("halPlazo"), ubic: u.ubic, foto: false, fotoCierre: false, cerrado: null };
       if (fotoNuevaHal) {
-        try { await bdFotos("readwrite", s => s.put(fotoNuevaHal, h.id + "|antes")); h.foto = true; } catch (e) { msj.textContent = "El hallazgo se guardará sin foto (" + e.message + ")."; }
+        try { await bdFotos("readwrite", s => s.put(fotoNuevaHal, h.id + "|antes")); h.foto = true; h.fe = letraEquipo(); } catch (e) { msj.textContent = "El hallazgo se guardará sin foto (" + e.message + ")."; }
       }
       hallazgos.push(h); guardarHallazgos(); recordarUbic(h.ubic);
       ["halDesc", "halAccion"].forEach(id => document.getElementById(id).value = ""); limpiarUbic("hal");
@@ -8348,7 +8354,7 @@
       try {
         const f = await comprimirFoto(a);
         await bdFotos("readwrite", s => s.put(f, id + "|antes"));
-        h.foto = true; guardarHallazgos(); pintarHallazgos();
+        h.foto = true; h.fe = letraEquipo(); guardarHallazgos(); pintarHallazgos();
       } catch (e) { alert("No se pudo guardar la foto: " + e.message); }
     }
     const fotosCierrePend = {};
@@ -8365,7 +8371,7 @@
       const comentario = document.getElementById("halCC_" + id).value.trim();
       if (!comentario && !fotosCierrePend[id]) { document.getElementById("halCFoto_" + id).textContent = "Escribe qué se hizo o agrega una foto del cierre."; return; }
       if (fotosCierrePend[id]) {
-        try { await bdFotos("readwrite", s => s.put(fotosCierrePend[id], id + "|cierre")); h.fotoCierre = true; } catch {}
+        try { await bdFotos("readwrite", s => s.put(fotosCierrePend[id], id + "|cierre")); h.fotoCierre = true; h.fec = letraEquipo(); } catch {}
         delete fotosCierrePend[id];
       }
       h.cerrado = { fecha, comentario };
@@ -8378,7 +8384,7 @@
     }
     async function quitarHallazgo(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
-      hallazgos = hallazgos.filter(h => h.id !== id); guardarHallazgos();
+      hallazgos = hallazgos.filter(h => h.id !== id); guardarHallazgos(); lsBaja("hallazgos", [id]);
       try { await bdFotos("readwrite", s => { s.delete(id + "|antes"); return s.delete(id + "|cierre"); }); } catch {}
       pintarHallazgos(); avisoProgramaMenu();
     }
@@ -8784,7 +8790,7 @@
 
     function quitarVencimiento(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Quitar?"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar"; }, 4000); return; }
-      vencimientos = vencimientos.filter(v => v.id !== id); guardarVenc(); pintarVencimientos(); avisoProgramaMenu();
+      vencimientos = vencimientos.filter(v => v.id !== id); guardarVenc(); lsBaja("vencimientos", [id]); pintarVencimientos(); avisoProgramaMenu();
     }
 
     async function reinduccionesDesdeIRL() {
@@ -10002,7 +10008,7 @@
     // Si se borra del Historial el PDF de un reporte, también se quita su dato (para que no cuente en la estadística)
     function quitarCasiBorrado(reporteId) {
       if (!casiReportes.some(r => r.id === reporteId)) return;
-      casiReportes = casiReportes.filter(r => r.id !== reporteId); guardar("pt_casi", casiReportes);
+      casiReportes = casiReportes.filter(r => r.id !== reporteId); guardar("pt_casi", casiReportes); lsBaja("casi", [reporteId]);
     }
 
     /* =====================================================================
@@ -10074,7 +10080,7 @@
     function quitarPlazoAcc(id, boton) {
       if (boton.dataset.confirmar !== "1") { boton.dataset.confirmar = "1"; boton.textContent = "¿Seguro? Toca de nuevo"; setTimeout(() => { boton.dataset.confirmar = ""; boton.textContent = "Quitar este reloj"; }, 4000); return; }
       const p = plazosAcc.find(x => x.id === id);
-      plazosAcc = plazosAcc.filter(x => x.id !== id); guardarPlazos();
+      plazosAcc = plazosAcc.filter(x => x.id !== id); guardarPlazos(); lsBaja("plazos", [id]);
       if (p) bitacora("Plazo PST-30 quitado", { doc: `Accidente ${p.categoria} · ${fechaCLde(p.fecha)} ${p.hora}` });
       pintarPlazosAcc(); pintarAvisoPlazoMenu();
     }
@@ -10417,7 +10423,7 @@
       if (!desc) { err.textContent = "Escribe qué viste, aunque sea corto."; return; }
       const h = { id: nuevoIdHal(), fecha: hoyISO(), desc: textoCorto(desc, 300), lugar: "", origen: "Inspección en terreno", riesgo: "Medio", accion: "", resp: "", plazo: isoD(new Date(Date.now() + 7 * 86400000)),
                   ubic: ubicUltima(), foto: false, fotoCierre: false, cerrado: null };
-      try { await bdFotos("readwrite", s => s.put(halRapidoFotoData, h.id + "|antes")); h.foto = true; } catch (e) { err.textContent = "Se guardará sin foto (" + e.message + ")."; }
+      try { await bdFotos("readwrite", s => s.put(halRapidoFotoData, h.id + "|antes")); h.foto = true; h.fe = letraEquipo(); } catch (e) { err.textContent = "Se guardará sin foto (" + e.message + ")."; }
       hallazgos.push(h); guardarHallazgos(); recordarUbic(h.ubic);
       bitacora("Hallazgo rápido", { doc: h.desc.slice(0, 80), det: ubicTxt(h.ubic) });
       cerrarHalRapido(); pintarMiDia(); avisoProgramaMenu();
@@ -10743,7 +10749,8 @@
     const LS = {};
     const LS_MAX = 3 * 1024 * 1024;
     let lsOcupado = false, lsAplicando = false, lsUltima = +leerGuardado("pt_ls_sync", 0) || 0, lsUltimaMem = 0, lsExtra = "", lsTemp = null, lsReintentos = 0;
-    const lsMeta = () => leerGuardado("pt_ls_meta", {});
+    let lsMetaObj = null;   // un solo objeto en memoria: así una sincronización en curso no pisa con datos viejos lo que otra parte (ej. una baja) anotó
+    const lsMeta = () => lsMetaObj || (lsMetaObj = leerGuardado("pt_ls_meta", {}));
     const huellaLs = it => hashCfg(JSON.stringify(it));
     const lsClamp = x => Math.min(Math.max(0, Math.floor(+x || 0)), Date.now() + 864e5);
     function lsDetectar(nombre, meta) {
@@ -10785,9 +10792,10 @@
       const dom = LS[nombre], meta = lsMeta(); lsDetectar(nombre, meta);
       const m = meta[nombre], res = { adoptados: 0, quitados: 0, subidos: 0, aplazado: false };
       const sucia = m.bp || Object.values(m.it).some(x => x.h !== x.ha);
-      const rem = await lsLeerRemoto(dom, sucia || forzar || !m.visto, m);
+      const local = dom.leer(), faltan = Object.keys(m.it).some(id => !local.has(id));   // algo que ya estaba sincronizado desapareció de este equipo: se vuelve a leer Drive aunque no haya cambiado
+      const rem = await lsLeerRemoto(dom, sucia || forzar || faltan || !m.visto, m);
       if (rem.igual) return res;
-      const local = dom.leer(), bajas = { ...rem.bajas };
+      const bajas = { ...rem.bajas };
       for (const [id, t] of Object.entries(m.bajas)) bajas[id] = Math.max(bajas[id] || 0, t);
       const adoptar = new Map(), quitar = new Set(), subir = new Map();
       for (const id of new Set([...local.keys(), ...Object.keys(rem.items)])) {
@@ -11001,6 +11009,58 @@
     function dupDejar(folio) { const arr = docsInd(), x = arr.find(y => y.fo === folio); if (x) { x.ok = 1; guardar("pt_docs_ind", arr); lsProgramar(); } pintarHistorial(); }
     const etiquetaDup = (otros) => otros.map(o => `${EQUIPOS[o.e] ? EQUIPOS[o.e].replace(/^\S+\s/, "") : "otro equipo"} · folio ${html(o.fo)}`).join("; ");
 
+    /* =====================================================================
+       T3 · MÁS LISTAS POR DRIVE (mismo motor): programa anual, avance del programa (✔), vencimientos, hallazgos, casi accidentes y plazos de accidentes.
+       - Por registro (id), gana el más reciente; las bajas solo vienen de acciones a propósito (Quitar, desmarcar un ✔, borrar el PDF de un casi accidente…).
+       - Las FOTOS de los hallazgos NO viajan (pesan MB): el hallazgo dice en qué equipo está su foto (campo fe / fec = letra del equipo).
+       - Los casi accidentes llevan su foto solo dentro del PDF: no hay nada que declarar.
+       ===================================================================== */
+    const ordenarLs = o => Array.isArray(o) ? o.map(ordenarLs) : (o && typeof o === "object") ? Object.fromEntries(Object.keys(o).sort().map(k => [k, ordenarLs(o[k])])) : o;
+    const copiaLs = o => { try { return ordenarLs(JSON.parse(JSON.stringify(o))); } catch { return null; } };
+    const isoLs = x => /^\d{4}-\d{2}-\d{2}$/.test(String(x ?? ""));
+    function dominioLista(cfg) {
+      return {
+        archivo: cfg.archivo, claves: [cfg.clave],
+        leer() { const m = new Map(); for (const x of cfg.leerArr()) { if (!x || !idSeguroTxt(x.id) || String(x.id).length > 40) continue; const d = cfg.limpiar(copiaLs(x)); if (d) m.set(String(x.id), ordenarLs(d)); } return m; },
+        limpiar(d, id) { if (!d || typeof d !== "object" || JSON.stringify(d).length > 20000) return null; const x = cfg.limpiar(copiaLs({ ...d, id })); return x ? ordenarLs(x) : null; },
+        aplicar(adoptar, quitar) {
+          let arr = cfg.leerArr().slice();
+          for (const [id, d] of adoptar) { const i = arr.findIndex(x => String(x.id) === id); if (i >= 0) arr[i] = d; else arr.push(d); }
+          if (quitar.size) arr = arr.filter(x => !quitar.has(String(x.id)));
+          cfg.poner(arr); guardar(cfg.clave, arr);
+          for (const f of cfg.repintar || []) { try { f(); } catch {} }
+        }
+      };
+    }
+    const repintarProg = () => { pintarCalendario(); pintarDiaCal(calDiaSel); pintarPrograma(); avisoProgramaMenu(); };
+    LS.programa = dominioLista({ archivo: "programa.json", clave: "pt_programa", leerArr: () => programa, poner: a => { programa = a; }, repintar: [repintarProg],
+      limpiar: a => idSeguroTxt(a.id) && isoLs(a.fecha) && (!a.meses || (Array.isArray(a.meses) && a.meses.every(m => /^\d{4}-\d{2}$/.test(m)))) && (!a.hasta || isoLs(a.hasta)) ? a : null });
+    LS.vencimientos = dominioLista({ archivo: "vencimientos.json", clave: "pt_vencimientos", leerArr: () => vencimientos, poner: a => { vencimientos = a; },
+      repintar: [() => { copiarAvisos(); }, pintarVencimientos, avisoProgramaMenu, pintarMiDia], limpiar: v => idSeguroTxt(v.id) ? v : null });
+    LS.hallazgos = dominioLista({ archivo: "hallazgos.json", clave: "pt_hallazgos", leerArr: () => hallazgos, poner: a => { hallazgos = a; },
+      repintar: [pintarHallazgos, avisoProgramaMenu, pintarMiDia], limpiar: h => idSeguroTxt(h.id) ? h : null });
+    LS.casi = dominioLista({ archivo: "casi-accidentes.json", clave: "pt_casi", leerArr: () => casiReportes, poner: a => { casiReportes = a; },
+      limpiar: r => idSeguroTxt(r.id) && TIPOS_CASI.includes(r.tipo) && isoLs(r.fecha) ? { id: r.id, tipo: r.tipo, fecha: r.fecha, hora: textoCorto(r.hora, 5), lugar: textoCorto(r.lugar, 120), desc: textoCorto(r.desc, 600), cargo: textoCorto(r.cargo, 80), accion: textoCorto(r.accion, 400), seguimiento: !!r.seguimiento, folio: textoCorto(r.folio, 40), ubic: validarUbic(r.ubic) } : null });
+    LS.plazos = dominioLista({ archivo: "plazos-accidentes.json", clave: "pt_plazos_acc", leerArr: () => plazosAcc, poner: a => { plazosAcc = a; }, repintar: [pintarPlazosAcc, pintarAvisoPlazoMenu],
+      limpiar: p => idSeguroTxt(p.id) && isoLs(p.fecha) && /^\d{2}:\d{2}$/.test(String(p.hora)) && CATS_PLAZO.includes(p.categoria) ? { id: p.id, fecha: p.fecha, hora: p.hora, estimada: !!p.estimada, categoria: p.categoria, lugar: textoCorto(p.lugar, 120), accId: idSeguroTxt(p.accId) ? textoCorto(p.accId, 40) : "",
+        hitos: Object.fromEntries(Object.keys(HITOS_PLAZO).map(h => [h, p.hitos && esISOPlazo(p.hitos[h]) ? String(p.hitos[h]).slice(0, 30) : ""])) } : null });
+    // Avance del programa: { "idActividad|AAAA-MM-DD": { cuando, folio } } → un registro por marca. Desmarcar = baja.
+    const idAvance = k => { const s = String(k).replace(/[^\w-]/g, "_"); return s.length <= 40 ? s : "h" + hashCfg(String(k)).replace(/\W/g, ""); };
+    LS.avance = {
+      archivo: "programa-avance.json", claves: ["pt_programa_hecho"],
+      leer() { const m = new Map(); for (const [k, v] of Object.entries(programaHecho)) if (/^[\w-]{1,40}\|\d{4}-\d{2}-\d{2}$/.test(k) && v && typeof v === "object") m.set(idAvance(k), { cuando: textoCorto(v.cuando, 30), folio: textoCorto(v.folio, 40), k }); return m; },
+      limpiar(d) { return d && typeof d === "object" && /^[\w-]{1,40}\|\d{4}-\d{2}-\d{2}$/.test(String(d.k)) ? { cuando: textoCorto(d.cuando, 30), folio: textoCorto(d.folio, 40), k: String(d.k) } : null; },
+      aplicar(adoptar, quitar) {
+        for (const [, d] of adoptar) programaHecho[d.k] = { cuando: d.cuando, ...(d.folio ? { folio: d.folio } : {}) };
+        if (quitar.size) for (const k of Object.keys(programaHecho)) if (quitar.has(idAvance(k))) delete programaHecho[k];
+        guardar("pt_programa_hecho", programaHecho);
+        try { repintarProg(); } catch {}
+      }
+    };
+    for (const d of Object.values(LS)) for (const c of d.claves) LS_CLAVES.add(c);
+    // Hallazgos con foto: en qué equipo quedó (las fotos no viajan)
+    const textoFotoAjena = (letra, extra) => `<p class="ayuda" style="margin:6px 0">📷 ${extra}Foto en el equipo ${EQUIPOS[letra] ? EQUIPOS[letra].replace(/^\S+\s/, "") + " (" + letra + ")" : "que creó el hallazgo"}: las fotos no se comparten entre equipos todavía.</p>`;
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
       "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind"];
@@ -11012,6 +11072,10 @@
       if (await mostrarBloqueoCero()) { msj.textContent = "Primero pon a salvo los documentos de arriba."; return; }
       if (!confirm("¿Borrar TODOS los registros de este equipo? Esto no se puede deshacer (la configuración se mantiene).")) return;
       msj.textContent = "Borrando…";
+      if (document.getElementById("ceroOtros")?.checked) {   // a propósito: bajas que viajan a los demás equipos (solo de lo que sincroniza; los PDF y el índice de documentos no se tocan)
+        for (const [n, d] of Object.entries(LS)) { if (n === "docs" || n === "programa" || (n === "trabajadores" && document.getElementById("ceroListado").checked)) continue; const ids = [...d.leer().keys()]; if (ids.length) lsBaja(n, ids); }
+        lsOcupado = true;   // hasta la recarga no se sincroniza (los datos siguen en memoria y anularían la baja); al abrir de nuevo se suben las bajas pendientes
+      }
       const conservar = new Set([...CONSERVAR_SIEMPRE, ...(document.getElementById("ceroListado").checked ? CONSERVAR_LISTADO : [])]);
       const claves = [];
       for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(ESPACIO_DATOS + "pt_")) claves.push(k.slice(ESPACIO_DATOS.length)); }
