@@ -516,7 +516,7 @@
     .dia-fecha { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #a9b9de; }
     .dia-obra { font-size: 15px; font-weight: 700; margin: 2px 0 12px; padding-right: 76px; }
     .dia-saludo { font-size: 24px; font-weight: 800; line-height: 1.15; padding-right: 76px; }
-    .dia-uv { display: inline-block; min-height: 44px; margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 14px; background: rgba(255,255,255,.14); color: #fff; font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+    .dia-uv { display: inline-block; min-height: 48px; margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 14px; background: rgba(255,255,255,.14); color: #fff; font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
     .sos { position: absolute; right: 14px; top: 14px; width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--grad-rojo); color: #fff; font: inherit; font-weight: 900; font-size: 17px; letter-spacing: .04em; box-shadow: 0 0 0 4px rgba(225,29,72,.3), 0 8px 18px rgba(0,0,0,.4); cursor: pointer; transition: transform .15s ease; }
     .sos:active { transform: scale(.94); }
     .sos small { display: none; }
@@ -590,6 +590,8 @@
     .hoja-rapida { position: fixed; inset: 0; z-index: 60; background: rgba(5,8,15,.6); align-items: flex-end; justify-content: center; }
     .hoja-panel { width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto; background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0,0,0,.35); animation: aparece .2s ease; }
     html[data-tema="oscuro"] .hoja-panel { background: #101a31; color: #e6ecfb; }
+    #relevo input[type="datetime-local"] { width: 100%; min-height: 48px; }
+    html[data-tema="oscuro"] figcaption { color: #9fb0d6; }
     /* Bienvenida APR */
     #splashApr { position: fixed; inset: 0; z-index: 100; background: #0b1830; display: flex; align-items: center; justify-content: center; transition: opacity .3s ease; }
     #splashApr img { width: min(70vmin, 420px); height: auto; border-radius: 24px; }
@@ -701,6 +703,9 @@
       </button>
       <button class="menu-btn" onclick="mostrar('biblioteca')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M16.5 5.5l3.6-1 3 14.5-3.6 1z" transform="translate(-2 0)"/></svg></span><span class="menu-txt">Biblioteca de documentos<small>PTS, MINSAL, políticas y planes, en tu Drive</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('relevo')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg></span><span class="menu-txt">Entrega al relevo<small>PDF con lo que queda abierto para quien llega al turno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('historial')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v4H4z"/><path d="M6 10v9h12v-9"/><path d="M10 14h4"/></svg></span><span class="menu-txt">Historial y bitácora<small>Todos los PDF generados y el registro de auditoría</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -902,6 +907,7 @@
           <button type="button" data-f="emergencia" onclick="filtrarHist(this)">Emergencia</button>
           <button type="button" data-f="casi" onclick="filtrarHist(this)">Casi accidentes</button>
           <button type="button" data-f="biblioteca" onclick="filtrarHist(this)">Biblioteca</button>
+          <button type="button" data-f="relevo" onclick="filtrarHist(this)">Relevo</button>
         </div>
         <p class="ayuda" id="resumenHist"></p>
         <details class="exportar">
@@ -1842,6 +1848,26 @@
       </div>
     </section>
 
+    <!-- ========== ENTREGA AL RELEVO ========== -->
+    <section id="relevo" class="pantalla">
+      <div class="tarjeta">
+        <h2>Entrega al relevo</h2>
+        <p class="ayuda">Arma un PDF con lo que queda abierto: hallazgos, vencimientos y programa de los próximos 14 días, y los plazos de accidentes. Tú agregas las notas y las firmas.</p>
+        <div class="inf-panel" id="relResumen"></div>
+        <label>Turno desde</label><input type="datetime-local" id="relDesde">
+        <label>Hasta</label><input type="datetime-local" id="relHasta">
+        <label>Quién entrega</label><input type="text" id="relEntrega" maxlength="80">
+        <label>Quién recibe (opcional)</label><input type="text" id="relRecibe" maxlength="80">
+        <label>Notas para el relevo</label>
+        <textarea id="relNotas" rows="4" maxlength="1500" placeholder="Ej: Falta cerrar el hallazgo del acceso norte; el camión AB1234 no sale hasta revisar el SOAP"></textarea>
+        <div id="relFirmaEntrega"></div>
+        <div id="relFirmaRecibe"></div>
+        <p class="error" id="relError"></p>
+        <button type="button" class="btn btn-principal" onclick="generarRelevo()">Generar PDF de entrega</button>
+        <p class="mensaje" id="relMsj"></p>
+      </div>
+    </section>
+
     <!-- ========== PUNTOS CRÍTICOS POR RUTA Y KM ========== -->
     <section id="criticos" class="pantalla">
       <datalist id="listaRutas"></datalist>
@@ -2728,7 +2754,7 @@
 
     // Navegación: 4 pestañas (Mi día, Personas, Gestión, Ajustes). Lo que no está en el mapa (charla, EPP, check list, IRL, accidente, emergencia) cuelga de "Mi día".
     const TABS = ["menu", "personas", "gestion", "ajustes"];
-    const TAB_DE = { personal: "personas", documentos: "personas", matriz: "gestion", calendario: "gestion", hallazgos: "gestion", criticos: "gestion", casi: "gestion", vencimientos: "gestion", informe: "gestion", biblioteca: "gestion", historial: "gestion", empresa: "ajustes", acerca: "ajustes" };
+    const TAB_DE = { personal: "personas", documentos: "personas", matriz: "gestion", calendario: "gestion", hallazgos: "gestion", criticos: "gestion", casi: "gestion", vencimientos: "gestion", informe: "gestion", biblioteca: "gestion", relevo: "gestion", historial: "gestion", empresa: "ajustes", acerca: "ajustes" };
     const PADRE_DE = { ...TAB_DE, empresa: "ajustes", acerca: "ajustes" };   // a dónde vuelve la flecha ←
     let _tabForzada = null;   // Consentimientos abre Empresa pero sigue bajo la pestaña Personas
     const marcarTab = id => { const t = TABS.includes(id) ? id : (id === "empresa" && _tabForzada) || TAB_DE[id] || "menu"; document.querySelectorAll("#barraInf button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === t ? "page" : "false")); };
@@ -2739,10 +2765,11 @@
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = TABS.includes(id) ? "hidden" : "visible";
       marcarTab(id);
-      const titulos = { menu: "APR", personas: "Personas", gestion: "Gestión", ajustes: "Ajustes", acerca: "Acerca de", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos" };
+      const titulos = { menu: "APR", personas: "Personas", gestion: "Gestión", ajustes: "Ajustes", acerca: "Acerca de", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos", relevo: "Entrega al relevo" };
       if (id === "casi") iniciarCasi();
       if (id === "criticos") pintarCriticos();
       if (id === "biblioteca") iniciarBiblioteca();
+      if (id === "relevo") iniciarRelevo();
       if (id === "charla") { pintarUVCharla(); pintarCharlaExpress(); }
       if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
@@ -3936,7 +3963,7 @@
     /* ----- Folio de verificación ----- 
        Cada PDF lleva al pie un folio único (ej: CL-261113-7K3M) y guardamos la "huella" (SHA-256) del archivo.
        En Historial → Verificar documento, la app dice si un PDF es el original o si fue modificado. */
-    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG", casi: "CAS", biblioteca: "BIB" };
+    const PREFIJO_FOLIO = { charla: "CH", irl: "IRL", check: "CL", hallazgos: "HAL", informe: "INF", epp: "EPP", consentimiento: "CON", documento: "DOC", accidente: "ACC", emergencia: "EMG", casi: "CAS", biblioteca: "BIB", relevo: "REL" };
     function nuevoFolio(tipo, fecha, prefijo) {
       const abc = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ", r = crypto.getRandomValues(new Uint8Array(4));
       return `${prefijo || PREFIJO_FOLIO[tipo] || "DOC"}-${String(fecha || hoyISO()).replace(/-/g, "").slice(2, 8)}-${[...r].map(x => abc[x % abc.length]).join("")}`;
@@ -3947,7 +3974,7 @@
       return [...h].map(x => x.toString(16).padStart(2, "0")).join("");
     }
     // Documentos que se firman en el momento, delante de quien registra (el informe reutiliza firmas: no va)
-    const FIRMA_PRESENCIAL = ["charla", "irl", "check", "epp", "consentimiento", "documento", "accidente"];
+    const FIRMA_PRESENCIAL = ["charla", "irl", "check", "epp", "consentimiento", "documento", "accidente", "relevo"];
     let versionAppCache = "";
     async function versionApp() {
       if (versionAppCache) return versionAppCache;
@@ -4031,7 +4058,7 @@
 
       lista.innerHTML = visibles.map(r => `
         <div class="registro ${r.reemplazadoPor ? "reemplazado" : ""}">
-          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : r.tipo === "casi" ? "👁️" : r.tipo === "biblioteca" ? "📚" : "📋"} ${html(r.asunto)}</div>
+          <div class="tit">${r.tipo === "irl" ? "📘" : r.tipo === "check" ? "✅" : r.tipo === "informe" ? "📑" : r.tipo === "hallazgos" ? "📌" : r.tipo === "epp" ? "🦺" : r.tipo === "consentimiento" ? "✍️" : r.tipo === "documento" ? "📄" : r.tipo === "accidente" ? "🚑" : r.tipo === "emergencia" ? "🚨" : r.tipo === "casi" ? "👁️" : r.tipo === "biblioteca" ? "📚" : r.tipo === "relevo" ? "🔄" : "📋"} ${html(r.asunto)}</div>
           ${r.reemplazadoPor ? `<div class="hist-reemplazado">🔁 Reemplazado por el folio ${html(r.reemplazadoPor)} (se conserva como respaldo)</div>` : ""}
           ${r.reemplaza ? `<div class="hist-corrige">✏️ Corrige al folio ${html(r.reemplaza)}</div>` : ""}
           <div class="det">${html(r.detalle)}<br>Generado: ${new Date(r.creado).toLocaleString("es-CL")}${r.folio ? " · Folio " + html(r.folio) : ""}${r.drive ? " · ☁️ En Drive" : driveConfigurado() ? " · ☁️ Pendiente" : ""}</div>
@@ -4973,7 +5000,7 @@
        El equipo guarda el mes actual y el anterior. Cada mes terminado se baja en un zip (aviso rojo en el menú
        hasta que se baje). Los meses más antiguos se borran solos, pero SOLO los PDF que ya fueron a un zip:
        pt_respaldoMes = { "AAAA-MM": momento del respaldo }; lo creado después de ese momento sigue pendiente. */
-    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia", casi: "Casi accidentes", biblioteca: "Índice de biblioteca" };
+    const CARPETA_RESPALDO = { charla: "Charlas", irl: "IRL", check: "Check list", hallazgos: "Hallazgos", informe: "Informe", anexo: "Anexos", epp: "EPP", consentimiento: "Consentimientos", documento: "Documentos", accidente: "Accidentes", emergencia: "Ficha de emergencia", casi: "Casi accidentes", biblioteca: "Índice de biblioteca", relevo: "Relevo" };
     const mesHoy = () => new Date().toLocaleDateString("sv-SE").slice(0, 7);
     const mesDeRegistro = r => /^\d{4}-\d{2}/.test(String(r.fecha || "")) ? String(r.fecha).slice(0, 7) : new Date(r.creado || 0).toLocaleDateString("sv-SE").slice(0, 7);
     function mesAnteriorDe(k) { const [a, m] = k.split("-").map(Number); return m === 1 ? `${a - 1}-12` : `${a}-${String(m - 1).padStart(2, "0")}`; }
@@ -10145,6 +10172,108 @@
       guardarHallazgos(); recordarUbic(h.ubic);
       bitacora("Hallazgo editado", { doc: h.desc.slice(0, 80) });
       pintarHallazgos(); avisoProgramaMenu();
+    }
+
+    /* =====================================================================
+       ENTREGA AL RELEVO (turno): PDF con folio REL- con lo que queda abierto para quien llega.
+       Junta, sin guardar nada nuevo: hallazgos abiertos, vencimientos de 14 días (y vencidos), programa de 14 días y atrasadas, plazos de accidentes abiertos
+       (pt_plazos_acc) y las notas del que entrega. Las firmas se trazan en el momento (la de quien recibe es opcional). Va al Historial y a Drive como los demás.
+       ===================================================================== */
+    let relFirmasIniciadas = false;
+    const diasTxt = n => n < 0 ? `VENCIDO hace ${-n} día(s)` : n === 0 ? "vence hoy" : `en ${n} día(s)`;
+    function datosRelevo() {
+      const hoy = hoyISO(), fin = sumarDiasISO(hoy, 14);
+      const hal = hallazgos.filter(h => !h.cerrado).sort((a, b) => (a.plazo || "9999").localeCompare(b.plazo || "9999"));
+      const ven = vencimientos.filter(v => !fueraDeObra(v) && diasPara(v.vence) <= 14).sort((a, b) => a.vence.localeCompare(b.vence));
+      const atras = programadasEntre(`${hoy.slice(0, 4)}-01-01`, hoy).filter(x => x.atrasada), prox = programadasEntre(hoy, fin).filter(x => !x.hecha && !x.atrasada);
+      const plz = plazosAcc.filter(p => plazoPendiente(p));
+      return { hoy, hal, ven, atras, prox, plz };
+    }
+    function pintarResumenRelevo() {
+      const d = datosRelevo(), dato = (n, t) => `<div class="inf-dato"><b class="${t.startsWith("Atras") && n ? "rojo" : ""}">${n}</b><small>${t}</small></div>`;
+      document.getElementById("relResumen").innerHTML = dato(d.hal.length, "Hallazgos abiertos") + dato(d.ven.length, "Vencimientos (14 días)") + dato(d.prox.length, "Programa (14 días)") + dato(d.atras.length, "Atrasadas") + dato(d.plz.length, "Plazos de accidente");
+    }
+    const aLocalISO = d => `${isoD(d)}T${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const fechaHoraCL = t => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(t) ? `${fechaCLde(t.slice(0, 10))} ${t.slice(11)} hrs` : "";
+    async function iniciarRelevo() {
+      if (!relFirmasIniciadas) {
+        relFirmasIniciadas = true;
+        document.getElementById("relFirmaEntrega").innerHTML = htmlFirma("Firma de quien entrega");
+        document.getElementById("relFirmaRecibe").innerHTML = htmlFirma("Firma de quien recibe (opcional)");
+        activarFirmas();
+      }
+      const ahora = new Date();
+      let desde = new Date(ahora.getTime() - 7 * 86400000);
+      try {   // el turno nuevo parte donde terminó el último relevo
+        const ult = (await operacionBD("readonly", s => s.getAll())).filter(r => r.tipo === "relevo" && vigente(r) && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(r.hasta || "")).sort((a, b) => b.creado - a.creado)[0];
+        if (ult) desde = new Date(ult.hasta);
+      } catch {}
+      document.getElementById("relDesde").value = aLocalISO(desde); document.getElementById("relHasta").value = aLocalISO(ahora);
+      document.getElementById("relEntrega").value = String(infContrato.experto || leerGuardado("pt_responsables", {}).prevencionista || "");
+      document.getElementById("relError").textContent = ""; document.getElementById("relMsj").textContent = "";
+      pintarResumenRelevo();
+    }
+    async function crearPDF_Relevo(d) {
+      const x = datosRelevo(), obra = infContrato.contrato || "";
+      const c = await nuevoPDFSimple("ENTREGA AL RELEVO", `${LINEA_EMPLEADOR || EMPRESA.nombre || ""}${obra ? " · " + obra : ""} · Emitido el ${fechaCLde(x.hoy)}`);
+      c.titulo("Turno");
+      c.parrafo(`Desde: ${fechaHoraCL(d.desde)}   ·   Hasta: ${fechaHoraCL(d.hasta)}`, { tam: 10.5 });
+      c.parrafo(`Entrega: ${d.entrega}   ·   Recibe: ${d.recibe || "(sin indicar)"}`, { tam: 10.5 });
+      c.titulo(`Hallazgos abiertos (${x.hal.length})`);
+      if (!x.hal.length) c.parrafo("Sin hallazgos abiertos.", { tam: 9.5, color: c.GRIS });
+      for (const h of x.hal) {
+        const u = ubicTxt(ubicDe(h)), venc = h.plazo ? (h.plazo < x.hoy ? ` · PLAZO VENCIDO (${fechaCLde(h.plazo)})` : ` · plazo ${fechaCLde(h.plazo)}`) : " · sin plazo";
+        c.parrafo(`[${h.riesgo}] ${h.desc}${[h.lugar, u].filter(Boolean).length ? " · " + [h.lugar, u].filter(Boolean).join(" · ") : ""}${h.resp ? " · resp.: " + h.resp : ""}${venc}`, { tam: 9, vineta: "•", color: h.plazo && h.plazo < x.hoy ? c.ROJO : c.NEGRO });
+      }
+      c.titulo(`Vencimientos de los próximos 14 días (${x.ven.length})`);
+      if (!x.ven.length) c.parrafo("Nada vence en los próximos 14 días.", { tam: 9.5, color: c.GRIS });
+      for (const v of x.ven) c.parrafo(`${v.tipo} – ${v.quien} · ${fechaCLde(v.vence)} (${diasTxt(diasPara(v.vence))})`, { tam: 9, vineta: "•", color: diasPara(v.vence) < 0 ? c.ROJO : c.NEGRO });
+      c.titulo(`Programa: atrasadas (${x.atras.length}) y próximos 14 días (${x.prox.length})`);
+      if (!x.atras.length && !x.prox.length) c.parrafo("No hay actividades atrasadas ni programadas en los próximos 14 días.", { tam: 9.5, color: c.GRIS });
+      const cuando = y => y.a.mes ? "mes de " + MESES[+y.f.slice(5, 7) - 1].toLowerCase() : fechaCLde(y.f);
+      for (const y of x.atras.slice(0, 25)) c.parrafo(`ATRASADA (${cuando(y)}): ${y.a.actividad}`, { tam: 9, vineta: "•", color: c.ROJO });
+      if (x.atras.length > 25) c.parrafo(`… y ${x.atras.length - 25} atrasadas más (ver Calendario).`, { tam: 8.5, color: c.GRIS });
+      for (const y of x.prox.slice(0, 40)) c.parrafo(`${cuando(y)}: ${y.a.actividad}${y.a.tipo ? " (" + y.a.tipo + ")" : ""}`, { tam: 9, vineta: "•" });
+      if (x.prox.length > 40) c.parrafo(`… y ${x.prox.length - 40} más (ver Calendario).`, { tam: 8.5, color: c.GRIS });
+      c.titulo(`Plazos de accidentes abiertos (${x.plz.length})`);
+      if (!x.plz.length) c.parrafo("Sin plazos de accidente abiertos.", { tam: 9.5, color: c.GRIS });
+      for (const p of x.plz) {
+        const falta = hitosDe(p).filter(h => !p.hitos[h]).map(h => { const v = venceHito(p, h); return v ? `${HITOS_PLAZO[h].t} (${v < new Date() ? "VENCIDO" : "vence"} ${diaHoraCorta(v)})` : HITOS_PLAZO[h].t; });
+        c.parrafo(`Accidente ${catPlazoTxt(p)} del ${fechaCLde(p.fecha)} ${p.hora}${p.lugar ? " · " + p.lugar : ""}. Pendiente: ${falta.join("; ")}.`, { tam: 9, vineta: "•", color: c.ROJO });
+      }
+      if (d.notas) { c.titulo("Notas para el relevo"); c.parrafo(d.notas, { tam: 10 }); }
+      c.espacio(140); c.y -= 10;
+      const w = (c.ANCHO - 20) / 2, firmas = [[d.firmaE, d.entrega, "Entrega"], [d.firmaR, d.recibe || "", "Recibe"]];
+      for (let i = 0; i < firmas.length; i++) {
+        const [img, nombre, rol] = firmas[i], px = c.M + i * (w + 20);
+        if (img) { const im = await c.doc.embedPng(img), k = Math.min((w - 20) / im.width, 70 / im.height); c.pag.drawImage(im, { x: px + (w - im.width * k) / 2, y: c.y - 80, width: im.width * k, height: im.height * k }); }
+        c.pag.drawLine({ start: { x: px, y: c.y - 86 }, end: { x: px + w, y: c.y - 86 }, thickness: 0.8, color: c.GRIS });
+        const t1 = textoPDF(nombre || " "), t2 = textoPDF(rol);
+        c.pag.drawText(t1, { x: px + Math.max(0, (w - c.fB.widthOfTextAtSize(t1, 9)) / 2), y: c.y - 98, size: 9, font: c.fB, color: c.NEGRO });
+        c.pag.drawText(t2, { x: px + (w - c.fN.widthOfTextAtSize(t2, 8)) / 2, y: c.y - 110, size: 8, font: c.fN, color: c.GRIS });
+      }
+      c.y -= 120;
+      c.pie();
+      return await c.doc.save();
+    }
+    async function generarRelevo() {
+      const err = document.getElementById("relError"), msj = document.getElementById("relMsj"), v = id => document.getElementById(id).value.trim();
+      const d = { desde: v("relDesde"), hasta: v("relHasta"), entrega: v("relEntrega"), recibe: v("relRecibe"), notas: v("relNotas") };
+      if (!fechaHoraCL(d.desde) || !fechaHoraCL(d.hasta) || d.hasta < d.desde) { err.textContent = "Revisa el período: la fecha “hasta” debe ser posterior a “desde”."; return; }
+      if (!d.entrega) { err.textContent = "Escribe quién entrega."; return; }
+      const cE = document.querySelector("#relFirmaEntrega canvas"), cR = document.querySelector("#relFirmaRecibe canvas");
+      if (!cE.dataset.firmado) { err.textContent = "Falta la firma de quien entrega."; return; }
+      d.firmaE = cE.toDataURL("image/png"); d.firmaR = cR.dataset.firmado ? cR.toDataURL("image/png") : null;
+      err.textContent = ""; msj.textContent = "Armando el PDF…";
+      try {
+        const fecha = d.hasta.slice(0, 10), pdf = { bytes: await crearPDF_Relevo(d), nombreArchivo: `Entrega_relevo_${fecha}_${d.hasta.slice(11).replace(":", "")}.pdf`, asunto: `Entrega al relevo – ${fechaHoraCL(d.hasta)}` };
+        const x = datosRelevo();
+        await guardarEnHistorial(null, "relevo", pdf, fecha, `${x.hal.length} hallazgo(s) · ${x.ven.length} vencimiento(s) · ${x.atras.length + x.prox.length} actividad(es) · ${x.plz.length} plazo(s)`, { hasta: d.hasta });
+        msj.textContent = `✅ Folio ${pdf.folio || "—"} · quedó en el Historial.`;
+        document.getElementById("relNotas").value = "";
+        document.querySelectorAll("#relFirmaEntrega .btn-limpiar, #relFirmaRecibe .btn-limpiar").forEach(b => b.click());
+        await compartirPDFEPP(pdf.bytes, pdf.nombreArchivo, pdf.asunto, msj);
+      } catch (e) { console.warn(e); err.textContent = "No se pudo armar el PDF: " + e.message; msj.textContent = ""; }
     }
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
