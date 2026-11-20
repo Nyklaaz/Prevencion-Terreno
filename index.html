@@ -1280,6 +1280,13 @@
           <div class="tarjeta">
             <h2 id="ckTituloDatos">1. Antecedentes</h2>
             <div id="ckCampos"></div>
+          <h3>Ubicación (opcional)</h3>
+          <div class="dos-col">
+            <div><label>Ruta</label><input type="text" id="ckUbRuta" list="listaRutas" maxlength="60" placeholder="Ej: Ruta C-35"></div>
+            <div><label>Km</label><input type="text" id="ckUbKm" inputmode="decimal" maxlength="12" placeholder="Ej: 412,3"></div>
+          </div>
+          <button type="button" class="btn btn-secundario" onclick="usarGps('ckUb')">📍 Usar ubicación del equipo</button>
+          <small class="ayuda" id="ckUbGpsTxt"></small>
           </div>
           <div class="tarjeta">
             <h2>2. Componentes a revisar</h2>
@@ -1400,6 +1407,8 @@
             <div><label>Ruta / sector</label><input type="text" id="accRuta" placeholder="Ruta C-33"></div>
             <div><label>Km</label><input type="text" id="accKm" inputmode="decimal"></div>
           </div>
+          <button type="button" class="btn btn-secundario" onclick="usarGps('acc')">📍 Guardar la ubicación del equipo (opcional)</button>
+          <small class="ayuda" id="accGpsTxt"></small>
           <div class="dos-col">
             <div><label>Sitio / referencia</label><input type="text" id="accSitio"></div>
             <div><label>Comuna</label><input type="text" id="accComuna"></div>
@@ -3885,6 +3894,8 @@
       const l = CHECKLISTS.listas[id], g = CHECKLISTS.grupos[l.grupo];
       const previos = conservar ? leerCamposCheck() : null;
       ckId = id; ckGrupo = l.grupo; pdfCheck = null; idHistCheck = null;
+      if (!conservar) limpiarUbic("ckUb");
+      iniciarUbic("ckUb");
       document.querySelectorAll("#ckListas .ck-lista").forEach(b => b.classList.toggle("activo", b.dataset.id === id));
       document.getElementById("cajaEnvioCheck").style.display = "none";
       document.getElementById("errorCheck").textContent = "";
@@ -4036,6 +4047,8 @@
       const form = document.getElementById("formCheck"), error = document.getElementById("errorCheck");
       error.textContent = "";
       const l = CHECKLISTS.listas[ckId];
+      const ubCk = leerUbic("ckUb");
+      if (ubCk.error) { error.textContent = ubCk.error; document.getElementById("ckUbKm").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
       if (l.porEquipo && !document.querySelector("#ckExtintores .ck-ext")) {
         error.textContent = "Agrega al menos un extintor.";
         document.getElementById("ckCajaExt").scrollIntoView({ behavior: "smooth", block: "center" });
@@ -4139,7 +4152,7 @@
       const todas = [...items.filter(i => i.resp), ...(extintores || []).flatMap(e => e.resp)];
       return {
         id: ckId, nombre: l.nombre, grupo: l.grupo, grupoNombre: g.nombre, codigo: g.codigo, escala: g.escala,
-        campos, fechaCL: campos.fecha.split("-").reverse().join("/"), items, extintores, acciones, firmas,
+        campos, ubic: leerUbic("ckUb").ubic, fechaCL: campos.fecha.split("-").reverse().join("/"), items, extintores, acciones, firmas,
         seguimiento: txt("ckSeguimiento"), obs: txt("ckObs"), fotos: ckFotos.map(f => ({ ...f, texto: f.texto.trim() })),
         malas: todas.filter(i => MALAS.includes(i.resp)).length
       };
@@ -4203,6 +4216,7 @@
         pag.drawText(limpiar(`Programa de Prevención de Riesgos · ${r.grupoNombre} · Código ${r.codigo}`), { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 11;
         if (LINEA_EMPLEADOR) for (const l of partir("Empleador: " + LINEA_EMPLEADOR, fB, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fB, color: GRIS }); y -= 10; }
         if (r.campos.obra) for (const l of partir("Obra: " + r.campos.obra, fN, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
+        if (ubicTxt(validarUbic(r.ubic))) for (const l of partir("Ubicación: " + ubicTxt(validarUbic(r.ubic)), fN, 7.5, ANCHO - 60)) { pag.drawText(l, { x: M, y: y - 9, size: 7.5, font: fN, color: GRIS }); y -= 10; }
         y = Math.min(y, H - M - TAM) - 6;
         pag.drawLine({ start: { x: M, y }, end: { x: A - M, y }, thickness: 2, color: ROJO });
         y -= 10;
@@ -5529,6 +5543,7 @@
       }
       const otrosDocs = regs.filter(r => r.tipo === "documento" && r.plantilla !== "capacitacion");
       if (otrosDocs.length) nuevas.push(`Se emitieron ${otrosDocs.length} documento(s) de prevención: ${contar(otrosDocs.map(r => String(r.detalle).split(" · ")[0]))}.`);
+      const fu = fraseUbicacionInforme(k); if (fu) nuevas.push(fu);
       const rc = resumenCasiMes(k);
       if (rc.total) {
         const n = (k, uno, varios) => rc.porTipo[k] ? `${rc.porTipo[k]} ${rc.porTipo[k] === 1 ? uno : varios}` : "";
@@ -5547,7 +5562,7 @@
       if (cp.total) nuevas.push(`Cumplimiento del programa de prevención de riesgos del mes: se ejecutaron ${cp.hechas} de ${cp.total} actividades programadas (${cp.pct}%).`);
       const actuales = leerFilas("infActividades").filter(a => a.texto);
       // No repetimos lo que ya estaba (si se presiona dos veces)
-      const auto = /^(Se registr(?:ó 1 reporte|aron \d+ reportes) preventivo|Se realiz(?:ó 1|aron \d+) capacitaci|Se emitieron \d+ documento|Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
+      const auto = /^(Los registros del mes con ubicaci|Se registr(?:ó 1 reporte|aron \d+ reportes) preventivo|Se realiz(?:ó 1|aron \d+) capacitaci|Se emitieron \d+ documento|Se realizaron \d+ charlas|Se entregó la Información|Se realizaron \d+ inspecciones|No se registran accidentes|Durante el mes de .* se registra|Cumplimiento del programa|Seguimiento de hallazgos|Control de vencimientos)/;
       pintarFilas("infActividades", [...nuevas.map(texto => ({ texto })), ...actuales.filter(a => !auto.test(a.texto))]);
       guardarInforme();
     }
@@ -7919,7 +7934,7 @@
         const clave = claveCheckHal(r, quien, m);
         if (hallazgos.some(h => h.clave === clave)) continue;
         hallazgos.push({ id: nuevoIdHal(), clave, fecha: r.campos.fecha, desc: `${m.texto}${m.obs ? ": " + m.obs : ""}`, lugar: [r.nombre, quien].filter(Boolean).join(" – "),
-          origen: "Check list", riesgo: m.resp === "M" || m.resp === "NO" ? "Alto" : "Medio", accion: acc.accion || "", resp: acc.responsable || "", plazo, foto: false, fotoCierre: false, cerrado: null });
+          origen: "Check list", riesgo: m.resp === "M" || m.resp === "NO" ? "Alto" : "Medio", accion: acc.accion || "", resp: acc.responsable || "", plazo, ubic: r.ubic, foto: false, fotoCierre: false, cerrado: null });
         n++;
       }
       guardarHallazgos(); avisoProgramaMenu();
@@ -8922,15 +8937,15 @@
 
     pintarListaRutas();
     // ----- Vista "Puntos críticos": registros con ruta y km, por tramo de 1 km -----
-    function registrosConUbic(desde) {
+    function registrosConUbic(desde, hasta = "9999-12-31") {
       const l = [];
       for (const h of hallazgos) if (!String(h.clave || "").startsWith("casi:")) l.push({ tipo: "Hallazgo", fecha: h.fecha, texto: h.desc, ubic: ubicDe(h) });   // los que nacen de un casi accidente ya cuentan como casi
       for (const c of casiReportes) l.push({ tipo: "Casi accidente", fecha: c.fecha, texto: `${c.tipo}: ${c.desc}`, ubic: ubicDe(c) });
       for (const a of accidentes) l.push({ tipo: "Accidente", fecha: a.fecha, texto: a.que || "", ubic: validarUbic({ ruta: a.ruta, km: a.km, ...(a.ubic || {}) }) });
-      return l.filter(x => String(x.fecha || "") >= desde);
+      return l.filter(x => String(x.fecha || "") >= desde && String(x.fecha || "") <= hasta);
     }
-    function agruparPuntosCriticos(desde) {
-      const lista = registrosConUbic(desde), rutas = {}, sinKm = [], sinUbic = [];
+    function agruparPuntosCriticos(desde, hasta) {
+      const lista = registrosConUbic(desde, hasta), rutas = {}, sinKm = [], sinUbic = [];
       for (const x of lista) {
         const k = parseKm(x.ubic.km);
         if (k === null) { (x.ubic.ruta ? sinKm : sinUbic).push(x); continue; }
@@ -8938,6 +8953,15 @@
         ((rutas[ruta] ||= {})[tramo] ||= []).push(x);
       }
       return { rutas, sinKm, sinUbic, total: lista.length };
+    }
+    // Frase para el informe mensual: dónde se concentran los registros del mes (solo si hay al menos 3 con km y 2 en el mismo tramo)
+    function fraseUbicacionInforme(k) {
+      const g = agruparPuntosCriticos(`${k}-01`, `${k}-31`);
+      const conKm = Object.values(g.rutas).reduce((s, t) => s + Object.values(t).reduce((u, l) => u + l.length, 0), 0);
+      let mejor = null;
+      for (const [ruta, tramos] of Object.entries(g.rutas)) for (const [t, l] of Object.entries(tramos)) if (!mejor || l.length > mejor.n) mejor = { ruta, t: +t, n: l.length };
+      if (conKm < 3 || !mejor || mejor.n < 2) return "";
+      return `Los registros del mes con ubicación (hallazgos, casi accidentes y accidentes) se concentran en ${mejor.ruta === "(sin ruta)" ? "el" : (/^ruta/i.test(mejor.ruta) ? "la " : "la ruta ") + mejor.ruta + ","} tramo km ${mejor.t} a ${mejor.t + 1} (${mejor.n} de ${conKm} registros con km).`;
     }
     function desdeCriticos() {
       const p = document.getElementById("critPeriodo").value, hoy = hoyISO();
@@ -9612,6 +9636,7 @@
     async function generarFlash(ev) {
       ev.preventDefault();
       const error = document.getElementById("errorAcc"), a = datosFormAcc();
+      if (gpsTmp.acc) a.ubic = { lat: gpsTmp.acc.lat, lon: gpsTmp.acc.lon };
       const falla = (texto, id) => { error.textContent = texto; const el = document.getElementById(id); if (el) { el.classList.add("campo-falta"); el.scrollIntoView({ behavior: "smooth", block: "center" }); } };
       if (!a.nombre) return falla("Falta el nombre del accidentado.", "accNombre");
       if (!rutValido(a.rut)) return falla("El RUT no es válido: revísalo.", "accRut");
@@ -9642,6 +9667,7 @@
         alInformeMensual(a);
         guardar("pt_acc_recordar", { inv: a.invNombre, invCargo: a.invCargo, centro: a.centro, ruta: a.ruta, comuna: a.comuna, cphs: a.cphsNombre });
         accActualId = a.id;
+        delete gpsTmp.acc; document.getElementById("accGpsTxt").textContent = "";
         // El Word del flash: mismo formato de las bases, con las firmas
         const word = await wordFlash(a);
         alDrive(`Informe_flash_${slugArchivo(a.nombre)}_${a.fecha}.docx`, word, TIPO_DOCX, [DRIVE_RAIZ, a.fecha.slice(0, 7), "Accidentes"], "flash:" + a.id);
