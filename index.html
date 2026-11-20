@@ -1853,6 +1853,8 @@
           <div id="emerTramos"></div>
           <button type="button" class="btn btn-secundario" onclick="agregarTramoEmergencia()">+ Agregar un tramo</button>
           <button type="button" class="btn btn-secundario" onclick="abrirImportarTramos()">📥 Importar tramos (pegar o archivo .csv)</button>
+          <button type="button" class="btn btn-secundario" onclick="restaurarTramosContrato()">↩️ Restaurar tramos del contrato</button>
+          <p class="mensaje" id="emerRestMsj"></p>
           <div id="emerImp" class="emer-fila-edicion" style="display:none;margin-top:8px">
             <p class="ayuda">Una fila por tramo, con estas columnas separadas por ; (o coma): <b>ruta ; km_desde ; km_hasta ; centro ; tipo ; direccion ; telefono ; nota</b>. Km como 412,3 o 412+300. La primera fila puede ser la de títulos.</p>
             <textarea id="emerImpTexto" rows="6" placeholder="Ruta C-35;0;45,5;Hospital de Vallenar;Hospital;Av. Principal 1;551234567;Urgencia 24 h"></textarea>
@@ -9616,6 +9618,75 @@
         verEmergencia();
       } catch (e) { console.warn(e); err.textContent = "No se pudo guardar la ficha."; msj.textContent = ""; }
     }
+    /* Tramos del contrato precargados: SOLO rutas, km y datos públicos de centros de salud (nombre, dirección, teléfono institucional, nota). Nada de teléfonos personales ni de trabajadores. */
+    const TRAMOS_CONTRATO_CSV = [
+      "31-CH;0,000;25,000;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;0,000;25,000;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;25,000;81,110;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;25,000;81,110;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;81,110;83,970;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;81,110;83,970;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;83,970;94,000;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;83,970;94,000;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;94,000;102,000;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;94,000;102,000;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;102,000;144,000;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;102,000;144,000;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;144,000;171,320;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "31-CH;144,000;171,320;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "31-CH;171,320;280,240;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves).",
+      "31-CH;171,320;280,240;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS).",
+      "C-17;0,000;30,000;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Por confirmar.",
+      "C-17;0,000;30,000;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-17;30,000;61,223;Diego de Almagro (hospital comunitario);hospital comunitario;Av. Juan Martínez 2200 Diego de Almagro;522465500;Destino de lesiones graves por definir (por confirmar).",
+      "C-261;67,557;102,124;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-261;67,557;102,124;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-309;0,000;37,878;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-309;0,000;37,878;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-309;37,878;57,212;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves).",
+      "C-309;37,878;57,212;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS).",
+      "C-303;0,000;26,556;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-303;0,000;26,556;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-319;0,000;54,805;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves).",
+      "C-319;0,000;54,805;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS).",
+      "C-335;0,000;12,401;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-335;0,000;12,401;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-341;0,000;14,500;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-341;0,000;14,500;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-341;14,500;31,337;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-341;14,500;31,337;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-341;31,337;57,977;CESFAM Tierra Amarilla (Salvador Allende);cesfam;Tierra Amarilla (por confirmar);522201922;Emergencias básicas (estabilizar). Casos graves a Copiapó. Teléfono y dirección por confirmar.",
+      "C-341;31,337;57,977;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Lesiones graves a Copiapó (principal). Teléfono por confirmar.",
+      "C-365;0,000;55,338;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-365;0,000;55,338;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-369;0,000;24,472;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-369;0,000;24,472;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-601;0,000;54,800;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-601;0,000;54,800;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-601;54,800;100,925;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-601;54,800;100,925;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-367;0,000;5,670;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-367;0,000;5,670;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar.",
+      "C-367;5,670;7,971;Hospital Regional de Copiapó San José del Carmen;hospital;Los Carrera 1320 Copiapó;522467007;Principal (graves). Teléfono por confirmar.",
+      "C-367;5,670;7,971;Clínica Atacama (Nueva Atacama) convenio ACHS;clinica;José M. Infante 861 Copiapó;(52) 2354450;Alternativa (convenio ACHS). Teléfono por confirmar."
+    ].join("\n");
+    function tramosDelContrato(existentes = []) { return parsearTramosCSV("ruta;km_desde;km_hasta;centro;tipo;direccion;telefono;nota\n" + TRAMOS_CONTRATO_CSV, existentes); }
+    // Si el equipo no tiene tramos, se cargan los del contrato una sola vez (y suben a Drive por la configuración compartida como si se hubieran guardado). Si ya tiene, no se toca nada.
+    function precargarTramosContrato() {
+      if (leerGuardado("pt_tramos_precarga", "") === "1") return;
+      if (!(emergencia && emergencia.tramos.length)) {
+        const r = tramosDelContrato([]);
+        emergencia = validarEmergencia({ ...(emergencia || {}), tramos: r.filas.map((t, i) => ({ ...t, id: "c" + i })) });
+        guardar("pt_emergencia", emergencia);
+      }
+      guardar("pt_tramos_precarga", "1");
+    }
+    function restaurarTramosContrato() {
+      const r = tramosDelContrato(tramosDelEditor()), msj = document.getElementById("emerRestMsj");
+      r.filas.forEach(t => agregarTramoEmergencia(t));
+      msj.textContent = r.filas.length ? `✅ Se agregaron ${r.filas.length} tramo(s) del contrato${r.duplicados ? ` (${r.duplicados} ya estaban)` : ""}. Toca "Guardar y generar PDF" para dejarlos guardados.` : "Los tramos del contrato ya están todos en la lista.";
+    }
+    precargarTramosContrato();
     pintarBotonEmergencia();
 
     /* =====================================================================
@@ -11395,7 +11466,7 @@
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind", "pt_blob_meta"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind", "pt_blob_meta", "pt_tramos_precarga"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     // Qué se quitaría en los OTROS equipos si se marca "quitar de los demás" (por tipo)
