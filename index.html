@@ -489,6 +489,21 @@
     .emer-fila:last-child { border-bottom: 0; }
     .emer-rol { font-size: 14px; color: #475569; }
     .emer-tel { display: block; font-size: 26px; font-weight: 800; color: var(--rojo-osc); text-decoration: none; letter-spacing: .5px; }
+    .emer-llamadas { display: grid; gap: 8px; }
+    .emer-llamar { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 56px; padding: 10px 14px; border-radius: 12px; border: 2px solid #b8102a; background: #fff; color: inherit; text-decoration: none; font: inherit; text-align: left; width: 100%; cursor: pointer; }
+    .emer-llamar b { font-size: 22px; color: #b8102a; letter-spacing: .5px; white-space: nowrap; }
+    .emer-llamar-rol { font-size: 16px; font-weight: 700; }
+    .emer-llamar.vacio { border-style: dashed; border-color: #94a3b8; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; }
+    .emer-llamar.vacio small { color: #64748b; font-size: 13px; }
+    .emer-centro { border: 1px solid #e5e9f4; border-radius: 12px; padding: 12px; margin-bottom: 10px; display: grid; gap: 6px; }
+    .emer-centro.grande { border: 2px solid #1d4ed8; }
+    .emer-centro-tipo { font-size: 13px; color: #475569; }
+    .emer-centro-nombre { font-size: 20px; font-weight: 800; }
+    .emer-centro.grande .emer-centro-nombre { font-size: 24px; }
+    html[data-tema="oscuro"] .emer-llamar { background: #101a31; }
+    html[data-tema="oscuro"] .emer-llamar b { color: #ff8a9d; }
+    html[data-tema="oscuro"] .emer-centro { border-color: #26324f; }
+    html[data-tema="oscuro"] .emer-centro-tipo { color: #9fb0d6; }
     .emer-fila-edicion { border: 1px solid #e5e9f4; border-radius: 8px; padding: 8px; margin-bottom: 8px; }
     /* Plazos del PST-30 */
     .plazo-rest { display: block; font-size: 22px; font-weight: 800; }
@@ -1385,6 +1400,12 @@
       </div>
 
       <div class="tarjeta">
+        <h2>🚨 Emergencia en ruta</h2>
+        <p class="ayuda">Teléfonos de llamada en un toque y centro de salud por tramo de ruta (km desde y hasta). Lo que configures aquí viaja a tus otros equipos con Google Drive.</p>
+        <button type="button" class="btn btn-principal" onclick="editarEmergencia()">Editar números y tramos</button>
+      </div>
+
+      <div class="tarjeta">
         <h2>Google Drive</h2>
         <p class="ayuda">Cada PDF que generes se guarda solo en tu Google Drive, en la carpeta "Prevención en Terreno", ordenado por mes y tipo. Sin señal, queda en cola y sube apenas haya internet. La app solo puede ver los archivos que ella misma crea en tu Drive.</p>
         <p class="mensaje" id="driveEstado"></p>
@@ -1819,31 +1840,41 @@
       <div id="emerLectura"></div>
       <div id="emerEdicion" style="display:none">
         <div class="tarjeta">
-          <h2>La obra</h2>
-          <label>Nombre de la faena</label><input type="text" id="emerFaena" maxlength="120">
-          <label>Dirección exacta de la faena</label><input type="text" id="emerDir" maxlength="200" placeholder="Calle, kilómetro de la ruta, comuna">
-          <label>Cómo llegar (para guiar a la ambulancia)</label><textarea id="emerLlegar" rows="2" maxlength="400" placeholder="Ej: Ingreso por el acceso norte, portón azul"></textarea>
-        </div>
-        <div class="tarjeta">
-          <h2>Teléfonos</h2>
-          <p class="ayuda">Los tres números nacionales ya vienen puestos. Agrega la mutual, el residente, el prevencionista y lo que necesites.</p>
+          <h2>Teléfonos para llamar</h2>
+          <p class="ayuda">Aparecen arriba como botones grandes. Los tres números nacionales ya vienen puestos. Completa el de la mutual (ACHS), el residente y el APR del MOP; el Inspector Fiscal sale de Empresa y formatos si lo dejas en blanco. Agrega los que necesites.</p>
           <div id="emerContactos"></div>
           <button type="button" class="btn btn-secundario" onclick="agregarContactoEmergencia()">+ Agregar un teléfono</button>
         </div>
         <div class="tarjeta">
-          <h2>Hospital o urgencia más cercana</h2>
+          <h2>Centros de salud por tramo</h2>
+          <p class="ayuda">Para cada tramo de ruta (km desde y hasta) indica el centro de salud que corresponde. Si dos tramos se cruzan, el más corto sale primero y los otros quedan como alternativas. Km como 412,3 o 412+300.</p>
+          <div id="emerTramos"></div>
+          <button type="button" class="btn btn-secundario" onclick="agregarTramoEmergencia()">+ Agregar un tramo</button>
+        </div>
+        <div class="tarjeta">
+          <h2>Hospital por defecto</h2>
+          <p class="ayuda">Se muestra cuando no hay un tramo para el km donde estás (por ejemplo, el hospital regional).</p>
           <label>Nombre</label><input type="text" id="emerHospNombre" maxlength="120">
           <label>Dirección</label><input type="text" id="emerHospDir" maxlength="200">
           <label>Teléfono</label><input type="text" id="emerHospTel" maxlength="20" inputmode="tel">
-          <label>Ruta desde la obra</label><textarea id="emerHospRuta" rows="2" maxlength="400" placeholder="Ej: 12 km por la ruta, tiempo estimado 15 minutos"></textarea>
         </div>
         <div class="tarjeta">
           <h2>Qué hacer en una emergencia</h2>
           <p class="ayuda">Pasos breves, uno por línea (opcional).</p>
           <textarea id="emerQue" rows="4" maxlength="1200" placeholder="1. Mantener la calma y avisar al residente&#10;2. Llamar a la ambulancia&#10;3. No mover al lesionado"></textarea>
-          <h2 style="margin-top:14px">Recursos del lugar</h2>
-          <p class="ayuda">Opcional, una línea por recurso: punto de encuentro, botiquín, extintor, oxígeno, radio o teléfono satelital, sectores sin señal.</p>
+          <h2 style="margin-top:14px">Recursos</h2>
+          <p class="ayuda">Opcional, una línea por recurso: botiquín, extintor, oxígeno, radio o teléfono satelital, sectores sin señal.</p>
           <textarea id="emerRecursos" rows="3" maxlength="600"></textarea>
+        </div>
+        <details class="exportar">
+          <summary>Datos antiguos (obra fija)</summary>
+          <p class="ayuda">Se conservan por si los necesitas. Ya no se usan en la pantalla principal.</p>
+          <label>Nombre de la faena</label><input type="text" id="emerFaena" maxlength="120">
+          <label>Dirección exacta de la faena</label><input type="text" id="emerDir" maxlength="200">
+          <label>Cómo llegar</label><textarea id="emerLlegar" rows="2" maxlength="400"></textarea>
+          <label>Ruta al hospital desde la obra</label><textarea id="emerHospRuta" rows="2" maxlength="400"></textarea>
+        </details>
+        <div class="tarjeta">
           <p class="error" id="emerError"></p>
           <button type="button" class="btn btn-principal" onclick="guardarEmergencia()">Guardar y generar PDF</button>
           <button type="button" class="btn btn-secundario" id="emerCancelar" onclick="verEmergencia()">Cancelar</button>
@@ -2818,7 +2849,7 @@
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = TABS.includes(id) ? "hidden" : "visible";
       marcarTab(id);
-      const titulos = { menu: "APR", personas: "Personas", gestion: "Gestión", ajustes: "Ajustes", acerca: "Acerca de", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos", relevo: "Entrega al relevo" };
+      const titulos = { menu: "APR", personas: "Personas", gestion: "Gestión", ajustes: "Ajustes", acerca: "Acerca de", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Emergencia en ruta", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos", relevo: "Entrega al relevo" };
       if (id === "casi") iniciarCasi();
       if (id === "criticos") pintarCriticos();
       if (id === "biblioteca") iniciarBiblioteca();
@@ -9251,8 +9282,12 @@
        folio EMG- (sin firma) que queda en el Historial (corregir = versión nueva) y se crea o renueva el vencimiento fijo
        "vEmergencia" (30 días) para revisarla todos los meses.
        ===================================================================== */
-    const CONTACTOS_EMERGENCIA_BASE = [{ rol: "Ambulancia (SAMU)", nombre: "", tel: "131" }, { rol: "Bomberos", nombre: "", tel: "132" }, { rol: "Carabineros", nombre: "", tel: "133" }];
+    const CONTACTOS_EMERGENCIA_BASE = [{ rol: "Emergencia ACHS", nombre: "", tel: "" }, { rol: "Ambulancia (SAMU)", nombre: "", tel: "131" }, { rol: "Bomberos", nombre: "", tel: "132" }, { rol: "Carabineros", nombre: "", tel: "133" },
+      { rol: "Inspector Fiscal", nombre: "", tel: "" }, { rol: "Residente de obra", nombre: "", tel: "" }, { rol: "APR del MOP", nombre: "", tel: "" }];
+    const CLAVES_CONTACTO = [/achs|mutual/, /samu|ambulancia/, /bombero/, /carabinero/, /inspector/, /residente/, /\bapr\b|apr del/];
+    const TIPOS_CENTRO = ["Hospital", "CESFAM", "Posta", "ACHS", "Otro"];
     const textoCorto = (x, n) => String(x ?? "").slice(0, n);
+    // Los campos de obra fija (faena, dirección, cómo llegar, ruta del hospital) NO se borran: siguen en los datos y se muestran en "Datos antiguos".
     function validarEmergencia(e) {
       if (!e || typeof e !== "object" || Array.isArray(e)) return null;
       const h = e.hospital && typeof e.hospital === "object" ? e.hospital : {};
@@ -9260,6 +9295,8 @@
         faena: textoCorto(e.faena, 120), direccion: textoCorto(e.direccion, 200), comoLlegar: textoCorto(e.comoLlegar, 400),
         contactos: (Array.isArray(e.contactos) ? e.contactos : []).filter(c => c && typeof c === "object").slice(0, 30).map(c => ({ rol: textoCorto(c.rol, 80), nombre: textoCorto(c.nombre, 80), tel: textoCorto(c.tel, 20) })),
         hospital: { nombre: textoCorto(h.nombre, 120), dir: textoCorto(h.dir, 200), tel: textoCorto(h.tel, 20), ruta: textoCorto(h.ruta, 400) },
+        tramos: (Array.isArray(e.tramos) ? e.tramos : []).filter(t => t && typeof t === "object").slice(0, 200).map((t, i) => ({ id: /^[\w-]{1,30}$/.test(String(t.id ?? "")) ? String(t.id) : "t" + i, ruta: textoCorto(t.ruta, 60).trim(), desde: textoCorto(t.desde, 12).trim(), hasta: textoCorto(t.hasta, 12).trim(),
+          centro: textoCorto(t.centro, 120), tipo: TIPOS_CENTRO.includes(t.tipo) ? t.tipo : "Otro", dir: textoCorto(t.dir, 200), tel: textoCorto(t.tel, 20), nota: textoCorto(t.nota, 300) })),
         queHacer: textoCorto(e.queHacer, 1200), recursos: textoCorto(e.recursos, 600), actualizado: /^\d{4}-\d{2}-\d{2}$/.test(String(e.actualizado)) ? e.actualizado : ""
       };
     }
@@ -9267,41 +9304,91 @@
     // Solo dígitos (y un + al inicio): sirve para el enlace tel: y evita que entre texto raro en el href
     const telLimpio = t => { const s = String(t ?? "").trim(), n = s.replace(/[^\d]/g, ""); return n.length >= 2 && n.length <= 15 ? (s.startsWith("+") ? "+" : "") + n : ""; };
     const enlaceTel = t => telLimpio(t) ? `<a class="emer-tel" href="tel:${telLimpio(t)}">${html(t)}</a>` : (String(t || "").trim() ? `<span class="emer-tel">${html(t)}</span>` : "");
+    // Lista de llamadas: los cupos fijos primero (ACHS, SAMU, Bomberos, Carabineros, Inspector, Residente, APR del MOP) y después los que agregó la persona
+    function contactosEmergencia(e) {
+      const guardados = (e && e.contactos) || [], usados = new Set(), lista = [];
+      CONTACTOS_EMERGENCIA_BASE.forEach((b, i) => {
+        const k = guardados.findIndex((c, j) => !usados.has(j) && CLAVES_CONTACTO[i].test(normalizar(c.rol)));
+        if (k >= 0) { usados.add(k); lista.push({ ...guardados[k], base: true }); } else lista.push({ ...b, base: true });
+      });
+      guardados.forEach((c, j) => { if (!usados.has(j)) lista.push({ ...c, base: false }); });
+      for (const c of lista) if (!c.tel && /inspector/.test(normalizar(c.rol)) && EMPRESA.inspFono) c.tel = EMPRESA.inspFono;   // el Inspector Fiscal sale de Empresa y formatos si no se puso aquí
+      return lista;
+    }
+    // Centros de salud del tramo que contiene el km (el más angosto primero). null = falta ruta o km; [] = no hay tramo para ese km
+    function centrosParaKm(e, ubic) {
+      const km = parseKm(ubic && ubic.km), ruta = normalizar(ubic && ubic.ruta);
+      if (km === null || !ruta) return null;
+      const L = [];
+      ((e && e.tramos) || []).forEach((t, i) => {
+        const a = parseKm(t.desde), b = parseKm(t.hasta);
+        if (normalizar(t.ruta) !== ruta || a === null || b === null) return;
+        const lo = Math.min(a, b), hi = Math.max(a, b);
+        if (km >= lo - 1e-9 && km <= hi + 1e-9) L.push({ t, ancho: hi - lo, i });
+      });
+      L.sort((x, y) => x.ancho - y.ancho || x.i - y.i);
+      return L.map(x => x.t);
+    }
     function pintarBotonEmergencia() {
       const t = document.getElementById("emerBotonTxt");
-      if (t) t.textContent = emergencia ? "Teléfonos, dirección y qué hacer" : "Toca para completar la ficha de tu obra";
+      if (t) t.textContent = "Llamadas, ruta y centro de salud";
     }
     function abrirEmergencia() { mostrar("emergencia"); }
-    function iniciarEmergencia() { if (emergencia) verEmergencia(); else editarEmergencia(); }
+    function iniciarEmergencia() { verEmergencia(); }   // siempre abre las llamadas (aunque falte configurar: SAMU, Bomberos y Carabineros ya están)
     async function ultimaEmergencia() {
       try { const regs = await operacionBD("readonly", s => s.getAll()); return regs.filter(r => r.tipo === "emergencia" && vigente(r)).sort((a, b) => b.creado - a.creado)[0] || null; }
       catch { return null; }
+    }
+    const botonLlamar = (rol, nombre, tel, extra = "") => telLimpio(tel)
+      ? `<a class="emer-llamar" href="tel:${telLimpio(tel)}"><span class="emer-llamar-rol">${html(rol)}${nombre ? " · " + html(nombre) : ""}</span><b>${html(tel)}</b>${extra}</a>`
+      : `<button type="button" class="emer-llamar vacio" onclick="editarEmergencia()"><span class="emer-llamar-rol">${html(rol)}</span><small>Falta el número: toca para configurarlo</small></button>`;
+    function centroHtml(t, grande) {
+      const tramo = `Ruta ${html(t.ruta)} · km ${html(t.desde)} a ${html(t.hasta)}`;
+      return `<div class="emer-centro ${grande ? "grande" : ""}"><div class="emer-centro-tipo">🏥 ${html(t.tipo)} · ${tramo}</div>
+        <div class="emer-centro-nombre">${html(t.centro)}</div>${t.dir ? `<div>📍 ${html(t.dir)}</div>` : ""}${t.nota ? `<div class="ayuda" style="margin:4px 0 0">${html(t.nota)}</div>` : ""}
+        ${t.tel ? botonLlamar("Llamar al centro", "", t.tel) : ""}</div>`;
+    }
+    function pintarCentroEmergencia() {
+      const cont = document.getElementById("emerCentro"); if (!cont) return;
+      const e = emergencia || validarEmergencia({}), ruta = document.getElementById("emerRuta").value, kmTxt = document.getElementById("emerKm").value.trim();
+      const err = document.getElementById("emerKmErr");
+      err.textContent = kmTxt && parseKm(kmTxt) === null ? "No entiendo el km: escríbelo como 412,3 o 412+300." : "";
+      const h = e.hospital, defecto = h.nombre || h.tel ? `<div class="emer-centro"><div class="emer-centro-tipo">🏥 Hospital por defecto</div><div class="emer-centro-nombre">${html(h.nombre || "Hospital")}</div>${h.dir ? `<div>📍 ${html(h.dir)}</div>` : ""}${h.tel ? botonLlamar("Llamar al hospital", "", h.tel) : ""}</div>` : "";
+      const r = centrosParaKm(e, { ruta, km: kmTxt });
+      if (r === null) cont.innerHTML = `<p class="ayuda" style="margin:0 0 8px">${err.textContent ? "" : "Indica la ruta y el km donde estás para ver el centro de salud más cercano."}</p>${defecto}`;
+      else if (!r.length) cont.innerHTML = `<p style="margin:0 0 8px"><b>Sin centro configurado para este km.</b></p>${defecto || `<p class="ayuda">Tampoco hay un hospital por defecto: configúralo con ✏️ Editar.</p>`}`;
+      else cont.innerHTML = centroHtml(r[0], true) + (r.length > 1 ? `<h3 style="margin:14px 0 6px">Otras opciones en este tramo</h3>${r.slice(1).map(t => centroHtml(t, false)).join("")}` : "");
+    }
+    function cambiarUbicEmergencia() {
+      const ruta = document.getElementById("emerRuta").value, km = document.getElementById("emerKm").value.trim();
+      if ((ruta || km) && (!km || parseKm(km) !== null)) recordarUbic({ ruta, km: km ? normalizarKm(km) : "" });   // lo comparten hallazgos y casi accidentes
+      pintarCentroEmergencia();
     }
     async function verEmergencia() {
       document.getElementById("emerEdicion").style.display = "none";
       const cont = document.getElementById("emerLectura");
       cont.style.display = "block";
-      const e = emergencia, h = e.hospital;
-      const filasTel = e.contactos.filter(c => c.tel || c.nombre).map(c => `<div class="emer-fila"><div class="emer-rol"><b>${html(c.rol || "Contacto")}</b>${c.nombre ? " · " + html(c.nombre) : ""}</div>${enlaceTel(c.tel)}</div>`).join("");
-      const hosp = h.nombre || h.dir || h.tel || h.ruta;
+      const e = emergencia || validarEmergencia({}), u = ubicUltima(), rutas = [...new Set([...rutasObra, ...(u.ruta ? [u.ruta] : [])])];
+      const llamadas = contactosEmergencia(e).map(c => botonLlamar(c.rol || "Contacto", c.nombre, c.tel)).join("");
+      const viejo = e.faena || e.direccion || e.comoLlegar || e.hospital.ruta;
       cont.innerHTML = `
-        <div class="tarjeta">
-          <h2>🚨 ${html(e.faena || EMPRESA.nombre || "Mi obra")}</h2>
-          ${e.direccion ? `<p style="font-size:18px;font-weight:700;margin:6px 0">📍 ${html(e.direccion)}</p>` : ""}
-          ${e.comoLlegar ? `<p style="margin:4px 0">${html(e.comoLlegar)}</p>` : ""}
-          <p class="ayuda" style="margin:8px 0 0">Actualizada el ${fechaCLde(e.actualizado)}</p>
-        </div>
-        <div class="tarjeta"><h2>📞 Teléfonos</h2>${filasTel || `<p class="ayuda">No hay teléfonos en la ficha.</p>`}</div>
-        ${hosp ? `<div class="tarjeta"><h2>🏥 ${html(h.nombre || "Hospital o urgencia más cercana")}</h2>
-          ${h.dir ? `<p style="margin:4px 0">📍 ${html(h.dir)}</p>` : ""}${enlaceTel(h.tel)}
-          ${h.ruta ? `<p style="margin:8px 0 0"><b>Ruta:</b> ${html(h.ruta)}</p>` : ""}</div>` : ""}
+        <div class="tarjeta"><h2>🚨 Emergencia · llamar</h2><div class="emer-llamadas">${llamadas}</div></div>
+        <div class="tarjeta"><h2>📍 Dónde estás</h2>
+          <div class="dos-col"><div><label>Ruta</label><select id="emerRuta" onchange="cambiarUbicEmergencia()"><option value="">Elige la ruta</option>${rutas.map(r => `<option ${r === u.ruta ? "selected" : ""}>${html(r)}</option>`).join("")}</select></div>
+            <div><label>Km</label><input type="text" id="emerKm" inputmode="decimal" maxlength="12" placeholder="412,3 o 412+300" value="${html(u.km)}" oninput="cambiarUbicEmergencia()"></div></div>
+          <p class="error" id="emerKmErr"></p>
+          ${rutas.length ? "" : `<p class="ayuda">Agrega las rutas de la obra en Empresa y formatos para elegirlas aquí.</p>`}</div>
+        <div class="tarjeta"><h2>🏥 Centro de salud más cercano</h2><div id="emerCentro"></div></div>
         ${e.recursos ? `<div class="tarjeta"><h2>🧰 Recursos del lugar</h2><p style="white-space:pre-line;margin:0">${html(e.recursos)}</p></div>` : ""}
         ${e.queHacer ? `<div class="tarjeta"><h2>Qué hacer</h2><p style="white-space:pre-line;margin:0">${html(e.queHacer)}</p></div>` : ""}
+        ${viejo ? `<details class="exportar"><summary>Datos antiguos (obra fija)</summary>
+          ${e.faena ? `<p style="margin:6px 0"><b>Faena:</b> ${html(e.faena)}</p>` : ""}${e.direccion ? `<p style="margin:6px 0">📍 ${html(e.direccion)}</p>` : ""}${e.comoLlegar ? `<p style="margin:6px 0">${html(e.comoLlegar)}</p>` : ""}${e.hospital.ruta ? `<p style="margin:6px 0"><b>Ruta al hospital:</b> ${html(e.hospital.ruta)}</p>` : ""}</details>` : ""}
         <div class="tarjeta">
-          <button type="button" class="btn btn-principal" onclick="editarEmergencia()">✏️ Editar la ficha</button>
-          <button type="button" class="btn btn-secundario" onclick="compartirEmergencia()">📤 Compartir el PDF</button>
+          <button type="button" class="btn btn-principal" onclick="editarEmergencia()">✏️ Editar números y tramos</button>
+          ${emergencia ? `<button type="button" class="btn btn-secundario" onclick="compartirEmergencia()">📤 Compartir el PDF</button>` : ""}
           <p class="mensaje" id="emerMsjLectura"></p>
         </div>`;
+      pintarCentroEmergencia();
     }
     async function compartirEmergencia() {
       const r = await ultimaEmergencia(), msj = document.getElementById("emerMsjLectura");
@@ -9310,7 +9397,7 @@
     function filaContactoEmergencia(c = {}) {
       const d = document.createElement("div");
       d.className = "emer-fila-edicion";
-      d.innerHTML = `<div class="dos-col"><div><label>Quién o qué es</label><input type="text" data-k="rol" maxlength="80" placeholder="Ej: Mutual, Residente"></div>
+      d.innerHTML = `<div class="dos-col"><div><label>Quién o qué es</label><input type="text" data-k="rol" maxlength="80" placeholder="Ej: Residente, Mutual"></div>
         <div><label>Teléfono</label><input type="text" data-k="tel" maxlength="20" inputmode="tel"></div></div>
         <label>Nombre (opcional)</label><input type="text" data-k="nombre" maxlength="80">
         <button type="button" class="btn btn-quitar" onclick="this.closest('.emer-fila-edicion').remove()">Quitar</button>`;
@@ -9318,39 +9405,62 @@
       return d;
     }
     function agregarContactoEmergencia(c) { document.getElementById("emerContactos").appendChild(filaContactoEmergencia(c)); }
+    function filaTramoEmergencia(t = {}) {
+      const d = document.createElement("div");
+      d.className = "emer-fila-edicion"; d.dataset.id = t.id || "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+      d.innerHTML = `<div class="dos-col"><div><label>Ruta</label><input type="text" data-k="ruta" maxlength="60" list="listaRutas" placeholder="Ej: Ruta C-35"></div>
+        <div><label>Tipo</label><select data-k="tipo">${TIPOS_CENTRO.map(x => `<option>${x}</option>`).join("")}</select></div></div>
+        <div class="dos-col"><div><label>Km desde</label><input type="text" data-k="desde" maxlength="12" inputmode="decimal" placeholder="0"></div>
+        <div><label>Km hasta</label><input type="text" data-k="hasta" maxlength="12" inputmode="decimal" placeholder="45,5"></div></div>
+        <label>Centro de salud</label><input type="text" data-k="centro" maxlength="120" placeholder="Ej: Hospital de Vallenar">
+        <label>Dirección</label><input type="text" data-k="dir" maxlength="200">
+        <div class="dos-col"><div><label>Teléfono</label><input type="text" data-k="tel" maxlength="20" inputmode="tel"></div><div><label>Nota (opcional)</label><input type="text" data-k="nota" maxlength="300"></div></div>
+        <button type="button" class="btn btn-quitar" onclick="this.closest('.emer-fila-edicion').remove()">Quitar este tramo</button>`;
+      for (const k of ["ruta", "desde", "hasta", "centro", "dir", "tel", "nota"]) d.querySelector(`[data-k="${k}"]`).value = t[k] || "";
+      d.querySelector('[data-k="tipo"]').value = TIPOS_CENTRO.includes(t.tipo) ? t.tipo : "Hospital";
+      return d;
+    }
+    function agregarTramoEmergencia(t) { document.getElementById("emerTramos").appendChild(filaTramoEmergencia(t)); }
     function editarEmergencia() {
+      mostrar("emergencia");
       document.getElementById("emerLectura").style.display = "none";
       document.getElementById("emerEdicion").style.display = "block";
-      const e = emergencia || { faena: "", direccion: "", comoLlegar: "", contactos: CONTACTOS_EMERGENCIA_BASE, hospital: {}, queHacer: "" }, h = e.hospital || {};
+      const e = emergencia || validarEmergencia({}), h = e.hospital || {};
       const v = (id, x) => document.getElementById(id).value = x || "";
       v("emerFaena", e.faena); v("emerDir", e.direccion); v("emerLlegar", e.comoLlegar);
       v("emerHospNombre", h.nombre); v("emerHospDir", h.dir); v("emerHospTel", h.tel); v("emerHospRuta", h.ruta); v("emerQue", e.queHacer); v("emerRecursos", e.recursos);
       const cont = document.getElementById("emerContactos");
       cont.innerHTML = "";
-      e.contactos.forEach(c => agregarContactoEmergencia(c));
-      if (!emergencia) { agregarContactoEmergencia({ rol: "Mutual" }); agregarContactoEmergencia({ rol: "Residente de obra" }); agregarContactoEmergencia({ rol: "Prevencionista" }); }
-      document.getElementById("emerCancelar").style.display = emergencia ? "" : "none";
+      contactosEmergencia(e).forEach(c => { if (!(c.base && !c.tel && /inspector/.test(normalizar(c.rol)) && EMPRESA.inspFono)) agregarContactoEmergencia(c); else agregarContactoEmergencia({ rol: c.rol }); });
+      const tr = document.getElementById("emerTramos"); tr.innerHTML = "";
+      e.tramos.forEach(t => agregarTramoEmergencia(t));
+      pintarListaRutas();
+      document.getElementById("emerCancelar").style.display = "";
       document.getElementById("emerError").textContent = ""; document.getElementById("emerMsj").textContent = "";
       document.querySelectorAll("#emerEdicion textarea").forEach(autoAltura);
     }
-    const ETIQUETAS_EMERGENCIA = { faena: "faena", direccion: "dirección", comoLlegar: "cómo llegar", contactos: "teléfonos", hospital: "hospital", queHacer: "qué hacer", recursos: "recursos del lugar" };
+    const ETIQUETAS_EMERGENCIA = { faena: "faena", direccion: "dirección", comoLlegar: "cómo llegar", contactos: "teléfonos", hospital: "hospital", tramos: "centros por tramo", queHacer: "qué hacer", recursos: "recursos del lugar" };
     function camposCambiadosEmergencia(a, b) {
       if (!a) return ["ficha nueva"];
       return Object.keys(ETIQUETAS_EMERGENCIA).filter(k => JSON.stringify(a[k]) !== JSON.stringify(b[k])).map(k => ETIQUETAS_EMERGENCIA[k]);
     }
     async function crearPDF_Emergencia(e) {
-      const c = await nuevoPDFSimple("FICHA DE EMERGENCIA", `${EMPRESA.nombre || ""}${e.faena ? " · " + e.faena : ""} · Actualizada el ${fechaCLde(e.actualizado)}`);
+      const c = await nuevoPDFSimple("EMERGENCIA EN RUTA", `${EMPRESA.nombre || ""}${e.faena ? " · " + e.faena : ""} · Actualizada el ${fechaCLde(e.actualizado)}`);
       if (e.direccion) c.parrafo(e.direccion, { f: c.fB, tam: 14 });
       if (e.comoLlegar) c.parrafo(e.comoLlegar, { tam: 10 });
       c.titulo("Teléfonos de emergencia");
-      for (const t of e.contactos.filter(x => x.tel || x.nombre)) {
+      for (const t of contactosEmergencia(e).filter(x => telLimpio(x.tel))) {
         c.espacio(46);
         c.parrafo(`${t.rol || "Contacto"}${t.nombre ? " - " + t.nombre : ""}`, { f: c.fB, tam: 11 });
-        if (t.tel) c.parrafo(t.tel, { f: c.fB, tam: 22, color: c.ROJO });
+        c.parrafo(t.tel, { f: c.fB, tam: 22, color: c.ROJO });
+      }
+      if (e.tramos.length) {
+        c.titulo("Centros de salud por tramo");
+        for (const t of e.tramos) c.parrafo(`${t.ruta} · km ${t.desde} a ${t.hasta} · ${t.tipo}: ${t.centro}${t.tel ? " · " + t.tel : ""}${t.dir ? " · " + t.dir : ""}${t.nota ? " (" + t.nota + ")" : ""}`, { tam: 10, vineta: "•" });
       }
       const h = e.hospital;
       if (h.nombre || h.dir || h.tel || h.ruta) {
-        c.titulo("Hospital o urgencia más cercana");
+        c.titulo("Hospital por defecto");
         if (h.nombre) c.parrafo(h.nombre, { f: c.fB, tam: 12 });
         if (h.dir) c.parrafo(h.dir, { tam: 11 });
         if (h.tel) c.parrafo(h.tel, { f: c.fB, tam: 22, color: c.ROJO });
@@ -9366,22 +9476,30 @@
       const vence = isoD(new Date(Date.now() + 30 * 86400000));
       const previo = vencimientos.find(v => v.id === "vEmergencia");
       if (previo) { previo.anteriores = [...(previo.anteriores || []), { vence: previo.vence, renovado: hoyISO() }].slice(-5); previo.vence = vence; }
-      else vencimientos.push({ id: "vEmergencia", cat: "Documento u otro", tipo: "Revisión ficha de emergencia", quien: "Ficha de emergencia", vence, aviso: 7, nota: "Revisa teléfonos, dirección y ruta al hospital", anteriores: [] });
+      else vencimientos.push({ id: "vEmergencia", cat: "Documento u otro", tipo: "Revisión ficha de emergencia", quien: "Ficha de emergencia", vence, aviso: 7, nota: "Revisa teléfonos, tramos y centros de salud", anteriores: [] });
       guardarVenc(); avisoProgramaMenu();
     }
     async function guardarEmergencia() {
       const err = document.getElementById("emerError"), msj = document.getElementById("emerMsj"), val = id => document.getElementById(id).value.trim();
       const contactos = [...document.querySelectorAll("#emerContactos .emer-fila-edicion")].map(f => { const g = k => f.querySelector(`[data-k="${k}"]`).value.trim(); return { rol: g("rol"), nombre: g("nombre"), tel: g("tel") }; }).filter(c => c.tel || c.nombre);
-      const nuevo = validarEmergencia({ faena: val("emerFaena"), direccion: val("emerDir"), comoLlegar: val("emerLlegar"), contactos,
+      const tramos = [], filasTramo = [...document.querySelectorAll("#emerTramos .emer-fila-edicion")];
+      for (const f of filasTramo) {
+        const g = k => f.querySelector(`[data-k="${k}"]`).value.trim(), t = { id: f.dataset.id, ruta: g("ruta"), tipo: g("tipo"), desde: g("desde"), hasta: g("hasta"), centro: g("centro"), dir: g("dir"), tel: g("tel"), nota: g("nota") };
+        if (!(t.ruta || t.desde || t.hasta || t.centro || t.dir || t.tel || t.nota)) continue;   // fila vacía
+        if (!t.ruta || !t.centro) { err.textContent = "Cada tramo necesita la ruta y el nombre del centro de salud."; f.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+        if (parseKm(t.desde) === null || parseKm(t.hasta) === null) { err.textContent = `El tramo "${t.centro}": escribe los km como 412,3 o 412+300.`; f.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+        if (t.tel && !telLimpio(t.tel)) { err.textContent = `El tramo "${t.centro}": el teléfono debe tener solo números.`; f.scrollIntoView({ behavior: "smooth", block: "center" }); return; }
+        tramos.push(t);
+      }
+      const nuevo = validarEmergencia({ faena: val("emerFaena"), direccion: val("emerDir"), comoLlegar: val("emerLlegar"), contactos, tramos,
         hospital: { nombre: val("emerHospNombre"), dir: val("emerHospDir"), tel: val("emerHospTel"), ruta: val("emerHospRuta") }, queHacer: val("emerQue"), recursos: val("emerRecursos"), actualizado: hoyISO() });
-      if (!nuevo.direccion) { err.textContent = "Escribe la dirección exacta de la faena."; return; }
       if (!nuevo.contactos.some(c => telLimpio(c.tel))) { err.textContent = "Agrega al menos un teléfono válido."; return; }
       if (nuevo.contactos.some(c => c.tel && !telLimpio(c.tel))) { err.textContent = "Hay un teléfono con formato raro: usa solo números (y + al inicio si es internacional)."; return; }
       err.textContent = ""; msj.textContent = "Generando el PDF…";
       try {
         const cambios = camposCambiadosEmergencia(emergencia, nuevo), previo = await ultimaEmergencia();
-        const pdf = { bytes: await crearPDF_Emergencia(nuevo), nombreArchivo: `Ficha_emergencia_${nuevo.actualizado}.pdf`, asunto: `Ficha de emergencia – ${nuevo.faena || EMPRESA.nombre || "obra"} – ${fechaCLde(nuevo.actualizado)}` };
-        await guardarEnHistorial(previo ? previo.id : null, "emergencia", pdf, nuevo.actualizado, `${nuevo.direccion} · ${nuevo.contactos.length} teléfono(s)`);
+        const pdf = { bytes: await crearPDF_Emergencia(nuevo), nombreArchivo: `Ficha_emergencia_${nuevo.actualizado}.pdf`, asunto: `Emergencia en ruta – ${nuevo.faena || EMPRESA.nombre || "obra"} – ${fechaCLde(nuevo.actualizado)}` };
+        await guardarEnHistorial(previo ? previo.id : null, "emergencia", pdf, nuevo.actualizado, `${nuevo.contactos.length} teléfono(s) · ${nuevo.tramos.length} tramo(s)`);
         emergencia = nuevo; guardar("pt_emergencia", nuevo);
         sincronizarRevisionEmergencia(); pintarBotonEmergencia();
         bitacora("Ficha de emergencia actualizada", { doc: "Ficha de emergencia", folio: pdf.folio, det: "Cambió: " + (cambios.join(", ") || "sin cambios de contenido") });
