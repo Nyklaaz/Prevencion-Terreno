@@ -5145,6 +5145,14 @@
 
     /* ----- Constancia de consentimiento (una vez por trabajador) ----- */
     const textoConsentimiento = (p, empresa) => `Yo, ${p.nombre}, RUT ${p.rut}, declaro que acepto expresamente que los registros de seguridad y salud en el trabajo que me corresponda firmar con ${empresa} (charlas y ART, información de riesgos laborales (IRL), entregas de elementos de protección personal, check list y otros) se confeccionen, firmen y guarden en formato electrónico mediante la aplicación Prevención en Terreno, con firma electrónica simple trazada en pantalla (Ley N° 19.799), incluidas las fotografías que formen parte de esos registros. Se me informó que puedo pedir copia de cualquiera de estos documentos, que si no acepto los registros se harán en papel, y que puedo revocar esta aceptación por escrito. La firma se realiza en un equipo de la empresa o del prevencionista; no se usa mi teléfono personal.`;
+    // Bases legales de la firma electrónica, breves y claras para la persona trabajadora (textos verificados en bcn.cl y dt.gob.cl; son los mismos del anexo "Respaldo normativo")
+    const textoBasesLegales = [
+      "Bases legales de la firma electrónica:",
+      "• Ley N° 19.799: reconoce el documento electrónico y la firma electrónica simple (art. 2, letras d y f); los actos firmados electrónicamente son válidos y producen los mismos efectos que los escritos en papel (art. 3); y los documentos electrónicos pueden presentarse en juicio (art. 5).",
+      "• D.S. N° 44 de 2024, del Ministerio del Trabajo y Previsión Social: la empresa debe informar a cada persona trabajadora los riesgos de sus labores (art. 15) y registrar y respaldar esa información, preferentemente en formato electrónico (art. 72).",
+      "• Dirección del Trabajo: para los documentos laborales basta una firma electrónica simple (Ord. N° 477, de 2017), con el consentimiento expreso de la persona trabajadora (Dictamen N° 0789/015, de 2015).",
+      "• Código del Trabajo, art. 456: en un juicio, el tribunal aprecia estas pruebas conforme a las reglas de la sana crítica.",
+      "Puedo revocar este consentimiento y pedir firmar en papel en cualquier momento."].join("\n");
     // Información sobre el tratamiento de datos personales (Ley 19.628 y Ley 21.719)
     const textoDatosPersonales = empresa => `Tratamiento de datos personales: ${empresa} trata mis datos (nombre, RUT, cargo, firma, fotografías y, cuando corresponda, información de accidentes) solo para cumplir sus obligaciones de seguridad y salud en el trabajo (Ley N° 16.744 y D.S. N° 44). Se guardan en el teléfono del prevencionista y en el Google Drive de la empresa, y se entregan solo al mandante, al organismo administrador o a la autoridad cuando corresponda o lo exijan. Puedo pedir acceso, corrección o eliminación de mis datos cuando proceda, ${EMPRESA.contactoDatos ? "escribiendo a " + EMPRESA.contactoDatos : "solicitándolo al encargado de Prevención de Riesgos de la empresa"}.`;
     let consIniciado = false;
@@ -5169,7 +5177,7 @@
     }
     function elegirTrabConsentimiento() {
       const r = document.getElementById("consTrab").value, p = (listado?.lista || []).find(x => claveRut(x.rut) === r);
-      document.getElementById("consTexto").textContent = p ? textoConsentimiento(p, EMPRESA.nombre || "la empresa") + "\n\n" + textoDatosPersonales(EMPRESA.nombre || "la empresa") : "";
+      document.getElementById("consTexto").textContent = p ? textoConsentimiento(p, EMPRESA.nombre || "la empresa") + "\n\n" + textoBasesLegales + "\n\n" + textoDatosPersonales(EMPRESA.nombre || "la empresa") : "";
       const c = r && consentimientos[r];
       document.getElementById("msjCons").textContent = c ? `Ya firmó su consentimiento el ${fechaCLde(c.fecha)} (folio ${c.folio || "—"}). Si lo registras de nuevo, queda uno nuevo.` : "";
     }
@@ -5184,8 +5192,9 @@
       c.parrafo(`Fecha: ${fechaCLde(d.fecha)}`, { tam: 10 });
       c.titulo("Declaración");
       c.parrafo(textoConsentimiento(d.p, EMPRESA.nombre || "la empresa"), { tam: 10 });
+      c.parrafo(textoBasesLegales, { tam: 9.5 });
       c.parrafo(textoDatosPersonales(EMPRESA.nombre || "la empresa"), { tam: 9.5 });
-      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 y 3; D.S. N° 44 de 2024, art. 72; Dirección del Trabajo, Dictamen N° 0789/015, Ord. N° 477 y Ord. N° 754 de 2025; Ley N° 19.628 y Ley N° 21.719 (protección de datos personales).", { tam: 8, color: c.GRIS });
+      c.parrafo("Respaldo: Ley N° 19.799, arts. 2 (letras d y f), 3 y 5; D.S. N° 44 de 2024, arts. 15 y 72; Código del Trabajo, art. 456; Dirección del Trabajo, Dictamen N° 0789/015, Ord. N° 477 y Ord. N° 754 de 2025; Ley N° 19.628 y Ley N° 21.719 (protección de datos personales).", { tam: 8, color: c.GRIS });
       c.espacio(140); c.y -= 10;
       const w = (c.ANCHO - 20) / 2;
       const firmas = [[d.firmaT, d.p.nombre, "Persona trabajadora"], [d.firmaP, d.prev, "Registra (Prevención de Riesgos)"]];
