@@ -31,6 +31,7 @@
   <!-- App instalable: nombre, ícono y colores al agregarla a la pantalla de inicio -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0b1220">
+  <script>try { if (localStorage.getItem("apr_tema") === "oscuro") document.documentElement.setAttribute("data-tema", "oscuro"); } catch (e) {}</script>
   <!-- Seguridad: la app solo carga sus propios archivos (ninguno de internet) y no puede enviar datos a otros sitios -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
   <meta name="referrer" content="no-referrer">
@@ -495,6 +496,82 @@
     .plazo-fila { display: block; padding: 8px 0; border-bottom: 1px solid #e5e9f4; }
     .plazo-cerrado { opacity: .7; }
     .plazo-card a.btn { text-decoration: none; display: block; text-align: center; }
+    /* ===== APR: rediseño (Mi día, accesos, barra inferior). Paleta: negro, azul y rojo con degradados ===== */
+    :root { --nav-alto: 64px; color-scheme: light; }
+    html[data-tema="oscuro"] { color-scheme: dark; }
+    body { background: radial-gradient(900px 420px at 100% -8%, #d6e2ff 0%, transparent 65%), radial-gradient(700px 360px at -10% 110%, #dbe3f7 0%, transparent 60%), var(--fondo); background-attachment: fixed; }
+    main { padding-bottom: calc(var(--nav-alto) + 96px); }
+    #error:not(:empty), #errorIRL:not(:empty), #errorCheck:not(:empty), #errorInforme:not(:empty) { bottom: calc(var(--nav-alto) + 12px + env(safe-area-inset-bottom)); }
+    .ed-barra { bottom: calc(var(--nav-alto) + env(safe-area-inset-bottom)); }
+    .aviso-respaldo { background: linear-gradient(135deg, #ffffff 0%, #eef2fb 100%); border: 1px solid #c7d3ee; border-left: 4px solid var(--rojo); }
+    .btn, .btn-principal, .btn-secundario, .btn-quitar { min-height: 48px; }
+    .btn-quitar { display: inline-flex; align-items: center; justify-content: center; }
+    .btn-limpiar, .depto, .ck-lista, .dia-uv, .cal-nav, #filtrosHist button, #halFiltros button, #venFiltros button { min-height: 48px; }
+    .btn-limpiar { padding: 12px 18px; }
+    .pantalla.activa { animation: aparece .2s ease; }
+    @keyframes aparece { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
+    /* Mi día */
+    .dia-hero { position: relative; background: linear-gradient(135deg, #0b1830 0%, #13285a 62%, #1d4ed8 135%); color: #fff; border-radius: 20px; padding: 18px 16px 16px; margin-bottom: 14px; box-shadow: 0 10px 24px rgba(11,24,48,.35); }
+    .dia-fecha { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #a9b9de; }
+    .dia-obra { font-size: 15px; font-weight: 700; margin: 2px 0 12px; padding-right: 76px; }
+    .dia-saludo { font-size: 24px; font-weight: 800; line-height: 1.15; padding-right: 76px; }
+    .dia-uv { display: inline-block; min-height: 44px; margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 14px; background: rgba(255,255,255,.14); color: #fff; font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer; }
+    .sos { position: absolute; right: 14px; top: 14px; width: 64px; height: 64px; border-radius: 50%; border: 0; background: var(--grad-rojo); color: #fff; font: inherit; font-weight: 900; font-size: 17px; letter-spacing: .04em; box-shadow: 0 0 0 4px rgba(225,29,72,.3), 0 8px 18px rgba(0,0,0,.4); cursor: pointer; transition: transform .15s ease; }
+    .sos:active { transform: scale(.94); }
+    .sos small { display: none; }
+    .seccion-t { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--azul-osc); margin: 18px 4px 8px; display: block; }
+    .pend { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; text-align: left; background: #fff; border: 0; border-left: 5px solid var(--azul); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; box-shadow: var(--sombra); font: inherit; color: inherit; cursor: pointer; }
+    .pend.rojo { border-left-color: var(--rojo); }
+    .pend .pend-ico { font-size: 22px; line-height: 1; }
+    .pend b { display: block; font-size: 15px; }
+    .pend small { display: block; color: #56606b; font-size: 13px; margin-top: 2px; }
+    .pend .num { margin-left: auto; min-width: 34px; height: 34px; padding: 0 8px; border-radius: 17px; background: var(--grad-azul); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+    .pend.rojo .num { background: var(--grad-rojo); }
+    .pend-ok { text-align: center; font-weight: 700; color: var(--ok); }
+    .terreno { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 560px) { .terreno { grid-template-columns: repeat(3, 1fr); } }
+    .tile { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px; min-height: 104px; padding: 14px; border: 0; border-radius: 16px; background: #fff; box-shadow: var(--sombra); font: inherit; font-weight: 700; font-size: 15px; text-align: left; color: var(--oscuro); cursor: pointer; transition: transform .15s ease, box-shadow .15s ease; }
+    .tile:active { transform: scale(.97); box-shadow: 0 0 0 2px var(--azul), var(--sombra); }
+    .tile .ico { width: 44px; height: 44px; border-radius: 12px; background: var(--grad-azul); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(29,78,216,.28); }
+    .tile.t-negro .ico { background: var(--grad-negro); box-shadow: 0 6px 14px rgba(11,18,32,.28); }
+    .tile.t-cielo .ico { background: var(--grad-cielo); }
+    .tile.t-rojo { background: var(--grad-rojo-negro); color: #fff; }
+    .tile.t-rojo .ico { background: rgba(255,255,255,.18); box-shadow: none; }
+    .empresa-activa { display: none; }
+    .ajuste-tema { cursor: pointer; }
+    .ajuste-tema input { width: 28px; height: 28px; flex-shrink: 0; accent-color: var(--azul); }
+    /* Barra inferior */
+    #barraInf { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: linear-gradient(180deg, #0b1830 0%, #0b1220 100%); border-top: 3px solid var(--rojo); padding-bottom: env(safe-area-inset-bottom); }
+    #barraInf .tabs { display: grid; grid-template-columns: repeat(4, 1fr); max-width: 680px; margin: 0 auto; }
+    #barraInf button { background: none; border: 0; color: #9fb0d6; min-height: 60px; padding: 7px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; transition: color .15s ease; }
+    #barraInf button svg { width: 24px; height: 24px; }
+    #barraInf button[aria-current="page"] { color: #fff; box-shadow: inset 0 3px 0 var(--azul); }
+    #toastApr { position: fixed; left: 50%; bottom: calc(var(--nav-alto) + 18px + env(safe-area-inset-bottom)); transform: translate(-50%, 16px); background: #0b1830; color: #fff; padding: 10px 20px; border-radius: 24px; font-weight: 700; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; z-index: 40; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+    #toastApr.visible { opacity: 1; transform: translate(-50%, 0); }
+    /* Modo oscuro (opcional, en Ajustes) */
+    html[data-tema="oscuro"] { --fondo: #0a1020; --oscuro: #e6ecfb; --borde: #26324f; --suave: #15213d; --principal: #6d9bff; }
+    html[data-tema="oscuro"] body { background: #0a1020; color: #e6ecfb; }
+    html[data-tema="oscuro"] .tarjeta, html[data-tema="oscuro"] .menu-btn, html[data-tema="oscuro"] .registro, html[data-tema="oscuro"] .pend, html[data-tema="oscuro"] .tile, html[data-tema="oscuro"] details.exportar, html[data-tema="oscuro"] .cal-item, html[data-tema="oscuro"] .mz-fila { background: #101a31; color: #e6ecfb; border-color: #26324f; }
+    html[data-tema="oscuro"] .tile.t-rojo { background: var(--grad-rojo-negro); color: #fff; }
+    html[data-tema="oscuro"] input:not([type="checkbox"]):not([type="radio"]), html[data-tema="oscuro"] select, html[data-tema="oscuro"] textarea { background: #0b1428 !important; color: #e6ecfb; border-color: #2f3d60; }
+    html[data-tema="oscuro"] input::placeholder, html[data-tema="oscuro"] textarea::placeholder { color: #7f8fb5; }
+    html[data-tema="oscuro"] .ayuda, html[data-tema="oscuro"] small, html[data-tema="oscuro"] .menu-btn small, html[data-tema="oscuro"] .pend small, html[data-tema="oscuro"] .det { color: #9fb0d6; }
+    html[data-tema="oscuro"] .tarjeta h2, html[data-tema="oscuro"] .seccion-t { color: #9db8ff; }
+    html[data-tema="oscuro"] .btn-secundario { background: #101a31; color: #cfe0ff; border-color: #2f3d60; }
+    html[data-tema="oscuro"] .btn-quitar { background: #3a1420; color: #ffb4c2; }
+    html[data-tema="oscuro"] .aviso-programa, html[data-tema="oscuro"] .aviso-respaldo, html[data-tema="oscuro"] .ed-barra { background: #14223f; color: #e6ecfb; border-color: #2a3a63; }
+    html[data-tema="oscuro"] .inf-dato, html[data-tema="oscuro"] .inf-panel { background: #0f1930; color: #e6ecfb; }
+    html[data-tema="oscuro"] .menu-flecha { color: #9fb0d6; }
+    html[data-tema="oscuro"] a { color: #8fb2ff; }
+    html[data-tema="oscuro"] .depto, html[data-tema="oscuro"] .ck-lista, html[data-tema="oscuro"] .cal-nav, html[data-tema="oscuro"] .cal-dia, html[data-tema="oscuro"] #filtrosHist button, html[data-tema="oscuro"] #halFiltros button, html[data-tema="oscuro"] #venFiltros button { background: #101a31; color: #e6ecfb; border-color: #2f3d60; }
+    html[data-tema="oscuro"] .depto.activo, html[data-tema="oscuro"] .ck-lista.activo, html[data-tema="oscuro"] #filtrosHist button.activo, html[data-tema="oscuro"] #halFiltros button.activo, html[data-tema="oscuro"] #venFiltros button.activo { background: #1d3a8a; color: #fff; border-color: #6d9bff; }
+    html[data-tema="oscuro"] .rojo, html[data-tema="oscuro"] .pend.rojo b { color: #ff8fa3 !important; }
+    html[data-tema="oscuro"] .cal-semana span { color: #9fb0d6; }
+    html[data-tema="oscuro"] .doc-mes { background: #101a31; border-color: #26324f; }
+    html[data-tema="oscuro"] .mensaje, html[data-tema="oscuro"] .estado-offline { background: #0f2a22; color: #7ee0b0; border-color: #1f5a43; }
+    html[data-tema="oscuro"] li, html[data-tema="oscuro"] #calGrilla span { color: #b9c6e6; }
+    html[data-tema="oscuro"] .ck-lista small { color: #9fb0d6; }
     /* Bienvenida APR */
     #splashApr { position: fixed; inset: 0; z-index: 100; background: #0b1830; display: flex; align-items: center; justify-content: center; transition: opacity .3s ease; }
     #splashApr img { width: min(70vmin, 420px); height: auto; border-radius: 24px; }
@@ -517,7 +594,7 @@
     })();
   </script>
   <header>
-    <button class="volver" id="btnVolver" onclick="mostrar('menu')" style="visibility:hidden">←</button>
+    <button class="volver" id="btnVolver" onclick="volverAtras()" style="visibility:hidden" aria-label="Volver">←</button>
     <img id="logoCabecera" class="logo" alt="Logo empresa">
     <h1 id="titulo">APR</h1>
     <span id="sinRed" class="sin-red" style="display:none">Sin conexión</span>
@@ -532,7 +609,13 @@
         <p><b>Para empezar</b>, carga los datos de tu empresa y tus formatos.</p>
         <button class="btn btn-principal" onclick="mostrar('empresa')">Configurar mi empresa</button>
       </div>
-      <button type="button" class="btn-emergencia" id="emerBoton" onclick="abrirEmergencia()">🚨 Emergencia<small id="emerBotonTxt">Teléfonos, dirección y qué hacer</small></button>
+      <div class="dia-hero">
+        <button type="button" class="sos" id="emerBoton" onclick="abrirEmergencia()" aria-label="Emergencia">SOS<small id="emerBotonTxt"></small></button>
+        <div class="dia-fecha" id="diaFecha"></div>
+        <div class="dia-obra" id="diaObra"></div>
+        <div class="dia-saludo" id="diaSaludo"></div>
+        <button type="button" class="dia-uv" id="diaUV" onclick="irAjusteId('obraLat')"></button>
+      </div>
       <p class="empresa-activa" id="empresaActiva"></p>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoPlazoAcc" style="display:none" onclick="mostrar('accidentes')"></button>
       <button type="button" class="aviso-programa aviso-respaldo" id="avisoRespaldo" style="display:none" onclick="respaldarDesdeAviso()"></button>
@@ -542,36 +625,41 @@
         <div class="dos-col" style="margin-top:8px"><button type="button" class="btn btn-principal" style="margin:0" onclick="enviarParcialEPP()">Mandar hoja parcial</button>
           <button type="button" class="btn btn-secundario" style="margin:0" onclick="descartarAvisoEPP()">Ahora no</button></div>
       </div>
-      <button type="button" class="aviso-programa" id="avisoPrograma" style="display:none" onclick="mostrar('calendario')"></button>
-      <button class="menu-btn" onclick="mostrar('charla')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span class="menu-txt" id="menuCharla">Charla diaria + ART + Bloqueador<small>Formato oficial de la jornada, todo en uno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-      <button class="menu-btn" onclick="mostrar('irl')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg></span><span class="menu-txt">IRL – Información de Riesgos Laborales<small>Inducción por cargo según el art. 15 del DS 44</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-      <button class="menu-btn" onclick="mostrar('epp')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 0 1 16 0z"/><path d="M12 7v3M3 15h18v2H3z"/></svg></span><span class="menu-txt">Entrega de EPP<small>Hoja de cargos con firma del trabajador y de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <h2 class="seccion-t">Pendiente hoy</h2>
+      <div id="diaPendientes"></div>
+      <h2 class="seccion-t">Terreno</h2>
+      <div class="terreno">
+        <button type="button" class="tile t-azul" onclick="mostrar('charla')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v3H9z"/><path d="M7 5H5v15h14V5h-2"/><path d="M8.5 12h7M8.5 16h5"/></svg></span><span id="menuCharla">Charla diaria + ART + Bloqueador</span></button>
+        <button type="button" class="tile t-negro" onclick="mostrar('epp')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 0 1 16 0z"/><path d="M12 7v3M3 15h18v2H3z"/></svg></span><span>Entrega de EPP</span></button>
+        <button type="button" class="tile t-cielo" onclick="mostrar('chequeo')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span>Check list</span></button>
+        <button type="button" class="tile t-azul" onclick="mostrar('irl')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg></span><span>IRL (DS 44)</span></button>
+        <button type="button" class="tile t-azul" onclick="mostrar('hallazgos'); document.getElementById('halForm').open = true"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/></svg></span><span>Hallazgo</span></button>
+        <button type="button" class="tile t-rojo" onclick="mostrar('accidentes')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></span><span>Accidente</span></button>
+      </div>
+      <div id="avisosMenu">
+        <button type="button" class="aviso-programa" id="avisoPrograma" style="display:none" onclick="mostrar('calendario')"></button>
+      </div>
+      <p class="estado-offline" id="estadoOffline"></p>
+      <p class="ayuda" style="text-align:center;margin-top:18px;font-size:12px">APR · Prevención en Terreno · Software libre (GPL v3) · Gratis para siempre</p>
+    </section>
+
+    <!-- ========== PERSONAS ========== -->
+    <section id="personas" class="pantalla">
+      <button class="menu-btn" onclick="mostrar('personal')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-2.5-5.1"/></svg></span><span class="menu-txt">Trabajadores<small>Ficha: carnet, licencia y sus registros de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('documentos')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg></span><span class="menu-txt">Documentos<small>Registro de capacitación y tus propias plantillas</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
-      <button class="menu-btn" onclick="mostrar('personal')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-2.5-5.1"/></svg></span><span class="menu-txt">Trabajadores<small>Ficha: carnet, licencia y sus registros de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <button class="menu-btn" onclick="irAjusteId('consForm', 'personas')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4"/><path d="M8.5 14l2 2 4-4.5"/></svg></span><span class="menu-txt">Consentimientos<small>Constancia de firma electrónica por trabajador</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+    </section>
+
+    <!-- ========== GESTIÓN ========== -->
+    <section id="gestion" class="pantalla">
       <button class="menu-btn" onclick="mostrar('matriz')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg></span><span class="menu-txt">Matriz de riesgos<small>Tu IPER: peligros, medidas y VEP por puesto y tarea</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-      <button class="menu-btn" onclick="mostrar('biblioteca')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M16.5 5.5l3.6-1 3 14.5-3.6 1z" transform="translate(-2 0)"/></svg></span><span class="menu-txt">Biblioteca de documentos<small>PTS, MINSAL, políticas y planes, en tu Drive</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-      <button class="menu-btn" onclick="mostrar('accidentes')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></span><span class="menu-txt">Accidente: informe flash<small>Información preliminar en terreno y la investigación en Word</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-      <button class="menu-btn" onclick="mostrar('casi')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span><span class="menu-txt">Casi accidentes y actos inseguros<small>Reporte rápido de lo que casi pasó o se vio en terreno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-      </button>
-      <button class="menu-btn" onclick="mostrar('chequeo')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span class="menu-txt">Check list<small>Maquinaria, herramientas, instalaciones y señalización</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('calendario')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 18h2"/></svg></span><span class="menu-txt">Calendario y programa<small>Lo que se hizo cada día y el programa anual de prevención</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -579,20 +667,54 @@
       <button class="menu-btn" onclick="mostrar('hallazgos')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M11 8v3.5M11 14h.01"/></svg></span><span class="menu-txt">Hallazgos y acciones<small>Seguimiento de lo que hay que corregir, con plazo y cierre</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+      <button class="menu-btn" onclick="mostrar('criticos')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></span><span class="menu-txt">Puntos críticos<small>Dónde se concentran hallazgos y casi accidentes, por ruta y km</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('casi')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.6"/></svg></span><span class="menu-txt">Casi accidentes y actos inseguros<small>Reporte rápido de lo que casi pasó o se vio en terreno</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
       <button class="menu-btn" onclick="mostrar('vencimientos')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3"/></svg></span><span class="menu-txt">Vencimientos<small>Licencias, exámenes, cursos, reinducciones y extintores</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
       <button class="menu-btn" onclick="mostrar('informe')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="menu-txt">Informe mensual<small>Informe de gestión preventiva, Excel e IFOS SAFI (en el PC)</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
+      <button class="menu-btn" onclick="mostrar('biblioteca')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h4v16H4zM10 4h4v16h-4z"/><path d="M16.5 5.5l3.6-1 3 14.5-3.6 1z" transform="translate(-2 0)"/></svg></span><span class="menu-txt">Biblioteca de documentos<small>PTS, MINSAL, políticas y planes, en tu Drive</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="mostrar('historial')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v4H4z"/><path d="M6 10v9h12v-9"/><path d="M10 14h4"/></svg></span><span class="menu-txt">Historial y bitácora<small>Todos los PDF generados y el registro de auditoría</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </section>
+
+    <!-- ========== AJUSTES ========== -->
+    <section id="ajustes" class="pantalla">
       <button class="menu-btn" onclick="mostrar('empresa')">
         <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M15 10h.01"/></svg></span><span class="menu-txt">Empresa y formatos<small>Logo, datos y paquete de formatos de tu empresa</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
-      <button class="menu-btn" onclick="mostrar('historial')">
-        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16v4H4z"/><path d="M6 10v9h12v-9"/><path d="M10 14h4"/></svg></span><span class="menu-txt">Historial<small>Todos los PDF generados en este teléfono</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      <button class="menu-btn" onclick="irAjusteId('driveConfig')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9z"/></svg></span><span class="menu-txt">Google Drive<small>Conexión y configuración de tu Drive</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
       </button>
-      <p class="estado-offline" id="estadoOffline"></p>
-      <p class="ayuda" style="text-align:center;margin-top:18px;font-size:12px">APR · Prevención en Terreno · Software libre (GPL v3) · Gratis para siempre</p>
+      <button class="menu-btn" onclick="irAjusteId('empCifrado')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span class="menu-txt">Respaldo cifrado<small>Contraseña y abrir un respaldo cifrado</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <button class="menu-btn" onclick="irAjusteId('empCero')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></span><span class="menu-txt">Empezar de cero<small>Borra los registros de este equipo y conserva la configuración</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+      <label class="menu-btn ajuste-tema"><span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></span><span class="menu-txt">Modo oscuro<small>Cambia los colores de la pantalla</small></span><input type="checkbox" id="temaOscuro" onchange="cambiarTema(this.checked)" aria-label="Modo oscuro"></label>
+      <button class="menu-btn" onclick="mostrar('acerca')">
+        <span class="menu-ico"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></span><span class="menu-txt">Acerca de<small>APR · versión y licencia</small></span><svg class="menu-flecha" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+      </button>
+    </section>
+
+    <!-- ========== ACERCA DE ========== -->
+    <section id="acerca" class="pantalla">
+      <div class="tarjeta" style="text-align:center">
+        <img src="apr-bienvenida.jpg" alt="APR" style="width:min(60vw,200px);height:auto;border-radius:24px">
+        <h2 style="justify-content:center">APR — Prevención en Terreno</h2>
+        <p class="ayuda" id="acercaVersion"></p>
+        <p class="ayuda">Software libre (GPL v3) · Gratis para siempre. Funciona sin internet y guarda todo en tu equipo; lo que subes a Google Drive va a tu propia cuenta.</p>
+      </div>
     </section>
 
     <!-- ========== CHARLA + ART ========== -->
@@ -1229,7 +1351,7 @@
       </div>
 
       <div class="tarjeta" id="cifCaja">
-        <h2>🔒 Respaldo cifrado</h2>
+        <h2 id="empCifrado">🔒 Respaldo cifrado</h2>
         <p class="ayuda">Con una contraseña, el respaldo (.json) y el zip del mes quedan cifrados (AES-256) en el teléfono, en Drive y donde los mandes: sin la contraseña nadie puede abrirlos. La contraseña <b>no se guarda</b>: la app la pide en cada respaldo. <b>Si la olvidas, esos respaldos no se pueden recuperar</b> (los PDF sueltos del Historial y de Drive siguen normales).</p>
         <p class="mensaje" id="cifEstado"></p>
         <details class="exportar" id="cifDefinir">
@@ -1300,7 +1422,7 @@
       </div>
 
       <div class="tarjeta cero-caja">
-        <h2>🧹 Empezar de cero</h2>
+        <h2 id="empCero">🧹 Empezar de cero</h2>
         <p class="ayuda">Borra de <b>este equipo</b> todos los registros (charlas, IRL, check list, EPP, documentos, accidentes, hallazgos, vencimientos, consentimientos, fichas, informes, historial y bitácora) y <b>conserva la configuración</b>: formatos, datos de la empresa y del representante, Google Drive, contraseña de respaldo, matriz de riesgos, datos del contrato, programa anual y nombres recordados.</p>
         <p class="ayuda">No borra nada de tu Google Drive (esa carpeta la borras tú, si corresponde). Si tienes algo real, primero guarda un respaldo.</p>
         <label class="check-linea"><input type="checkbox" id="ceroListado"> Conservar el listado de personal y sus cargos</label>
@@ -1825,6 +1947,16 @@
       <div id="venLista"></div>
     </section>
   </main>
+
+  <nav id="barraInf" aria-label="Navegación principal">
+    <div class="tabs">
+      <button type="button" data-tab="menu" onclick="mostrar('menu')" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Mi día</button>
+      <button type="button" data-tab="personas" onclick="mostrar('personas')"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18.5 20a6.5 6.5 0 0 0-2.5-5.1"/></svg>Personas</button>
+      <button type="button" data-tab="gestion" onclick="mostrar('gestion')"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.5"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.5"/></svg>Gestión</button>
+      <button type="button" data-tab="ajustes" onclick="mostrar('ajustes')"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>Ajustes</button>
+    </div>
+  </nav>
+  <div id="toastApr" role="status" aria-live="polite"></div>
 
   <!-- Diálogo para pedir la contraseña de los respaldos (no se guarda en ninguna parte) -->
   <dialog id="dlgClave" class="dlg-clave">
@@ -2543,11 +2675,20 @@
       document.getElementById("error").textContent = "";
     }
 
+    // Navegación: 4 pestañas (Mi día, Personas, Gestión, Ajustes). Lo que no está en el mapa (charla, EPP, check list, IRL, accidente, emergencia) cuelga de "Mi día".
+    const TABS = ["menu", "personas", "gestion", "ajustes"];
+    const TAB_DE = { personal: "personas", documentos: "personas", matriz: "gestion", calendario: "gestion", hallazgos: "gestion", criticos: "gestion", casi: "gestion", vencimientos: "gestion", informe: "gestion", biblioteca: "gestion", historial: "gestion", empresa: "ajustes", acerca: "ajustes" };
+    const PADRE_DE = { ...TAB_DE, empresa: "ajustes", acerca: "ajustes" };   // a dónde vuelve la flecha ←
+    let _tabForzada = null;   // Consentimientos abre Empresa pero sigue bajo la pestaña Personas
+    const marcarTab = id => { const t = TABS.includes(id) ? id : (id === "empresa" && _tabForzada) || TAB_DE[id] || "menu"; document.querySelectorAll("#barraInf button").forEach(b => b.setAttribute("aria-current", b.dataset.tab === t ? "page" : "false")); };
+    function volverAtras() { const id = document.querySelector(".pantalla.activa")?.id, forz = id === "empresa" ? _tabForzada : null; mostrar(forz || PADRE_DE[id] || "menu"); }
     function mostrar(id) {
+      _tabForzada = null;
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
-      document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "APR", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos" };
+      document.getElementById("btnVolver").style.visibility = TABS.includes(id) ? "hidden" : "visible";
+      marcarTab(id);
+      const titulos = { menu: "APR", personas: "Personas", gestion: "Gestión", ajustes: "Ajustes", acerca: "Acerca de", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km", biblioteca: "Biblioteca de documentos" };
       if (id === "casi") iniciarCasi();
       if (id === "criticos") pintarCriticos();
       if (id === "biblioteca") iniciarBiblioteca();
@@ -2566,7 +2707,9 @@
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
       if (id === "epp") iniciarEPP();
-      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); pintarBotonEmergencia(); pintarAvisoPlazoMenu(); }
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); pintarBotonEmergencia(); pintarAvisoPlazoMenu(); pintarMiDia(); }
+      if (id === "ajustes") document.getElementById("temaOscuro").checked = document.documentElement.getAttribute("data-tema") === "oscuro";
+      if (id === "acerca") pintarAcerca();
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
       document.getElementById("titulo").textContent = titulos[id];
       document.querySelectorAll(`#${id} textarea`).forEach(autoAltura);   // ajusta el alto de los textos precargados
@@ -9686,6 +9829,74 @@
     setInterval(tickPlazos, 30000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) tickPlazos(); });
     pintarAvisoPlazoMenu();
+
+    /* =====================================================================
+       APR: pantalla "Mi día", accesos a ajustes, modo oscuro, aviso "Guardado ✓" y "Acerca de".
+       Solo presentación y navegación: no cambia la lógica ni los datos de ningún módulo.
+       ===================================================================== */
+    // Abre Empresa y formatos (o la sección) y lleva a un campo; abre los <details> que lo contienen
+    async function irAjusteId(id, tabPadre) {
+      mostrar("empresa");
+      if (tabPadre) { _tabForzada = tabPadre; marcarTab("empresa"); }
+      await new Promise(r => setTimeout(r, 60));
+      const el = document.getElementById(id);
+      if (!el) return;
+      let d = el.closest("details");
+      if (el.tagName === "DETAILS") el.open = true;
+      while (d) { d.open = true; d = d.parentElement.closest("details"); }
+      el.scrollIntoView({ block: "center" });
+    }
+    function cambiarTema(oscuro) {
+      try { localStorage.setItem("apr_tema", oscuro ? "oscuro" : "claro"); } catch (e) {}
+      if (oscuro) document.documentElement.setAttribute("data-tema", "oscuro"); else document.documentElement.removeAttribute("data-tema");
+    }
+    let _toastApr = 0;
+    function avisoGuardado(texto = "Guardado ✓") {
+      const el = document.getElementById("toastApr");
+      if (!el) return;
+      el.textContent = texto; el.classList.add("visible");
+      clearTimeout(_toastApr); _toastApr = setTimeout(() => el.classList.remove("visible"), 1800);
+    }
+    // El aviso sale cuando un registro realmente se guardó (PDF en el Historial, hallazgos, vencimientos…): se envuelven las funciones sin tocar su lógica
+    {
+      const _guardarEnHistorial = guardarEnHistorial;
+      guardarEnHistorial = async function (...a) { const r = await _guardarEnHistorial.apply(this, a); if (r !== a[0]) avisoGuardado(); return r; };
+      const CLAVES_AVISO = new Set(["pt_hallazgos", "pt_vencimientos", "pt_programa_hecho", "pt_casi", "pt_emergencia", "pt_plazos_acc", "pt_biblioteca"]), _guardar = guardar;
+      guardar = function (clave) { const r = _guardar.apply(this, arguments); if (CLAVES_AVISO.has(clave)) avisoGuardado(); return r; };
+    }
+    async function pintarAcerca() {
+      const v = await versionApp();
+      document.getElementById("acercaVersion").textContent = v ? "Versión " + v : "";
+    }
+    const tarjetaDia = (icono, titulo, sub, destino, num, rojo) => `<button type="button" class="pend ${rojo ? "rojo" : ""}" onclick="mostrar('${destino}')"><span class="pend-ico">${icono}</span><span><b>${html(titulo)}</b>${sub ? `<small>${html(sub)}</small>` : ""}</span>${num ? `<span class="num">${num}</span>` : ""}</button>`;
+    async function pintarMiDia() {
+      try {
+        const hoy = hoyISO(), d = fechaD(hoy), q = id => document.getElementById(id);
+        q("diaFecha").textContent = `${DIAS_LARGO[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()].toLowerCase()}`;
+        q("diaObra").textContent = infContrato.contrato || EMPRESA.nombre || "Configura tu empresa en Ajustes";
+        const nombre = String(infContrato.experto || leerGuardado("pt_responsables", {}).prevencionista || "").trim().split(/\s+/)[0], h = new Date().getHours();
+        q("diaSaludo").textContent = `${h < 12 ? "Buenos días" : h < 20 ? "Buenas tardes" : "Buenas noches"}${nombre ? ", " + nombre : ""}`;
+        // Índice UV estimado del día (el mismo cálculo local de la charla)
+        const geo = obraGeo(), uv = q("diaUV");
+        if (geo) { const r = uvEstimado(hoy, geo.lat, geo.lon, geo.alt), n = nivelUV(r.max); uv.textContent = `☀️ UV máx. estimado ${Math.round(r.max)} · ${n.nombre}`; }
+        else uv.textContent = "☀️ Pon la ubicación de la obra para ver el UV";
+        // Pendiente hoy: cada tarjeta lleva a su módulo
+        const t = [];
+        let charlas = 0;
+        try { charlas = (await operacionBD("readonly", s => s.getAll())).filter(r => r.tipo === "charla" && r.fecha === hoy && vigente(r)).length; } catch {}
+        if (!charlas) t.push(tarjetaDia("📋", "Charla de hoy sin hacer", "Charla diaria + ART", "charla"));
+        const deHoy = programadasEntre(hoy, hoy).filter(x => !x.hecha), atras = programadasEntre(`${hoy.slice(0, 4)}-01-01`, hoy).filter(x => x.atrasada);
+        if (deHoy.length) t.push(tarjetaDia("📅", "Programa de hoy", deHoy.slice(0, 2).map(x => x.a.actividad).join(", "), "calendario", deHoy.length));
+        if (atras.length) t.push(tarjetaDia("⛔", "Actividades atrasadas", "Del programa de prevención", "calendario", atras.length, true));
+        const ven = vencimientos.filter(v => !fueraDeObra(v) && diasPara(v.vence) <= 7);
+        if (ven.length) t.push(tarjetaDia("⏰", "Vencimientos (7 días)", ven.slice(0, 2).map(v => v.tipo + " " + v.quien).join(", "), "vencimientos", ven.length, ven.some(v => diasPara(v.vence) < 0)));
+        const hal = hallazgos.filter(x => !x.cerrado);
+        if (hal.length) t.push(tarjetaDia("📌", "Hallazgos abiertos", hal.some(x => x.plazo && x.plazo < hoy) ? "Hay con plazo vencido" : "", "hallazgos", hal.length, hal.some(x => x.plazo && x.plazo < hoy)));
+        q("diaPendientes").innerHTML = t.length ? t.join("") : `<div class="tarjeta pend-ok">✅ Todo al día por hoy</div>`;
+      } catch (e) { console.warn("Mi día", e); }
+    }
+    pintarMiDia();
+    marcarTab("menu");
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
