@@ -599,6 +599,12 @@
             <div><label>Tramo móvil del Km</label><input type="text" name="kmDesde" inputmode="decimal" required></div>
             <div><label>al Km</label><input type="text" name="kmHasta" inputmode="decimal" required></div>
           </div>
+          <div id="uvCharlaCaja" class="aviso-programa" style="display:none; cursor:default">
+            <b id="uvTitulo"></b><span id="uvDetalle"></span><span id="uvMedidas"></span>
+            <label>Altitud de trabajo hoy en metros (opcional, si es distinta a la de la obra)</label>
+            <input type="text" id="uvAlturaHoy" inputmode="numeric" maxlength="4" oninput="pintarUVCharla()">
+            <a href="https://archivos.meteochile.gob.cl/portaldmc/radiacionNew/pronostico_radiacion.php" target="_blank" rel="noopener">Pronóstico oficial de la Dirección Meteorológica de Chile (con internet)</a>
+          </div>
         </div>
 
         <div class="tarjeta">
@@ -1127,6 +1133,21 @@
           <h3>Rutas de la obra</h3>
           <label>Una ruta por línea (aparecen al registrar hallazgos y casi accidentes)</label>
           <textarea id="empRutas" rows="3" placeholder="Ruta C-35&#10;Ruta 31-CH"></textarea>
+          <h3>Ubicación de la obra (índice UV de la charla)</h3>
+          <p class="ayuda">Con la latitud y la longitud la charla estima el índice UV del día, sin internet. Cópialas desde Google Maps (mantén presionado el punto en el mapa). El sur y el oeste llevan signo menos.</p>
+          <div class="dos-col">
+            <div><label>Latitud</label><input type="text" id="obraLat" inputmode="decimal" maxlength="12" placeholder="-27.3668"></div>
+            <div><label>Longitud</label><input type="text" id="obraLon" inputmode="decimal" maxlength="12" placeholder="-70.3321"></div>
+          </div>
+          <label>Altitud de la obra en metros (opcional)</label><input type="text" id="obraAlt" inputmode="numeric" maxlength="4">
+          <details class="exportar"><summary>Medidas que se muestran por nivel de UV (opcional)</summary>
+            <p class="ayuda">Si dejas un cuadro vacío se usa el texto sugerido.</p>
+            <label>Bajo (0–2)</label><textarea id="uvMedBajo" rows="2"></textarea>
+            <label>Moderado (3–5)</label><textarea id="uvMedModerado" rows="2"></textarea>
+            <label>Alto (6–7)</label><textarea id="uvMedAlto" rows="2"></textarea>
+            <label>Muy alto (8–10)</label><textarea id="uvMedMuyalto" rows="2"></textarea>
+            <label>Extremo (11 o más)</label><textarea id="uvMedExtremo" rows="2"></textarea>
+          </details>
         </details>
         <label>Correo de contacto para datos personales</label>
         <input type="text" id="empContacto" inputmode="email" autocomplete="off" placeholder="prevencion@empresa.cl">
@@ -2485,6 +2506,7 @@
       const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km" };
       if (id === "casi") iniciarCasi();
       if (id === "criticos") pintarCriticos();
+      if (id === "charla") pintarUVCharla();
       if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
       if (id === "matriz") iniciarMatriz();
@@ -2678,6 +2700,7 @@
         ruta: d.get("ruta").trim(),
         kmDesde: d.get("kmDesde").trim(),
         kmHasta: d.get("kmHasta").trim(),
+        uv: uvParaCharla(),
         checklist: CHECKLIST.map((_, i) => d.get("chk" + i)),
         // Observación solo de los que quedaron en NC
         observaciones: CHECKLIST.map((_, i) => d.get("chk" + i) === "NC" ? (d.get("obs" + i) || "").trim() : ""),
@@ -2844,7 +2867,8 @@
         [{ negrita: "Departamento" }, { negrita: r.arts[0].nombre }],
         [{ negrita: "Fecha" }, `${r.fechaCL} (${r.dia})`],
         [{ negrita: "Lugar / Ruta / Km" }, `Ruta ${r.ruta}, Tramo Móvil del Km ${r.kmDesde} al Km ${r.kmHasta}`],
-        [{ negrita: "Hora" }, r.hora]
+        [{ negrita: "Hora" }, r.hora],
+        ...(r.uv ? [[{ negrita: "Radiación UV (estimada)" }, `Máximo del día: ${r.uv.max} (${r.uv.nivel}), hacia las ${r.uv.hora}. Estimación de cielo despejado, no es una medición.\nMedidas: ${r.uv.medidas}`]] : [])
       ], { conTitulos: false });
 
       if (CHECKLIST.length) {
@@ -5714,7 +5738,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -7152,6 +7176,9 @@
       document.getElementById("empContacto").value = EMPRESA.contactoDatos || "";
       for (const [id, k] of CAMPOS_EMP_ACC) document.getElementById(id).value = EMPRESA[k] || "";
       document.getElementById("empRutas").value = rutasObra.join("\n");
+      const geo = leerGuardado("pt_obra_geo", {}), medUv = leerGuardado("pt_uv_medidas", {});
+      document.getElementById("obraLat").value = geo.lat ?? ""; document.getElementById("obraLon").value = geo.lon ?? ""; document.getElementById("obraAlt").value = geo.alt ?? "";
+      for (const k of ["bajo", "moderado", "alto", "muyalto", "extremo"]) document.getElementById("uvMed" + k[0].toUpperCase() + k.slice(1)).value = medUv[k] || "";
       if (!EMPRESA.publica) document.getElementById("empPublica").value = "privada";
       if (!EMPRESA.tipoAcc) document.getElementById("empTipoAcc").value = "Contratista";   // del MOP: el MOP es el mandante (principal)
       pintarCifrado(); pintarEstadoMatriz();
@@ -7181,6 +7208,11 @@
       }
       if (!p.nombre) p.nombre = p.empresa.nombre;
       p.actualizado = new Date().toLocaleDateString("sv-SE");
+      const num = id => document.getElementById(id).value.trim().replace(",", "."), lat = num("obraLat"), lon = num("obraLon"), alt = num("obraAlt");
+      if ((lat || lon) && (!isFinite(+lat) || !isFinite(+lon) || lat === "" || lon === "" || Math.abs(+lat) > 90 || Math.abs(+lon) > 180)) { document.getElementById("msjEmpresa").textContent = "La latitud y la longitud de la obra deben ser números (ej: -27.3668 y -70.3321)."; return; }
+      if (alt && (!isFinite(+alt) || +alt < 0 || +alt > 6000)) { document.getElementById("msjEmpresa").textContent = "La altitud debe estar entre 0 y 6000 metros."; return; }
+      guardar("pt_obra_geo", lat ? { lat: +lat, lon: +lon, alt: alt ? +alt : 0 } : null);
+      guardar("pt_uv_medidas", Object.fromEntries(["bajo", "moderado", "alto", "muyalto", "extremo"].map(k => [k, document.getElementById("uvMed" + k[0].toUpperCase() + k.slice(1)).value.trim().slice(0, 400)]).filter(([, v]) => v)));
       guardar("pt_rutas", document.getElementById("empRutas").value.split("\n").map(x => x.trim().slice(0, 60)).filter(Boolean).slice(0, 50));
       await guardarLiviano(p);
       sessionStorage.setItem("pt_abrirEmpresa", "1");
@@ -8889,6 +8921,79 @@
     pintarBotonEmergencia();
 
     /* =====================================================================
+       ÍNDICE UV ESTIMADO (T2-4b): se calcula en el equipo, sin internet y sin enviar ningún dato.
+       Posición del sol (fórmulas de Spencer, usadas por NOAA) con la fecha, la hora y la latitud/longitud fijas de la obra, y de ahí el índice UV de
+       cielo despejado: UVI = 12,5 · μ0^2,42 · (O3/300)^-1,23 · (1 + 0,07·altitud_km) · (distancia Tierra-Sol), con O3 = 270 UD (aproximación de la
+       latitud de Atacama). Es una ESTIMACIÓN: margen de error ±15–20 % (±2–3 puntos con UV 12–15), nunca una medición. Con nubes o polvo el valor real es
+       menor; con nieve o más altitud, puede ser mayor.
+       pt_obra_geo = { lat, lon, alt } y pt_uv_medidas = { bajo, moderado, alto, muyalto, extremo } (configuración; van al respaldo y se conservan).
+       ===================================================================== */
+    const GRAD = Math.PI / 180;
+    const NIVELES_UV = [
+      { clave: "bajo", nombre: "Bajo", desde: 0 }, { clave: "moderado", nombre: "Moderado", desde: 3 }, { clave: "alto", nombre: "Alto", desde: 6 },
+      { clave: "muyalto", nombre: "Muy alto", desde: 8 }, { clave: "extremo", nombre: "Extremo", desde: 11 }];
+    const MEDIDAS_UV = {
+      bajo: "Protección básica: lentes con filtro UV si hay brillo.",
+      moderado: "Protector solar FPS 30 o más, lentes con filtro UV y casco con cubrenuca.",
+      alto: "Protector solar FPS 50 cada 2 horas, ropa de manga larga, cubrenuca, lentes con filtro UV y pausas a la sombra.",
+      muyalto: "Protector solar FPS 50 cada 2 horas, ropa de manga larga, cubrenuca, lentes con filtro UV, agua y pausas a la sombra; evitar la exposición directa en las horas centrales del día.",
+      extremo: "Protector solar FPS 50 cada 2 horas, ropa de manga larga, cubrenuca, lentes con filtro UV, agua y pausas a la sombra; reprogramar las tareas más expuestas fuera de las horas centrales."
+    };
+    function anguloSolar(fecha, lat, lon) {
+      const dia = Math.floor((fecha.getTime() - Date.UTC(fecha.getUTCFullYear(), 0, 0)) / 86400000);
+      const h = fecha.getUTCHours() + fecha.getUTCMinutes() / 60 + fecha.getUTCSeconds() / 3600;
+      const g = 2 * Math.PI / 365 * (dia - 1 + (h - 12) / 24);
+      const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+      const eot = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+      const H = ((h * 60 + 4 * lon + eot) / 4 - 180) * GRAD;
+      return { mu0: Math.sin(lat * GRAD) * Math.sin(decl) + Math.cos(lat * GRAD) * Math.cos(decl) * Math.cos(H), decl, eot, dia };
+    }
+    // UV de cielo despejado en un instante (0 si el sol está bajo el horizonte)
+    function uvEnInstante(fecha, lat, lon, altM = 0, o3 = 270) {
+      const { mu0, dia } = anguloSolar(fecha, lat, lon);
+      if (mu0 <= 0) return 0;
+      return 12.5 * Math.pow(mu0, 2.42) * Math.pow(o3 / 300, -1.23) * (1 + 0.07 * Math.max(0, altM) / 1000) * (1 + 0.033 * Math.cos(2 * Math.PI * (dia - 3) / 365));
+    }
+    // Máximo del día (en el mediodía solar) para la fecha local dada: se busca en pasos de 5 minutos alrededor del mediodía local
+    function uvEstimado(fechaLocal, lat, lon, altM = 0) {
+      const base = new Date(`${fechaLocal}T12:00:00`).getTime();
+      let max = 0, cuando = base;
+      for (let t = base - 12 * 3600000; t <= base + 12 * 3600000; t += 300000) { const v = uvEnInstante(new Date(t), lat, lon, altM); if (v > max) { max = v; cuando = t; } }
+      return { max, horaMax: new Date(cuando).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", hour12: false }) };
+    }
+    const nivelUV = n => { const r = Math.round(n); return [...NIVELES_UV].reverse().find(x => r >= x.desde); };
+    function obraGeo() {
+      const g = leerGuardado("pt_obra_geo", null);
+      if (!g || typeof g !== "object") return null;
+      const lat = +g.lat, lon = +g.lon, alt = +g.alt || 0;
+      return g.lat !== "" && g.lon !== "" && isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lat, lon, alt: Math.min(6000, Math.max(0, alt)) } : null;
+    }
+    function medidasUV(clave) {
+      const m = leerGuardado("pt_uv_medidas", {});
+      return textoCorto(m && typeof m === "object" ? m[clave] : "", 400).trim() || MEDIDAS_UV[clave];
+    }
+    // Lo que se informa en la charla: máximo estimado del día de la charla, su nivel y las medidas (null si la obra no tiene coordenadas)
+    function uvParaCharla() {
+      const geo = obraGeo();
+      if (!geo) return null;
+      const f = (document.querySelector('#formCharla [name="fecha"]') || {}).value || hoyISO();
+      const altTxt = (document.getElementById("uvAlturaHoy") || {}).value || "", alt = altTxt.trim() !== "" && +altTxt >= 0 && +altTxt <= 6000 ? +altTxt : geo.alt;
+      const r = uvEstimado(f, geo.lat, geo.lon, alt), n = nivelUV(r.max);
+      return { max: Math.round(r.max), nivel: n.nombre, clave: n.clave, hora: r.horaMax, ahora: f === hoyISO() ? Math.round(uvEnInstante(new Date(), geo.lat, geo.lon, alt)) : null, alt, medidas: medidasUV(n.clave) };
+    }
+    function pintarUVCharla() {
+      const caja = document.getElementById("uvCharlaCaja");
+      if (!caja) return;
+      const u = uvParaCharla();
+      if (!u) { caja.style.display = "none"; return; }
+      caja.style.display = "block";
+      document.getElementById("uvTitulo").textContent = `☀️ UV máximo estimado hoy: ${u.max} · ${u.nivel}`;
+      document.getElementById("uvDetalle").textContent = `Hacia las ${u.hora}${u.ahora !== null ? ` (ahora: ${u.ahora})` : ""}. ESTIMADO con cielo despejado a ${u.alt} m de altitud, no es una medición.`;
+      document.getElementById("uvMedidas").textContent = u.medidas;
+    }
+    document.querySelector('#formCharla [name="fecha"]')?.addEventListener("change", pintarUVCharla);
+
+    /* =====================================================================
        RUTA Y KM (T2-4a): cada hallazgo, casi accidente (y después check list y accidente) puede llevar su ubicación.
        ubic = { ruta, km, lat?, lon? }. El km se escribe a mano (el GPS da coordenadas, no kilómetros de la ruta); las coordenadas son
        opcionales, se guardan SOLO si el usuario toca el botón, nunca en segundo plano, y no se imprimen en los PDF.
@@ -9266,7 +9371,7 @@
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
