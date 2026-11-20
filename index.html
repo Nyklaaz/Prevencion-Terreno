@@ -1845,8 +1845,7 @@
         <div class="inf-panel" id="bibUso"></div>
         <input type="search" id="bibBuscar" placeholder="🔍 Buscar por título, código o archivo" oninput="pintarBiblioteca()">
         <select id="bibTipo" onchange="pintarBiblioteca()"><option value="">Todos los tipos</option></select>
-        <button type="button" class="btn btn-secundario" style="margin-top:8px" onclick="traerBibliotecaDrive()">☁️ Traer biblioteca desde Drive</button>
-        <p class="mensaje" id="bibSync"></p>
+        <p class="mensaje" id="bibSync" style="display:flex;align-items:center;gap:8px;margin:8px 0 0"><span id="bibSyncTxt" style="flex:1"></span><button type="button" id="bibRefrescar" aria-label="Actualizar la biblioteca desde Drive" title="Actualizar desde Drive" onclick="traerBibliotecaDrive(false)" style="background:none;border:1px solid var(--borde,#c9d3e6);border-radius:8px;min-width:36px;min-height:36px;font-size:18px;line-height:1;color:inherit;cursor:pointer">↻</button></p>
         <button type="button" class="btn btn-secundario" style="margin-top:8px" onclick="indiceBibliotecaPDF()">🖨️ Índice en PDF</button>
         <div id="bibLista"></div>
       </div>
@@ -2789,7 +2788,7 @@
       if (id === "hallazgos") iniciarHallazgos();
       if (id === "vencimientos") iniciarVencimientos();
       if (id === "epp") iniciarEPP();
-      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); pintarBotonEmergencia(); pintarAvisoPlazoMenu(); pintarMiDia(); }
+      if (id === "menu") { avisoProgramaMenu(); avisoRespaldoMenu(); avisoEPPSemanal(); pintarDrive(); renovarDriveSilencioso(); pintarBotonEmergencia(); pintarAvisoPlazoMenu(); pintarMiDia(); }
       if (id === "ajustes") document.getElementById("temaOscuro").checked = document.documentElement.getAttribute("data-tema") === "oscuro";
       if (id === "acerca") pintarAcerca();
       if (id === "historial" && !document.getElementById("expMes").value) document.getElementById("expMes").value = new Date().toLocaleDateString("sv-SE").slice(0, 7);
@@ -5079,7 +5078,7 @@
       if (await descargarRespaldoMes(k)) { await limpiarMesesRespaldados(); pintarHistorial(); }
     }
     // Al abrir la app (cuando ya cargó todo): limpieza de meses respaldados y avisos
-    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); notificarVencimientos(); subirPendientesDrive(); }, 0);
+    setTimeout(() => { limpiarMesesRespaldados().then(avisoRespaldoMenu); avisoEPPSemanal(); podarFirmasExperto(); notificarVencimientos(); subirPendientesDrive(); setTimeout(autoSyncDrive, 1200); }, 0);
     // Firma del experto: se guarda solo la del mes actual y el anterior (y la del informe que se está haciendo)
     function podarFirmasExperto() {
       const limite = mesAnteriorDe(mesHoy()), enCurso = leerGuardado("pt_inf_ultimoMes", "");
@@ -5319,18 +5318,22 @@
       if (v && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(v)) { document.getElementById("driveEstado").textContent = 'Ese no parece un ID de cliente de Google: debe terminar en ".apps.googleusercontent.com".'; return; }
       guardar("pt_drive_cliente", v); guardar("pt_drive_carpetas", {}); pintarDrive();
     }
-    function conectarDrive() {
+    function conectarDrive(silencioso = false) {
+      if (silencioso !== true) silencioso = false;
       if (!driveConfigurado()) {
         mostrar("empresa"); document.getElementById("driveConfig").open = true;
         document.getElementById("driveEstado").textContent = "Primero pega el ID de cliente de Google (configuración, una sola vez).";
         return;
       }
-      if (!navigator.onLine) { alert("Necesitas internet para conectar Google Drive."); return; }
+      if (!navigator.onLine) { if (!silencioso) alert("Necesitas internet para conectar Google Drive."); return; }
       const estado = Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("");
       sessionStorage.setItem("pt_drive_estado", estado);
       sessionStorage.setItem("pt_drive_volver", document.querySelector(".pantalla.activa")?.id || "menu");
       const p = new URLSearchParams({ client_id: driveCliente(), redirect_uri: driveRedirect(), response_type: "token",
         scope: "https://www.googleapis.com/auth/drive.file", include_granted_scopes: "true", state: estado });
+      // Renovación silenciosa: si la sesión de Google sigue abierta y el permiso ya se dio, Google devuelve el token sin pantalla
+      if (silencioso) { p.set("prompt", "none"); const hint = leerGuardado("pt_drive_hint", ""); if (/^[^\s@]+@[^\s@]+$/.test(hint)) p.set("login_hint", hint); sessionStorage.setItem("pt_drive_silencioso", "1"); }
+      else { sessionStorage.removeItem("pt_drive_silencioso"); sessionStorage.removeItem("pt_drive_requiere"); }
       location.assign("https://accounts.google.com/o/oauth2/v2/auth?" + p);
     }
     // Al volver de Google el permiso viene en la dirección (#access_token=…): se revisa que sea nuestro pedido y se borra de la dirección
@@ -5340,7 +5343,9 @@
       history.replaceState(null, "", location.pathname + location.search);
       sessionStorage.removeItem("pt_drive_estado");
       if (!esperado || p.get("state") !== esperado) return;   // no lo pedimos nosotros: se ignora
-      if (p.get("access_token")) sessionStorage.setItem("pt_drive_token", JSON.stringify({ token: p.get("access_token"), vence: Date.now() + (+p.get("expires_in") || 3600) * 1000 }));
+      const eraSilencioso = sessionStorage.getItem("pt_drive_silencioso") === "1"; sessionStorage.removeItem("pt_drive_silencioso");
+      if (p.get("access_token")) { sessionStorage.setItem("pt_drive_token", JSON.stringify({ token: p.get("access_token"), vence: Date.now() + (+p.get("expires_in") || 3600) * 1000 })); sessionStorage.removeItem("pt_drive_requiere"); }
+      else if (eraSilencioso) { sessionStorage.setItem("pt_drive_requiere", "1"); try { localStorage.setItem("pt_drive_fallo", String(Date.now())); } catch {} }   // Google pidió pantalla: ahí sí hace falta que toque el aviso
       else sessionStorage.setItem("pt_drive_error", String(p.get("error") || "error").slice(0, 60));
       const volver = sessionStorage.getItem("pt_drive_volver"); sessionStorage.removeItem("pt_drive_volver");
       if (volver && /^[a-z]+$/.test(volver)) setTimeout(() => mostrar(volver), 300);
@@ -5353,7 +5358,8 @@
       caja.textContent = version ? `Versión ${version} · ${navigator.onLine ? "con internet: se actualiza sola al abrir" : "sin internet: se actualizará cuando haya señal"}` : "Versión: se mostrará después de abrir la app una vez con internet.";
     }
     function desconectarDrive() {
-      const t = driveToken(); sessionStorage.removeItem("pt_drive_token");
+      const t = driveToken(); sessionStorage.removeItem("pt_drive_token"); sessionStorage.removeItem("pt_drive_requiere");
+      guardar("pt_drive_activo", ""); guardar("pt_drive_hint", "");
       if (t) fetch("https://oauth2.googleapis.com/revoke?token=" + encodeURIComponent(t), { method: "POST" }).catch(() => {});
       pintarDrive();
     }
@@ -5435,7 +5441,7 @@
     }
     let subiendoDrive = false, otraVueltaDrive = false;
     async function subirPendientesDrive(manual = false) {
-      if (!driveConfigurado() || !driveToken()) { if (manual) conectarDrive(); else pintarDrive(); return; }
+      if (!driveConfigurado() || !driveToken()) { if (manual) conectarDrive(); else { pintarDrive(); renovarDriveSilencioso(); } return; }
       if (!navigator.onLine) return;
       if (subiendoDrive) { otraVueltaDrive = true; return; }   // llegó algo nuevo mientras subía: se sube al terminar esta vuelta
       subiendoDrive = true;
@@ -5471,6 +5477,7 @@
     }
     async function pintarDrive(subidos = 0, error = "") {
       const conf = driveConfigurado(), con = !!driveToken();
+      if (con) { if (leerGuardado("pt_drive_activo", "") !== "1") guardar("pt_drive_activo", "1"); pedirCuentaDrive(); }
       const pend = conf ? (await todosLosRegistros()).filter(r => !r.drive).length + (await colaDrive()).length : 0;
       const cli = document.getElementById("driveCliente"), red = document.getElementById("driveRedirect"), est = document.getElementById("driveEstado");
       if (cli && document.activeElement !== cli) cli.value = driveCliente();
@@ -5482,12 +5489,45 @@
         : `Desconectado. ${pend ? pend + " documento(s) esperando subir: " : ""}toca "Conectar Google Drive".`;
       const aviso = document.getElementById("avisoDrive");
       if (aviso) {
-        const ver = conf && !con && pend > 0;
+        // Solo se muestra si de verdad hace falta tu toque: no hay permiso, hay cosas esperando y la renovación silenciosa no pudo (o no corresponde intentarla)
+        const ver = conf && !con && pend > 0 && (sessionStorage.getItem("pt_drive_requiere") === "1" || leerGuardado("pt_drive_activo", "") !== "1" || Date.now() - (+leerGuardado("pt_drive_fallo", 0) || 0) < ESPERA_TRAS_FALLO);
         aviso.style.display = ver ? "block" : "none";
-        if (ver) aviso.innerHTML = `<b>☁️ Reconectar Google Drive</b><span>${pend} documento(s) esperando subir a tu Drive. Toca para conectar.</span>`;
+        if (ver) aviso.innerHTML = `<b>☁️ Reconectar Google Drive</b><span>${pend} documento(s) esperando subir a tu Drive. Google pide que confirmes: toca para reconectar (1 toque).</span>`;
       }
     }
     window.addEventListener("online", () => subirPendientesDrive());
+    // Cuenta de Google conectada (solo para que la renovación silenciosa la pida por nombre): se lee una vez
+    let pidiendoCuentaDrive = false;
+    async function pedirCuentaDrive() {
+      if (pidiendoCuentaDrive || leerGuardado("pt_drive_hint", "") || !driveToken() || !navigator.onLine) return;
+      pidiendoCuentaDrive = true;
+      try { const j = await (await driveFetch(`${DRIVE_API}/drive/v3/about?fields=user(emailAddress)`)).json(); const m = j && j.user && j.user.emailAddress; if (typeof m === "string" && /^[^\s@]+@[^\s@]+$/.test(m) && m.length < 120) guardar("pt_drive_hint", m); } catch {}
+      finally { pidiendoCuentaDrive = false; }
+    }
+    /* Renovación silenciosa del permiso (sin servidor): al ABRIR la app, al volver a ella o al volver a Mi día con el permiso vencido, se pide a Google un token nuevo con prompt=none.
+       Si la sesión de Google sigue abierta y el permiso ya se dio, vuelve solo (un parpadeo). Si Google pide pantalla, se marca "requiere" y recién ahí aparece el aviso.
+       Reglas: solo en Mi día (la redirección borraría un formulario a medias), nunca con la hoja rápida abierta, máx. 1 intento cada 10 min y, tras un fallo, 1 cada 2 h. */
+    const ESPERA_RENOVAR = 10 * 60 * 1000, ESPERA_TRAS_FALLO = 2 * 3600 * 1000;
+    function puedeRenovarSolo() {
+      if (!driveConfigurado() || leerGuardado("pt_drive_activo", "") !== "1" || driveToken() || !navigator.onLine || document.hidden) return false;
+      if (sessionStorage.getItem("pt_drive_requiere") === "1") return false;
+      const ahora = Date.now();
+      return ahora - (+leerGuardado("pt_drive_intento", 0) || 0) > ESPERA_RENOVAR && ahora - (+leerGuardado("pt_drive_fallo", 0) || 0) > ESPERA_TRAS_FALLO;
+    }
+    let renovandoDrive = false;
+    function renovarDriveSilencioso() {
+      if (renovandoDrive || !puedeRenovarSolo()) return;
+      renovandoDrive = true;
+      setTimeout(() => {   // un momento de calma: que termine lo que se estaba guardando
+        renovandoDrive = false;
+        const hoja = document.getElementById("halRapido");
+        if (!puedeRenovarSolo() || subiendoDrive || document.querySelector(".pantalla.activa")?.id !== "menu" || (hoja && hoja.style.display !== "none")) return;
+        guardar("pt_drive_intento", Date.now());
+        conectarDrive(true);
+      }, 1500);
+    }
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) renovarDriveSilencioso(); });
+    window.addEventListener("online", () => setTimeout(renovarDriveSilencioso, 1000));
 
     /* =====================================================================
        ENTREGA DE EPP (Hoja de cargos)
@@ -9254,7 +9294,7 @@
       bibCarga = []; bibReemplazaId = "";
       document.getElementById("bibMsj").textContent = "";
       pintarCargaBib(); pintarBiblioteca();
-      msjSyncBib(""); traerBibliotecaDrive(true);
+      textoSyncBib(); traerBibliotecaDrive(true);
     }
     // Archivos elegidos: se revisan (código, tipo, título…) antes de cargarlos
     async function elegirArchivosBib(input, reemplazo = false) {
@@ -9539,16 +9579,27 @@
       } catch (e) { console.warn("No se pudo publicar el índice de la biblioteca", e); return false; }
       finally { publicandoBib = false; if (republicarBib) { republicarBib = false; setTimeout(() => publicarIndiceBib(), 0); } }
     }
-    const msjSyncBib = t => { const m = document.getElementById("bibSync"); if (m) m.textContent = t; };
-    // Trae lo que falte desde el índice de Drive; no borra nada local. silencioso = al abrir la Biblioteca (solo habla si hay novedades)
-    async function traerBibliotecaDrive(silencioso = false) {
-      if (!driveConfigurado()) { if (!silencioso) msjSyncBib("Primero conecta Google Drive (Empresa y formatos → Google Drive): ahí está tu biblioteca."); return; }
-      if (!navigator.onLine) { if (!silencioso) msjSyncBib("Sin señal: ves la biblioteca que ya tienes en este equipo. Cuando tengas internet, toca de nuevo “Traer biblioteca desde Drive”."); return; }
-      if (!driveToken()) { if (!silencioso) msjSyncBib("El permiso de Google venció: reconecta Google Drive (Empresa y formatos → Google Drive) y vuelve a intentarlo."); return; }
-      if (!silencioso) msjSyncBib("Buscando en tu Drive…");
+    // Sincronización AUTOMÁTICA: al abrir la app y al entrar a la Biblioteca (en segundo plano), al volver la señal y al volver a la app. El botón ↻ es solo el respaldo.
+    let ultimaSyncBib = +leerGuardado("pt_bib_sync", 0) || 0, sincronizandoBib = false, extraSyncBib = "";
+    const msjSyncBib = t => { const m = document.getElementById("bibSyncTxt"); if (m) m.textContent = t; };
+    function hace(ms) { const m = Math.floor(ms / 60000); return m < 1 ? "hace un momento" : m < 60 ? "hace " + m + " min" : m < 1440 ? "hace " + Math.floor(m / 60) + " h" : "hace " + Math.floor(m / 1440) + " d"; }
+    function textoSyncBib() {
+      msjSyncBib(sincronizandoBib ? "☁️ Actualizando…" : ultimaSyncBib ? `☁️ Actualizado ${hace(Date.now() - ultimaSyncBib)}${extraSyncBib ? " · " + extraSyncBib : ""}` : (driveConfigurado() ? "☁️ Aún sin actualizar desde Drive" : ""));
+    }
+    setInterval(() => { if (!document.hidden && document.getElementById("biblioteca")?.classList.contains("activa")) textoSyncBib(); }, 30000);
+    // Trae lo que falte desde el índice de Drive; no borra nada local.
+    // silencioso = lo hace sola la app (no molesta: sin señal o sin permiso se queda con lo local); respetarEspera = no repetir antes de 2 min
+    async function traerBibliotecaDrive(silencioso = false, respetarEspera = false) {
+      if (sincronizandoBib) return;
+      if (!driveConfigurado() || !navigator.onLine || !driveToken()) {
+        if (!silencioso) msjSyncBib(!driveConfigurado() ? "Primero conecta Google Drive (Empresa y formatos → Google Drive): ahí está tu biblioteca." : !navigator.onLine ? "Sin señal: ves la biblioteca que ya tienes en este equipo." : "Google Drive necesita reconectarse: toca el aviso de Mi día o Empresa y formatos → Google Drive.");
+        else { extraSyncBib = driveConfigurado() && navigator.onLine ? "sin conexión con Drive" : ""; textoSyncBib(); }
+        return;
+      }
+      if (respetarEspera && Date.now() - ultimaSyncBib < 120000) return;
+      sincronizandoBib = true; extraSyncBib = ""; textoSyncBib();
       try {
         const remoto = await leerIndiceRemotoBib();
-        if (!remoto.id) { if (!silencioso) msjSyncBib("En tu Drive todavía no hay un índice de la biblioteca. Súbelo desde el equipo donde cargaste los documentos (se publica solo al terminar de subir)."); return; }
         let nuevos = 0, actualizados = 0, quitadosAfuera = 0;
         for (const r of remoto.docs) {
           if (!r.driveId) continue;
@@ -9563,12 +9614,19 @@
         }
         for (const [id, t] of Object.entries(remoto.bajas)) { const l = biblioteca.find(x => x.id === id); if (l && t >= modBib(l)) quitadosAfuera++; }
         if (nuevos || actualizados) { guardarBib(); pintarBiblioteca(); }
-        // Si el índice de Drive está dañado o le faltan documentos de este equipo, se vuelve a publicar aunque no haya cambios locales
-        const faltan = publicablesBib().some(d => !remoto.docs.some(r => r.id === d.id) && !(remoto.bajas[d.id] >= modBib(d)));
-        publicarIndiceBib(!!remoto.danado || faltan);
-        msjSyncBib(nuevos || actualizados || quitadosAfuera ? `☁️ ${nuevos} nuevo(s), ${actualizados} actualizado(s)${quitadosAfuera ? `; ${quitadosAfuera} lo quitaron en otro equipo (siguen aquí: usa “Quitar” si ya no los quieres)` : ""}.` : (silencioso ? "" : "☁️ Ya tienes toda la biblioteca al día."));
-      } catch (e) { if (!silencioso) msjSyncBib(e.sinPermiso ? "El permiso de Google venció: reconecta Google Drive y vuelve a intentarlo." : "No se pudo leer el índice de Drive (" + e.message + "). Intenta de nuevo con mejor señal."); }
+        ultimaSyncBib = Date.now(); guardar("pt_bib_sync", ultimaSyncBib);
+        extraSyncBib = nuevos || actualizados ? `${nuevos} nuevo(s), ${actualizados} actualizado(s)` : "";
+        if (quitadosAfuera && !silencioso) extraSyncBib += (extraSyncBib ? "; " : "") + `${quitadosAfuera} lo quitaron en otro equipo (siguen aquí: usa “Quitar” si ya no los quieres)`;
+        publicarIndiceBib();   // deja Drive con la fusión (si este equipo tenía algo que el índice no)
+      } catch (e) {
+        if (!silencioso) extraSyncBib = e.sinPermiso ? "Google Drive necesita reconectarse" : "no se pudo leer Drive, intenta de nuevo con mejor señal";
+        else if (e.sinPermiso) extraSyncBib = "sin conexión con Drive";
+      } finally { sincronizandoBib = false; textoSyncBib(); }
     }
+    // Sincronización en segundo plano (sin molestar)
+    const autoSyncDrive = () => { if (!document.hidden) { traerBibliotecaDrive(true, true); } };
+    window.addEventListener("online", () => setTimeout(autoSyncDrive, 1500));
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(autoSyncDrive, 800); });
 
     /* =====================================================================
        ÍNDICE UV ESTIMADO (T2-4b): se calcula en el equipo, sin internet y sin enviar ningún dato.
@@ -10380,7 +10438,7 @@
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
