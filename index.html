@@ -535,6 +535,7 @@
     .tile:active { transform: scale(.97); box-shadow: 0 0 0 2px var(--azul), var(--sombra); }
     .tile .ico { width: 44px; height: 44px; border-radius: 12px; background: var(--grad-azul); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(29,78,216,.28); }
     .tile.t-negro .ico { background: var(--grad-negro); box-shadow: 0 6px 14px rgba(11,18,32,.28); }
+    html[data-tema="oscuro"] .tile.t-negro .ico { box-shadow: 0 0 0 1.5px #3b5aa8, 0 6px 14px rgba(0,0,0,.4); }
     .tile.t-cielo .ico { background: var(--grad-cielo); }
     .tile.t-rojo { background: var(--grad-rojo-negro); color: #fff; }
     .tile.t-rojo .ico { background: rgba(255,255,255,.18); box-shadow: none; }
@@ -605,7 +606,7 @@
     <section id="menu" class="pantalla activa">
       <div class="tarjeta bienvenida" id="bienvenida" style="display:none">
         <h2>Bienvenido/a a APR</h2>
-        <p>Herramienta gratuita y de código abierto para prevencionistas: charla diaria y ART, IRL (DS 44), check list e informe mensual, sin papel y sin internet.</p>
+        <p>Herramienta para prevencionistas: charla diaria y ART, IRL (DS 44), check list e informe mensual, sin papel y sin internet.</p>
         <p><b>Para empezar</b>, carga los datos de tu empresa y tus formatos.</p>
         <button class="btn btn-principal" onclick="mostrar('empresa')">Configurar mi empresa</button>
       </div>
@@ -640,7 +641,7 @@
         <button type="button" class="aviso-programa" id="avisoPrograma" style="display:none" onclick="mostrar('calendario')"></button>
       </div>
       <p class="estado-offline" id="estadoOffline"></p>
-      <p class="ayuda" style="text-align:center;margin-top:18px;font-size:12px">APR · Prevención en Terreno · Software libre (GPL v3) · Gratis para siempre</p>
+      <p class="ayuda" style="text-align:center;margin-top:18px;font-size:12px">APR · Prevención en Terreno · © 2026 ~JNLT · Uso exclusivo</p>
     </section>
 
     <!-- ========== PERSONAS ========== -->
@@ -713,7 +714,7 @@
         <img src="apr-bienvenida.jpg" alt="APR" style="width:min(60vw,200px);height:auto;border-radius:24px">
         <h2 style="justify-content:center">APR — Prevención en Terreno</h2>
         <p class="ayuda" id="acercaVersion"></p>
-        <p class="ayuda">Software libre (GPL v3) · Gratis para siempre. Funciona sin internet y guarda todo en tu equipo; lo que subes a Google Drive va a tu propia cuenta.</p>
+        <p class="ayuda">© 2026 ~JNLT · Uso exclusivo. Funciona sin internet y guarda todo en tu equipo; lo que subes a Google Drive va a tu propia cuenta.</p>
       </div>
     </section>
 

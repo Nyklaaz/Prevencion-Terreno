@@ -1,7 +1,7 @@
 {
   "name": "Prevención en Terreno",
   "short_name": "APR",
-  "description": "Herramienta gratuita y de código abierto para prevencionistas: charla diaria y ART, IRL, check list e informe mensual, sin papel y sin internet.",
+  "description": "Herramienta para prevencionistas: charla diaria y ART, IRL, check list e informe mensual, sin papel y sin internet.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
