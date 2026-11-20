@@ -6194,6 +6194,7 @@
         infBloqueado = true;
         // Solo se restauran las claves de la app y las fotos que son imágenes de verdad
         Object.entries(d.almacen || {}).forEach(([c, v]) => { if (CLAVES_RESPALDO.includes(c) && typeof v === "string") try { localStorage.setItem(c, v); } catch {} });
+        marcarCfgRestaurada();   // un respaldo viejo no debe ganarle a la configuración que ya está en Drive
         if (d.paqueteIRL) { try { await bdPaquete("readwrite", s => s.put(d.paqueteIRL, "irl")); } catch {} }
         for (const [c, v] of Array.isArray(d.fotosHallazgos) ? d.fotosHallazgos : []) { if (typeof c === "string" && esFotoSegura(v)) try { await bdFotos("readwrite", s => s.put(v, c)); } catch {} }
         // Entregas de EPP: solo las que tienen la forma correcta, sin duplicar las que ya están
@@ -10653,6 +10654,16 @@
         }
       } catch (e) { extraCfg = e.sinPermiso ? "Google Drive necesita reconectarse" : silencioso ? "sin conexión con Drive" : "no se pudo sincronizar (" + e.message + ")"; }
       finally { sincronizandoCfg = false; textoSyncCfg(); }
+    }
+    // Al restaurar un respaldo: la configuración restaurada se toma como "ya vista" (no es un cambio local reciente). Si Drive tiene otra, gana Drive y lo restaurado queda en pt_cfg_previo.
+    function marcarCfgRestaurada() {
+      const meta = leerGuardado("pt_cfg_meta", {});
+      for (const bl of Object.values(CFG_ARCHIVOS)) for (const [b, claves] of Object.entries(bl)) {
+        const datos = leerBloqueCfg(claves), h = huellaBloqueCfg(datos), m = meta[b] || (meta[b] = { h: "", v: 0, ver: 0, mod: 0, hl: "" });
+        m.h = h; m.hl = h; m.ev = bloqueVacioCfg(datos); m.vacio = false;
+      }
+      meta._visto = {};   // fuerza leer Drive la próxima vez y comparar
+      guardar("pt_cfg_meta", meta);
     }
     // Cualquier cambio de configuración hecho aquí se anota y se sube en unos segundos
     {
