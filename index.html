@@ -497,6 +497,8 @@
     .emer-llamar.vacio small { color: #64748b; font-size: 13px; }
     .emer-centro { border: 1px solid #e5e9f4; border-radius: 12px; padding: 12px; margin-bottom: 10px; display: grid; gap: 6px; }
     .emer-centro.grande { border: 2px solid #1d4ed8; }
+    .emer-estado { font-size: 17px; font-weight: 700; margin: 0 0 10px; color: #b8102a; }
+    html[data-tema="oscuro"] .emer-estado { color: #ff8a9d; }
     .emer-centro-tipo { font-size: 13px; color: #475569; }
     .emer-centro-nombre { font-size: 20px; font-weight: 800; }
     .emer-centro.grande .emer-centro-nombre { font-size: 24px; }
@@ -9296,7 +9298,7 @@
     const CONTACTOS_EMERGENCIA_BASE = [{ rol: "Emergencia ACHS", nombre: "", tel: "1404" }, { rol: "Ambulancia (SAMU)", nombre: "", tel: "131" }, { rol: "Bomberos", nombre: "", tel: "132" }, { rol: "Carabineros", nombre: "", tel: "133" },
       { rol: "Inspector Fiscal", nombre: "", tel: "" }, { rol: "Residente de obra", nombre: "", tel: "" }, { rol: "APR del MOP", nombre: "", tel: "" }];
     const CLAVES_CONTACTO = [/achs|mutual/, /samu|ambulancia/, /bombero/, /carabinero/, /inspector/, /residente/, /\bapr\b|apr del/];
-    const TIPOS_CENTRO = ["Hospital", "CESFAM", "Posta", "ACHS", "Otro"];
+    const TIPOS_CENTRO = ["Hospital", "Clínica", "CESFAM", "Posta", "ACHS", "Otro"];
     const textoCorto = (x, n) => String(x ?? "").slice(0, n);
     // Los campos de obra fija (faena, dirección, cómo llegar, ruta del hospital) NO se borran: siguen en los datos y se muestran en "Datos antiguos".
     function validarEmergencia(e) {
@@ -9326,14 +9328,21 @@
       for (const c of lista) if (!c.tel && /inspector/.test(normalizar(c.rol)) && EMPRESA.inspFono) c.tel = EMPRESA.inspFono;   // el Inspector Fiscal sale de Empresa y formatos si no se puso aquí
       return lista;
     }
+    const claveRuta = r => normalizar(r).replace(/[^a-z0-9]/g, "");
+    // Las rutas que se ofrecen en SOS: las de la tabla de tramos + las de Empresa y formatos (pt_rutas), sin repetir y ordenadas. NUNCA el nombre del contrato ni lo escrito en otros formularios.
+    function rutasEmergencia(e) {
+      const vistos = new Map();
+      for (const r of [...((e && e.tramos) || []).map(t => t.ruta), ...rutasObra]) { const t = String(r || "").trim(), k = claveRuta(t); if (k && !vistos.has(k)) vistos.set(k, t); }
+      return [...vistos.values()].sort((a, b) => a.localeCompare(b, "es", { numeric: true, sensitivity: "base" }));
+    }
     // Centros de salud del tramo que contiene el km (el más angosto primero). null = falta ruta o km; [] = no hay tramo para ese km
     function centrosParaKm(e, ubic) {
-      const km = parseKm(ubic && ubic.km), ruta = normalizar(ubic && ubic.ruta);
+      const km = parseKm(ubic && ubic.km), ruta = claveRuta(ubic && ubic.ruta);
       if (km === null || !ruta) return null;
       const L = [];
       ((e && e.tramos) || []).forEach((t, i) => {
         const a = parseKm(t.desde), b = parseKm(t.hasta);
-        if (normalizar(t.ruta) !== ruta || a === null || b === null) return;
+        if (claveRuta(t.ruta) !== ruta || a === null || b === null) return;
         const lo = Math.min(a, b), hi = Math.max(a, b);
         if (km >= lo - 1e-9 && km <= hi + 1e-9) L.push({ t, ancho: hi - lo, i });
       });
@@ -9362,12 +9371,17 @@
     function pintarCentroEmergencia() {
       const cont = document.getElementById("emerCentro"); if (!cont) return;
       const e = emergencia || validarEmergencia({}), ruta = document.getElementById("emerRuta").value, kmTxt = document.getElementById("emerKm").value.trim();
-      const err = document.getElementById("emerKmErr");
-      err.textContent = kmTxt && parseKm(kmTxt) === null ? "No entiendo el km: escríbelo como 412,3 o 412+300." : "";
+      const err = document.getElementById("emerKmErr"), kmNum = parseKm(kmTxt);
+      err.textContent = kmTxt && kmNum === null ? "No entiendo el km: escríbelo como 412,3 o 412+300." : "";
       const h = e.hospital, defecto = h.nombre || h.tel ? `<div class="emer-centro"><div class="emer-centro-tipo">🏥 Hospital por defecto</div><div class="emer-centro-nombre">${html(h.nombre || "Hospital")}</div>${h.dir ? `<div>📍 ${html(h.dir)}</div>` : ""}${h.tel ? botonLlamar("Llamar al hospital", "", h.tel) : ""}</div>` : "";
+      const aviso = t => `<p class="emer-estado">${t}</p>`;
       const r = centrosParaKm(e, { ruta, km: kmTxt });
-      if (r === null) cont.innerHTML = `<p class="ayuda" style="margin:0 0 8px">${err.textContent ? "" : "Indica la ruta y el km donde estás para ver el centro de salud más cercano."}</p>${defecto}`;
-      else if (!r.length) cont.innerHTML = `<p style="margin:0 0 8px"><b>Sin centro configurado para este km.</b></p>${defecto || `<p class="ayuda">Tampoco hay un hospital por defecto: configúralo con ✏️ Editar.</p>`}`;
+      if (!e.tramos.length) cont.innerHTML = aviso("Aún no hay tramos cargados: Editar → Importar tramos.") + defecto + `<button type="button" class="btn btn-secundario" onclick="editarEmergencia()">✏️ Editar números y tramos</button>`;
+      else if (!ruta) cont.innerHTML = aviso("Elige la ruta donde estás.") + defecto;
+      else if (!kmTxt) cont.innerHTML = aviso("Escribe el km donde estás.") + defecto;
+      else if (kmNum === null) cont.innerHTML = aviso(`No entiendo el km "${html(kmTxt)}": escríbelo como 412,3 o 412+300.`) + defecto;
+      else if (!e.tramos.some(t => claveRuta(t.ruta) === claveRuta(ruta))) cont.innerHTML = aviso(`No hay tramos cargados para la ruta ${html(ruta)}.`) + (defecto || aviso("Tampoco hay un hospital por defecto: configúralo con ✏️ Editar."));
+      else if (!r.length) cont.innerHTML = aviso("Sin centro configurado para este km.") + (defecto || aviso("Tampoco hay un hospital por defecto: configúralo con ✏️ Editar."));
       else cont.innerHTML = centroHtml(r[0], true) + (r.length > 1 ? `<h3 style="margin:14px 0 6px">Otras opciones en este tramo</h3>${r.slice(1).map(t => centroHtml(t, false)).join("")}` : "");
     }
     function cambiarUbicEmergencia() {
@@ -9379,16 +9393,18 @@
       document.getElementById("emerEdicion").style.display = "none";
       const cont = document.getElementById("emerLectura");
       cont.style.display = "block";
-      const e = emergencia || validarEmergencia({}), u = ubicUltima(), rutas = [...new Set([...rutasObra, ...(u.ruta ? [u.ruta] : [])])];
+      const e = emergencia || validarEmergencia({}), u = ubicUltima(), rutas = rutasEmergencia(e);
+      // La última ubicación solo se usa si coincide con una ruta REAL (en la charla el campo Ruta es texto libre y a veces se escribe el nombre del contrato)
+      let rutaSel = rutas.find(r => claveRuta(r) === claveRuta(u.ruta)) || (rutas.length === 1 ? rutas[0] : "");
       const llamadas = contactosEmergencia(e).map(c => botonLlamar(c.rol || "Contacto", c.nombre, c.tel)).join("");
       const viejo = e.faena || e.direccion || e.comoLlegar || e.hospital.ruta;
       cont.innerHTML = `
         <div class="tarjeta"><h2>🚨 Emergencia · llamar</h2><div class="emer-llamadas">${llamadas}</div></div>
         <div class="tarjeta"><h2>📍 Dónde estás</h2>
-          <div class="dos-col"><div><label>Ruta</label><select id="emerRuta" onchange="cambiarUbicEmergencia()"><option value="">Elige la ruta</option>${rutas.map(r => `<option ${r === u.ruta ? "selected" : ""}>${html(r)}</option>`).join("")}</select></div>
+          <div class="dos-col"><div><label>Ruta</label><select id="emerRuta" onchange="cambiarUbicEmergencia()"><option value="">Elige la ruta</option>${rutas.map(r => `<option ${r === rutaSel ? "selected" : ""}>${html(r)}</option>`).join("")}</select></div>
             <div><label>Km</label><input type="text" id="emerKm" inputmode="decimal" maxlength="12" placeholder="412,3 o 412+300" value="${html(u.km)}" oninput="cambiarUbicEmergencia()"></div></div>
           <p class="error" id="emerKmErr"></p>
-          ${rutas.length ? "" : `<p class="ayuda">Agrega las rutas de la obra en Empresa y formatos para elegirlas aquí.</p>`}</div>
+          ${rutas.length ? "" : `<p class="ayuda">Aún no hay rutas: importa los tramos (✏️ Editar → Importar tramos) o agrega las rutas en Empresa y formatos.</p>`}</div>
         <div class="tarjeta"><h2>🏥 Centro de salud más cercano</h2><div id="emerCentro"></div></div>
         ${e.recursos ? `<div class="tarjeta"><h2>🧰 Recursos del lugar</h2><p style="white-space:pre-line;margin:0">${html(e.recursos)}</p></div>` : ""}
         ${e.queHacer ? `<div class="tarjeta"><h2>Qué hacer</h2><p style="white-space:pre-line;margin:0">${html(e.queHacer)}</p></div>` : ""}
@@ -9450,7 +9466,7 @@
       fila.push(cel); filas.push(fila);
       return filas.map(f => f.map(x => x.trim())).filter(f => f.some(Boolean));
     }
-    const tipoCentroDe = t => { const n = normalizar(t); return n.includes("hosp") ? "Hospital" : n.includes("cesfam") || n.includes("consult") ? "CESFAM" : n.includes("posta") ? "Posta" : n.includes("achs") || n.includes("mutual") ? "ACHS" : "Otro"; };
+    const tipoCentroDe = t => { const n = normalizar(t); return n.includes("clinic") ? "Clínica" : n.includes("hosp") ? "Hospital" : n.includes("cesfam") || n.includes("consult") ? "CESFAM" : n.includes("posta") ? "Posta" : n.includes("achs") || n.includes("mutual") ? "ACHS" : "Otro"; };
     const claveTramo = t => [normalizar(t.ruta), parseKm(t.desde), parseKm(t.hasta), normalizar(t.centro)].join("|");
     function parsearTramosCSV(texto, existentes = []) {
       const filas = partirCSV(texto), res = { filas: [], errores: [], duplicados: 0, leidas: 0 };
@@ -9471,6 +9487,7 @@
         if (parseKm(o.desde) === null) errs.push(`km desde "${o.desde || ""}" no se entiende (usa 412,3 o 412+300)`);
         if (parseKm(o.hasta) === null) errs.push(`km hasta "${o.hasta || ""}" no se entiende (usa 412,3 o 412+300)`);
         if (o.tel && (!/^[+\d\s().-]{2,20}$/.test(o.tel) || !telLimpio(o.tel))) errs.push("el teléfono debe tener solo números");
+        if (errs.length && f.length > map.length) errs.push(`la fila trae ${f.length} columnas (se esperan ${map.length}): si un texto lleva ; ponlo entre comillas`);
         if (errs.length) { res.errores.push({ fila: n, msg: errs.join("; "), centro: o.centro || "" }); continue; }
         const t = { ruta: o.ruta.slice(0, 60), desde: o.desde.slice(0, 12), hasta: o.hasta.slice(0, 12), centro: o.centro.slice(0, 120), tipo: tipoCentroDe(o.tipo), dir: (o.dir || "").slice(0, 200), tel: (o.tel || "").slice(0, 20), nota: (o.nota || "").slice(0, 300) };
         const k = claveTramo(t);
