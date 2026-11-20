@@ -815,6 +815,8 @@
         <div class="tarjeta">
           <h2>Módulo 6: ART</h2>
           <p class="ayuda" id="ayudaART">Primero elige el departamento (arriba). Su ART se carga sola: revísala y ajusta solo si hoy hay algo distinto.</p>
+          <div class="aviso-programa aviso-respaldo" id="avisoRepetirART" style="display:none; cursor:default"><b>⚠️ Revisa la ART: las condiciones de hoy pueden ser distintas a las de ayer.</b>
+            <button type="button" class="btn btn-secundario" style="margin:8px 0 0" onclick="this.parentElement.style.display='none'">Entendido</button></div>
           <div id="artsDeptos"></div>
 
           <div id="preguntasART" style="margin-top:16px"></div>
@@ -2930,7 +2932,7 @@
           `${esc(p.nombreArchivo)} · ${p.asistentes} asistente(s)${p.folio ? " · Folio " + esc(p.folio) : ""}`).join("<br>");
         document.querySelector("#cajaEnvio h2").textContent = nuevos.length > 1 ? `✅ ${nuevos.length} registros listos (uno por departamento)` : "✅ Registro listo";
         document.getElementById("mensajeEnvio").textContent = "";
-        document.getElementById("cajaEnvio").style.display = "block";
+        document.getElementById("cajaEnvio").style.display = "block"; document.getElementById("avisoRepetirART").style.display = "none";
         document.getElementById("cajaEnvio").scrollIntoView({ behavior: "smooth" });
       } catch (e) {
         error.textContent = "No se pudo generar el PDF: " + e.message;
@@ -10043,6 +10045,7 @@
       const cont = document.querySelector(`.art-depto[data-id="${id}"] .etapas`);
       if (cont && m.etapas.length) { cont.innerHTML = ""; m.etapas.forEach(e => agregarEtapa(cont, e)); }
       const r = agregarAsistentesExpress(m.asistentes);
+      document.getElementById("avisoRepetirART").style.display = "block";   // aviso de prevención (no bloquea)
       pintarUVCharla();
       msjExpress(`🔁 Repetida la charla de ${d.nombre} del ${fechaCLde(m.fecha)}: ${r.nuevos} asistente(s) agregados${r.ya ? ` (${r.ya} ya estaban)` : ""}. Fecha y hora de ahora; cada uno firma de nuevo.`);
       window.scrollTo(0, 0);
