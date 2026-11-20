@@ -587,6 +587,9 @@
     html[data-tema="oscuro"] .mensaje, html[data-tema="oscuro"] .estado-offline { background: #0f2a22; color: #7ee0b0; border-color: #1f5a43; }
     html[data-tema="oscuro"] li, html[data-tema="oscuro"] #calGrilla span { color: #b9c6e6; }
     html[data-tema="oscuro"] .ck-lista small { color: #9fb0d6; }
+    .hoja-rapida { position: fixed; inset: 0; z-index: 60; background: rgba(5,8,15,.6); align-items: flex-end; justify-content: center; }
+    .hoja-panel { width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto; background: #fff; border-radius: 20px 20px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgba(0,0,0,.35); animation: aparece .2s ease; }
+    html[data-tema="oscuro"] .hoja-panel { background: #101a31; color: #e6ecfb; }
     /* Bienvenida APR */
     #splashApr { position: fixed; inset: 0; z-index: 100; background: #0b1830; display: flex; align-items: center; justify-content: center; transition: opacity .3s ease; }
     #splashApr img { width: min(70vmin, 420px); height: auto; border-radius: 24px; }
@@ -649,7 +652,8 @@
         <button type="button" class="tile t-negro" onclick="mostrar('epp')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 0 1 16 0z"/><path d="M12 7v3M3 15h18v2H3z"/></svg></span><span>Entrega de EPP</span></button>
         <button type="button" class="tile t-cielo" onclick="mostrar('chequeo')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6l1.5 1.5L7.5 4.5M3.5 12l1.5 1.5 2.5-3M3.5 18l1.5 1.5 2.5-3"/></svg></span><span>Check list</span></button>
         <button type="button" class="tile t-azul" onclick="mostrar('irl')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h10a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h10"/></svg></span><span>IRL (DS 44)</span></button>
-        <button type="button" class="tile t-azul" onclick="mostrar('hallazgos'); document.getElementById('halForm').open = true"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2 4 2 4H6"/></svg></span><span>Hallazgo</span></button>
+        <label class="tile t-azul" for="halRapidoArchivo"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span>Hallazgo con foto</span></label>
+        <input type="file" id="halRapidoArchivo" accept="image/*" capture="environment" hidden onchange="halRapidoFoto(this)">
         <button type="button" class="tile t-rojo" onclick="mostrar('accidentes')"><span class="ico"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg></span><span>Accidente</span></button>
       </div>
       <div id="avisosMenu">
@@ -1992,6 +1996,18 @@
     </div>
   </nav>
   <div id="toastApr" role="status" aria-live="polite"></div>
+  <div id="halRapido" class="hoja-rapida" style="display:none" role="dialog" aria-modal="true" aria-label="Hallazgo rápido">
+    <div class="hoja-panel">
+      <h2>📌 Hallazgo rápido</h2>
+      <img id="halRapidoImg" alt="Foto del hallazgo" style="width:100%; max-height:34vh; object-fit:cover; border-radius:12px">
+      <label>¿Qué viste?</label>
+      <textarea id="halRapidoTxt" rows="2" maxlength="300" placeholder="Ej: Extintor sin señalética en bodega"></textarea>
+      <p class="ayuda" id="halRapidoInfo"></p>
+      <p class="error" id="halRapidoErr"></p>
+      <button type="button" class="btn btn-principal" onclick="guardarHalRapido()">Guardar hallazgo</button>
+      <button type="button" class="btn btn-secundario" onclick="cerrarHalRapido()">Cancelar</button>
+    </div>
+  </div>
 
   <!-- Diálogo para pedir la contraseña de los respaldos (no se guarda en ninguna parte) -->
   <dialog id="dlgClave" class="dlg-clave">
@@ -5984,7 +6000,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_charla_ult"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_charla_ult", "pt_ubic_ultima"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -8094,7 +8110,7 @@
           ${h.cerrado ? `<div class="botones">
               <button type="button" class="btn btn-secundario" onclick="reabrirHallazgo('${h.id}')">Reabrir</button>
               <button type="button" class="btn btn-quitar" onclick="quitarHallazgo('${h.id}', this)">Quitar</button></div>`
-          : `<details class="exportar hal-cierre"><summary>✅ Cerrar hallazgo</summary>
+          : `${editorHal(h)}<details class="exportar hal-cierre"><summary>✅ Cerrar hallazgo</summary>
               <label>Fecha de cierre</label><input type="date" id="halCF_${h.id}" value="${hoyISO()}">
               <label>¿Qué se hizo?</label><textarea id="halCC_${h.id}" rows="2" placeholder="Ej: Se instaló señalética y se demarcó el área"></textarea>
               <label class="btn btn-secundario" style="margin:10px 0 0">📷 Foto del cierre (después)
@@ -8134,7 +8150,7 @@
       if (fotoNuevaHal) {
         try { await bdFotos("readwrite", s => s.put(fotoNuevaHal, h.id + "|antes")); h.foto = true; } catch (e) { msj.textContent = "El hallazgo se guardará sin foto (" + e.message + ")."; }
       }
-      hallazgos.push(h); guardarHallazgos();
+      hallazgos.push(h); guardarHallazgos(); recordarUbic(h.ubic);
       ["halDesc", "halAccion"].forEach(id => document.getElementById(id).value = ""); limpiarUbic("hal");
       fotoNuevaHal = null; document.getElementById("halFotoNueva").innerHTML = "";
       document.getElementById("halPlazo").value = isoD(new Date(Date.now() + 7 * 86400000));
@@ -9671,7 +9687,7 @@
         const pdf = { bytes: await crearPDF_Casi(r, casiFotosTmp), nombreArchivo: `Reporte_preventivo_${r.fecha}_${r.hora.replace(":", "")}.pdf`, asunto: `${r.tipo} – ${r.lugar} – ${fechaCLde(r.fecha)}` };
         await guardarEnHistorial(null, "casi", pdf, r.fecha, `${r.tipo} · ${r.lugar}`, { reporteId: r.id });
         r.folio = pdf.folio || "";
-        casiReportes.push(r); guardar("pt_casi", casiReportes);
+        casiReportes.push(r); guardar("pt_casi", casiReportes); recordarUbic(r.ubic);
         guardar("pt_casi_recordar", { lugar: r.lugar });
         if (r.seguimiento && !hallazgos.some(h => h.clave === "casi:" + r.id)) {
           hallazgos.push({ id: nuevoIdHal(), clave: "casi:" + r.id, fecha: r.fecha, desc: `${r.tipo}: ${r.desc}`, lugar: r.lugar, origen: "Casi accidente", riesgo: "Medio",
@@ -10070,9 +10086,70 @@
       pintarCharlaExpress();
     }
 
+    /* =====================================================================
+       HALLAZGO EN 10 SEGUNDOS: foto desde Mi día → texto corto → guardar.
+       Por defecto: hoy, origen "Inspección en terreno", riesgo Medio, plazo +7 días, abierto, última ruta/km usada (pt_ubic_ultima). Sin GPS.
+       Además: edición simple de un hallazgo abierto (descripción, lugar, riesgo, plazo, responsable, acción, ruta y km).
+       ===================================================================== */
+    let halRapidoFotoData = "";
+    // Última ruta/km usada (hallazgo, casi accidente); si no hay, la de la última charla
+    function ubicUltima() {
+      const u = validarUbic(leerGuardado("pt_ubic_ultima", {}));
+      if (u.ruta || u.km) return u;
+      const m = typeof moldesCharla === "function" ? moldesCharla()[0] : null;
+      return m ? validarUbic({ ruta: m[1].ruta, km: m[1].kmDesde }) : validarUbic({});
+    }
+    function recordarUbic(u) { if (u && (u.ruta || u.km)) guardar("pt_ubic_ultima", { ruta: textoCorto(u.ruta, 60), km: textoCorto(u.km, 12) }); }
+    async function halRapidoFoto(input) {
+      const f = input.files[0]; input.value = "";
+      if (!f) return;
+      try { halRapidoFotoData = await comprimirFoto(f); } catch { alert("No se pudo leer esa foto."); return; }
+      const u = ubicUltima();
+      document.getElementById("halRapidoImg").src = halRapidoFotoData;
+      document.getElementById("halRapidoTxt").value = "";
+      document.getElementById("halRapidoErr").textContent = "";
+      document.getElementById("halRapidoInfo").textContent = `Se guarda con fecha de hoy${ubicTxt(u) ? ", " + ubicTxt(u) : ""}, riesgo Medio y plazo de 7 días. Después lo puedes editar en Hallazgos.`;
+      document.getElementById("halRapido").style.display = "flex";
+      document.getElementById("halRapidoTxt").focus();
+    }
+    function cerrarHalRapido() { document.getElementById("halRapido").style.display = "none"; halRapidoFotoData = ""; document.getElementById("halRapidoImg").removeAttribute("src"); }
+    async function guardarHalRapido() {
+      const err = document.getElementById("halRapidoErr"), desc = document.getElementById("halRapidoTxt").value.trim();
+      if (!desc) { err.textContent = "Escribe qué viste, aunque sea corto."; return; }
+      const h = { id: nuevoIdHal(), fecha: hoyISO(), desc: textoCorto(desc, 300), lugar: "", origen: "Inspección en terreno", riesgo: "Medio", accion: "", resp: "", plazo: isoD(new Date(Date.now() + 7 * 86400000)),
+                  ubic: ubicUltima(), foto: false, fotoCierre: false, cerrado: null };
+      try { await bdFotos("readwrite", s => s.put(halRapidoFotoData, h.id + "|antes")); h.foto = true; } catch (e) { err.textContent = "Se guardará sin foto (" + e.message + ")."; }
+      hallazgos.push(h); guardarHallazgos(); recordarUbic(h.ubic);
+      bitacora("Hallazgo rápido", { doc: h.desc.slice(0, 80), det: ubicTxt(h.ubic) });
+      cerrarHalRapido(); pintarMiDia(); avisoProgramaMenu();
+    }
+    const editorHal = h => `<details class="exportar hal-cierre"><summary>✏️ Editar</summary>
+      <label>Qué se encontró</label><textarea id="halE_desc_${h.id}" rows="2" maxlength="300">${html(h.desc)}</textarea>
+      <div class="dos-col"><div><label>Lugar o área</label><input type="text" id="halE_lugar_${h.id}" maxlength="120" value="${html(h.lugar || "")}"></div>
+        <div><label>Nivel de riesgo</label><select id="halE_riesgo_${h.id}">${["Alto", "Medio", "Bajo"].map(r => `<option ${r === h.riesgo ? "selected" : ""}>${r}</option>`).join("")}</select></div></div>
+      <div class="dos-col"><div><label>Ruta</label><input type="text" id="halE_ruta_${h.id}" list="listaRutas" maxlength="60" value="${html(ubicDe(h).ruta)}"></div>
+        <div><label>Km</label><input type="text" id="halE_km_${h.id}" inputmode="decimal" maxlength="12" value="${html(ubicDe(h).km)}"></div></div>
+      <div class="dos-col"><div><label>Plazo</label><input type="date" id="halE_plazo_${h.id}" value="${html(h.plazo || "")}"></div>
+        <div><label>Responsable</label><input type="text" id="halE_resp_${h.id}" maxlength="80" value="${html(h.resp || "")}"></div></div>
+      <label>Acción correctiva</label><textarea id="halE_accion_${h.id}" rows="2" maxlength="300">${html(h.accion || "")}</textarea>
+      <p class="error" id="halE_err_${h.id}"></p>
+      <button type="button" class="btn btn-principal" onclick="guardarEdicionHal('${h.id}')">Guardar cambios</button></details>`;
+    function guardarEdicionHal(id) {
+      const h = hallazgos.find(x => x.id === id), v = k => document.getElementById(`halE_${k}_${id}`).value.trim(), err = document.getElementById(`halE_err_${id}`);
+      if (!h) return;
+      if (!v("desc")) { err.textContent = "La descripción no puede quedar vacía."; return; }
+      if (v("km") && parseKm(v("km")) === null) { err.textContent = "No entiendo el km: escríbelo como 412,3 o 412+300."; return; }
+      Object.assign(h, { desc: textoCorto(v("desc"), 300), lugar: textoCorto(v("lugar"), 120), riesgo: ["Alto", "Medio", "Bajo"].includes(v("riesgo")) ? v("riesgo") : h.riesgo,
+        plazo: /^\d{4}-\d{2}-\d{2}$/.test(v("plazo")) ? v("plazo") : "", resp: textoCorto(v("resp"), 80), accion: textoCorto(v("accion"), 300),
+        ubic: validarUbic({ ...(h.ubic || {}), ruta: v("ruta"), km: v("km") }) });
+      guardarHallazgos(); recordarUbic(h.ubic);
+      bitacora("Hallazgo editado", { doc: h.desc.slice(0, 80) });
+      pintarHallazgos(); avisoProgramaMenu();
+    }
+
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
