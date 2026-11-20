@@ -1490,7 +1490,12 @@
         <p class="ayuda">No borra nada de tu Google Drive (esa carpeta la borras tú, si corresponde). Si tienes algo real, primero guarda un respaldo.</p>
         <label class="check-linea"><input type="checkbox" id="ceroListado"> Conservar el listado de personal y sus cargos</label>
         <p class="ayuda">Con Google Drive y varios equipos, lo que se sincroniza (trabajadores, hallazgos, vencimientos, casi accidentes, plazos, avance del programa) <b>vuelve solo desde Drive</b> después de borrarlo aquí.</p>
-        <label class="check-linea"><input type="checkbox" id="ceroOtros"> También quitar eso de los demás equipos (deja una baja en Drive; los PDF no se tocan)</label>
+        <label class="check-linea"><input type="checkbox" id="ceroOtros" onchange="pintarCeroOtros()"> También quitar eso de los demás equipos (deja una baja en Drive; los PDF no se tocan)</label>
+        <div id="ceroOtrosCaja" style="display:none">
+          <p class="ayuda" id="ceroOtrosResumen" style="color:#b8102a"></p>
+          <label>Para quitarlo también de los demás equipos, escribe <b>TODOS</b></label>
+          <input type="text" id="ceroTodos" autocomplete="off" autocapitalize="characters">
+        </div>
         <label>Para confirmar, escribe <b>BORRAR</b></label>
         <input type="text" id="ceroConfirma" autocomplete="off" autocapitalize="characters">
         <button type="button" class="btn btn-quitar" onclick="empezarDeCero()">🧹 Borrar los registros y empezar de cero</button>
@@ -2484,8 +2489,8 @@
         const hoja = libro.Sheets[libro.SheetNames[0]];
         // dateNF: las fechas (como la de ingreso) salen como AAAA-MM-DD, sin confundir día y mes
         const filas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: "", dateNF: "yyyy-mm-dd" });
-        aplicarListado(parsearListado(filas));
-        aviso.textContent = "";
+        const aplicado = aplicarListado(parsearListado(filas));
+        aviso.textContent = aplicado === false ? "Carga cancelada: el listado no cambió." : "";
       } catch (e) {
         aviso.textContent = "No pude leer el archivo: " + e.message;
       }
@@ -2498,6 +2503,17 @@
       if (listado && listado.lista) {
         const enExcel = new Set(datos.lista.map(p => claveRut(p.rut)));
         listado.lista.filter(p => p.manual && !enExcel.has(claveRut(p.rut))).forEach(p => datos.lista.push(p));
+      }
+      {
+        const nuevos = new Set(datos.lista.map(p => claveRut(p.rut))), fuera = ((listado && listado.lista) || []).filter(p => claveRut(p.rut).length > 2 && !nuevos.has(claveRut(p.rut)));
+        if (fuera.length) {
+          const nombres = fuera.slice(0, 8).map(p => p.nombre).join(", ") + (fuera.length > 8 ? ` y ${fuera.length - 8} más` : "");
+          const rec = letraEquipo() !== "N" ? "\n\nRecomendado: cargar el listado desde el notebook." : "";
+          if (!confirm(`Este Excel deja fuera a ${fuera.length} trabajador(es) (${nombres}): se quitarán también en la tablet y el teléfono.${rec}\n\n¿Continuar?`)) {
+            const e = document.getElementById("errorListado"); if (e) e.textContent = "Carga cancelada: el listado no cambió.";
+            return false;
+          }
+        }
       }
       // Cargo que viene en el Excel: lo usamos para el departamento de cada uno
       let conCargo = 0;
@@ -11155,9 +11171,24 @@
       "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas", "pt_obra_geo", "pt_uv_medidas", "pt_biblioteca", "pt_cuadrillas", "pt_ubic_ultima", "pt_biblioteca_bajas", "pt_drive_activo", "pt_drive_hint", "pt_bib_sync", "pt_cfg_meta", "pt_cfg_sync", "pt_cfg_origen_sync", "pt_cfg_previo", "pt_equipo", "pt_ls_meta", "pt_ls_sync", "pt_docs_ind", "pt_blob_meta"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
+    // Qué se quitaría en los OTROS equipos si se marca "quitar de los demás" (por tipo)
+    const ETIQ_CERO = { trabajadores: "trabajador(es)", cuadrillas: "cuadrilla(s)", vencimientos: "vencimiento(s)", hallazgos: "hallazgo(s)", casi: "casi accidente(s)", plazos: "plazo(s) de accidentes", avance: "✔ del programa" };
+    function resumenOtrosCero() {
+      const cons = document.getElementById("ceroListado").checked, partes = [];
+      for (const [n, d] of Object.entries(LS)) { if (n === "docs" || n === "programa" || (n === "trabajadores" && cons)) continue; const c = d.leer().size; if (c) partes.push(`${c} ${ETIQ_CERO[n] || n}`); }
+      return partes;
+    }
+    function pintarCeroOtros() {
+      const marcada = document.getElementById("ceroOtros").checked, caja = document.getElementById("ceroOtrosCaja");
+      caja.style.display = marcada ? "block" : "none";
+      if (!marcada) return;
+      const p = resumenOtrosCero();
+      document.getElementById("ceroOtrosResumen").textContent = p.length ? `⚠️ Se quitarán también en la tablet y el teléfono: ${p.join(" · ")}. Los PDF no se tocan.` : "No hay nada sincronizado que quitar en los demás equipos.";
+    }
     async function empezarDeCero() {
       const msj = document.getElementById("msjCero");
       if (document.getElementById("ceroConfirma").value.trim().toUpperCase() !== "BORRAR") { msj.textContent = 'Escribe BORRAR para confirmar.'; return; }
+      if (document.getElementById("ceroOtros")?.checked && document.getElementById("ceroTodos").value.trim().toUpperCase() !== "TODOS") { pintarCeroOtros(); msj.textContent = 'Para quitarlo también de los demás equipos escribe TODOS (además de BORRAR), o desmarca esa casilla.'; return; }
       if (await mostrarBloqueoCero()) { msj.textContent = "Primero pon a salvo los documentos de arriba."; return; }
       if (!confirm("¿Borrar TODOS los registros de este equipo? Esto no se puede deshacer (la configuración se mantiene).")) return;
       msj.textContent = "Borrando…";
