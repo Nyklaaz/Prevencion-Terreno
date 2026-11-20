@@ -1850,6 +1850,17 @@
           <p class="ayuda">Para cada tramo de ruta (km desde y hasta) indica el centro de salud que corresponde. Si dos tramos se cruzan, el más corto sale primero y los otros quedan como alternativas. Km como 412,3 o 412+300.</p>
           <div id="emerTramos"></div>
           <button type="button" class="btn btn-secundario" onclick="agregarTramoEmergencia()">+ Agregar un tramo</button>
+          <button type="button" class="btn btn-secundario" onclick="abrirImportarTramos()">📥 Importar tramos (pegar o archivo .csv)</button>
+          <div id="emerImp" class="emer-fila-edicion" style="display:none;margin-top:8px">
+            <p class="ayuda">Una fila por tramo, con estas columnas separadas por ; (o coma): <b>ruta ; km_desde ; km_hasta ; centro ; tipo ; direccion ; telefono ; nota</b>. Km como 412,3 o 412+300. La primera fila puede ser la de títulos.</p>
+            <textarea id="emerImpTexto" rows="6" placeholder="Ruta C-35;0;45,5;Hospital de Vallenar;Hospital;Av. Principal 1;551234567;Urgencia 24 h"></textarea>
+            <label class="btn btn-secundario" style="margin:8px 0 0">📄 Elegir archivo .csv<input type="file" accept=".csv,.txt,text/csv,text/plain" onchange="importarTramosArchivo(this)" hidden></label>
+            <button type="button" class="btn btn-secundario" style="margin-top:8px" onclick="importarTramosVista()">Ver vista previa</button>
+            <div id="emerImpVista"></div>
+            <label class="check-linea"><input type="radio" name="emerImpModo" value="agregar" checked onchange="importarTramosVista()"> Agregar a los que ya tengo (recomendado)</label>
+            <label class="check-linea"><input type="radio" name="emerImpModo" value="reemplazar" onchange="importarTramosVista()"> Reemplazar todos los tramos por estos</label>
+            <button type="button" class="btn btn-principal" id="emerImpOk" disabled onclick="importarTramosConfirmar()">Confirmar importación</button>
+          </div>
         </div>
         <div class="tarjeta">
           <h2>Hospital por defecto</h2>
@@ -9282,7 +9293,7 @@
        folio EMG- (sin firma) que queda en el Historial (corregir = versión nueva) y se crea o renueva el vencimiento fijo
        "vEmergencia" (30 días) para revisarla todos los meses.
        ===================================================================== */
-    const CONTACTOS_EMERGENCIA_BASE = [{ rol: "Emergencia ACHS", nombre: "", tel: "" }, { rol: "Ambulancia (SAMU)", nombre: "", tel: "131" }, { rol: "Bomberos", nombre: "", tel: "132" }, { rol: "Carabineros", nombre: "", tel: "133" },
+    const CONTACTOS_EMERGENCIA_BASE = [{ rol: "Emergencia ACHS", nombre: "", tel: "1404" }, { rol: "Ambulancia (SAMU)", nombre: "", tel: "131" }, { rol: "Bomberos", nombre: "", tel: "132" }, { rol: "Carabineros", nombre: "", tel: "133" },
       { rol: "Inspector Fiscal", nombre: "", tel: "" }, { rol: "Residente de obra", nombre: "", tel: "" }, { rol: "APR del MOP", nombre: "", tel: "" }];
     const CLAVES_CONTACTO = [/achs|mutual/, /samu|ambulancia/, /bombero/, /carabinero/, /inspector/, /residente/, /\bapr\b|apr del/];
     const TIPOS_CENTRO = ["Hospital", "CESFAM", "Posta", "ACHS", "Otro"];
@@ -9421,6 +9432,87 @@
       return d;
     }
     function agregarTramoEmergencia(t) { document.getElementById("emerTramos").appendChild(filaTramoEmergencia(t)); }
+    /* ----- Importar tramos desde texto pegado o archivo .csv -----
+       Columnas: ruta ; km_desde ; km_hasta ; centro ; tipo ; direccion ; telefono ; nota (con o sin la fila de títulos). Separador ; o , (con comillas si el texto lleva comas).
+       Km como 412,3 · 412.3 · 412+300. Todo se limpia (sin < ni >, sin caracteres de control) y se muestra siempre escapado. Los tramos que ya existen se omiten. */
+    const limpiarTextoImp = x => String(x ?? "").replace(/[\u0000-\u001f\u007f<>]/g, " ").replace(/\s+/g, " ").trim();
+    function partirCSV(texto) {
+      const t = String(texto ?? "").replace(/^﻿/, "").replace(/\r\n?/g, "\n"), sep = t.includes(";") ? ";" : ",";
+      const filas = []; let fila = [], cel = "", q = false;
+      for (let i = 0; i < t.length; i++) {
+        const c = t[i];
+        if (q) { if (c === '"') { if (t[i + 1] === '"') { cel += '"'; i++; } else q = false; } else cel += c; }
+        else if (c === '"' && cel === "") q = true;
+        else if (c === sep) { fila.push(cel); cel = ""; }
+        else if (c === "\n") { fila.push(cel); filas.push(fila); fila = []; cel = ""; }
+        else cel += c;
+      }
+      fila.push(cel); filas.push(fila);
+      return filas.map(f => f.map(x => x.trim())).filter(f => f.some(Boolean));
+    }
+    const tipoCentroDe = t => { const n = normalizar(t); return n.includes("hosp") ? "Hospital" : n.includes("cesfam") || n.includes("consult") ? "CESFAM" : n.includes("posta") ? "Posta" : n.includes("achs") || n.includes("mutual") ? "ACHS" : "Otro"; };
+    const claveTramo = t => [normalizar(t.ruta), parseKm(t.desde), parseKm(t.hasta), normalizar(t.centro)].join("|");
+    function parsearTramosCSV(texto, existentes = []) {
+      const filas = partirCSV(texto), res = { filas: [], errores: [], duplicados: 0, leidas: 0 };
+      if (!filas.length) return res;
+      let map = ["ruta", "desde", "hasta", "centro", "tipo", "dir", "tel", "nota"], ini = 0;
+      const cab = filas[0].map(c => normalizar(c).replace(/[^a-z0-9]/g, ""));
+      if (cab.includes("ruta") && cab.includes("centro")) {
+        ini = 1;
+        map = cab.map(c => /^(kmdesde|desde)$/.test(c) ? "desde" : /^(kmhasta|hasta)$/.test(c) ? "hasta" : c === "ruta" ? "ruta" : c === "centro" ? "centro" : c === "tipo" ? "tipo" : /^(direccion|dir)$/.test(c) ? "dir" : /^(telefono|fono|tel)$/.test(c) ? "tel" : /^notas?$/.test(c) ? "nota" : "");
+      }
+      const vistos = new Set(existentes.map(claveTramo));
+      for (let i = ini; i < filas.length; i++) {
+        const f = filas[i], o = {}, n = i + 1; res.leidas++;
+        map.forEach((k, j) => { if (k) o[k] = limpiarTextoImp(f[j] ?? ""); });
+        const errs = [];
+        if (!o.ruta) errs.push("falta la ruta");
+        if (!o.centro) errs.push("falta el centro de salud");
+        if (parseKm(o.desde) === null) errs.push(`km desde "${o.desde || ""}" no se entiende (usa 412,3 o 412+300)`);
+        if (parseKm(o.hasta) === null) errs.push(`km hasta "${o.hasta || ""}" no se entiende (usa 412,3 o 412+300)`);
+        if (o.tel && (!/^[+\d\s().-]{2,20}$/.test(o.tel) || !telLimpio(o.tel))) errs.push("el teléfono debe tener solo números");
+        if (errs.length) { res.errores.push({ fila: n, msg: errs.join("; "), centro: o.centro || "" }); continue; }
+        const t = { ruta: o.ruta.slice(0, 60), desde: o.desde.slice(0, 12), hasta: o.hasta.slice(0, 12), centro: o.centro.slice(0, 120), tipo: tipoCentroDe(o.tipo), dir: (o.dir || "").slice(0, 200), tel: (o.tel || "").slice(0, 20), nota: (o.nota || "").slice(0, 300) };
+        const k = claveTramo(t);
+        if (vistos.has(k)) { res.duplicados++; continue; }
+        if (existentes.length + res.filas.length >= 200) { res.errores.push({ fila: n, msg: "se supera el máximo de 200 tramos", centro: t.centro }); continue; }
+        vistos.add(k); res.filas.push(t);
+      }
+      return res;
+    }
+    function tramosDelEditor() {
+      return [...document.querySelectorAll("#emerTramos .emer-fila-edicion")].map(f => { const g = k => f.querySelector(`[data-k="${k}"]`).value.trim(); return { ruta: g("ruta"), desde: g("desde"), hasta: g("hasta"), centro: g("centro") }; }).filter(t => t.ruta || t.centro);
+    }
+    let tramosImportables = [];
+    function abrirImportarTramos() { const c = document.getElementById("emerImp"); c.style.display = c.style.display === "none" ? "block" : "none"; }
+    function importarTramosVista() {
+      const modo = document.querySelector('input[name="emerImpModo"]:checked')?.value || "agregar", ok = document.getElementById("emerImpOk"), vista = document.getElementById("emerImpVista");
+      const r = parsearTramosCSV(document.getElementById("emerImpTexto").value, modo === "agregar" ? tramosDelEditor() : []);
+      tramosImportables = r.filas;
+      const lista = r.filas.slice(0, 5).map(t => `<li>${html(t.ruta)} · km ${html(t.desde)} a ${html(t.hasta)} · ${html(t.tipo)}: ${html(t.centro)}</li>`).join("");
+      vista.innerHTML = !r.leidas ? `<p class="ayuda">Pega las filas o elige un archivo .csv y toca "Ver vista previa".</p>` : `
+        <p style="margin:8px 0"><b>${r.filas.length}</b> tramo(s) listo(s) para ${modo === "agregar" ? "agregar" : "reemplazar"}${r.duplicados ? ` · ${r.duplicados} ya existía(n) y se omite(n)` : ""}${r.errores.length ? ` · <span class="rojo"><b>${r.errores.length}</b> fila(s) con error</span>` : ""}.</p>
+        ${lista ? `<ul style="margin:0 0 8px 18px;padding:0">${lista}${r.filas.length > 5 ? `<li>…y ${r.filas.length - 5} más</li>` : ""}</ul>` : ""}
+        ${r.errores.length ? `<ul class="rojo" style="margin:0 0 8px 18px;padding:0">${r.errores.slice(0, 20).map(e => `<li>Fila ${e.fila}${e.centro ? ` (${html(e.centro)})` : ""}: ${html(e.msg)}</li>`).join("")}${r.errores.length > 20 ? `<li>…y ${r.errores.length - 20} más</li>` : ""}</ul><p class="ayuda">Las filas con error NO se importan: corrígelas y vuelve a tocar "Ver vista previa".</p>` : ""}`;
+      ok.disabled = !r.filas.length;
+    }
+    async function importarTramosArchivo(input) {
+      const a = input.files[0]; input.value = "";
+      if (!a) return;
+      if (a.size > 1048576) { document.getElementById("emerImpVista").innerHTML = `<p class="rojo">El archivo es muy grande (máx. 1 MB).</p>`; return; }
+      document.getElementById("emerImpTexto").value = await a.text();
+      importarTramosVista();
+    }
+    function importarTramosConfirmar() {
+      const modo = document.querySelector('input[name="emerImpModo"]:checked')?.value || "agregar", filas = tramosImportables;
+      if (!filas.length) return;
+      if (modo === "reemplazar" && !confirm(`¿Reemplazar TODOS los tramos actuales por estos ${filas.length}? (Se aplica al tocar "Guardar").`)) return;
+      if (modo === "reemplazar") document.getElementById("emerTramos").innerHTML = "";
+      filas.forEach(t => agregarTramoEmergencia(t));
+      tramosImportables = []; document.getElementById("emerImpOk").disabled = true; document.getElementById("emerImpTexto").value = "";
+      document.getElementById("emerImpVista").innerHTML = `<p style="margin:8px 0">✅ ${filas.length} tramo(s) ${modo === "agregar" ? "agregados" : "puestos en lugar de los anteriores"} en el editor. <b>Toca "Guardar y generar PDF" para dejarlos guardados.</b></p>`;
+    }
+
     function editarEmergencia() {
       mostrar("emergencia");
       document.getElementById("emerLectura").style.display = "none";
