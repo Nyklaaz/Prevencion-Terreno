@@ -1124,6 +1124,9 @@
             <div><label>WhatsApp del Inspector (si es otro)</label><input type="text" id="empInspWa" inputmode="tel" maxlength="30"></div>
             <div><label>Casilla de la empresa para el flash (copia)</label><input type="text" id="empMailFlash" inputmode="email" maxlength="120" placeholder="ej: expando.pr@gmail.com"></div>
           </div>
+          <h3>Rutas de la obra</h3>
+          <label>Una ruta por línea (aparecen al registrar hallazgos y casi accidentes)</label>
+          <textarea id="empRutas" rows="3" placeholder="Ruta C-35&#10;Ruta 31-CH"></textarea>
         </details>
         <label>Correo de contacto para datos personales</label>
         <input type="text" id="empContacto" inputmode="email" autocomplete="off" placeholder="prevencion@empresa.cl">
@@ -1543,6 +1546,12 @@
           <div><label>Hora</label><input type="time" id="casiHora"></div>
         </div>
         <label>Lugar o área</label><input type="text" id="casiLugar" maxlength="120" placeholder="Ej: Frente de excavación, km 12">
+          <div class="dos-col">
+            <div><label>Ruta</label><input type="text" id="casiRuta" list="listaRutas" maxlength="60" placeholder="Ej: Ruta C-35"></div>
+            <div><label>Km</label><input type="text" id="casiKm" inputmode="decimal" maxlength="12" placeholder="Ej: 412,3"></div>
+          </div>
+          <button type="button" class="btn btn-secundario" onclick="usarGps('casi')">📍 Usar ubicación del equipo</button>
+          <small class="ayuda" id="casiGpsTxt"></small>
         <label>¿Qué pasó?</label>
         <textarea id="casiDesc" rows="3" maxlength="600" placeholder="Ej: Una retroexcavadora retrocedió sin señalero y pasó a 2 m de un trabajador"></textarea>
         <label>Cargo o especialidad involucrada (opcional, sin nombre)</label><input type="text" id="casiCargo" maxlength="80" placeholder="Ej: Operador, Jornal">
@@ -1598,6 +1607,18 @@
       </div>
     </section>
 
+    <!-- ========== PUNTOS CRÍTICOS POR RUTA Y KM ========== -->
+    <section id="criticos" class="pantalla">
+      <datalist id="listaRutas"></datalist>
+      <div class="tarjeta">
+        <h2>Puntos críticos por ruta y km</h2>
+        <p class="ayuda">Agrupa los hallazgos, casi accidentes y accidentes que tienen ruta y km, por tramo de 1 km. Los que no tienen km se cuentan aparte.</p>
+        <label>Período</label>
+        <select id="critPeriodo" onchange="pintarCriticos()"><option value="mes">Este mes</option><option value="3m">Últimos 3 meses</option><option value="anio">Este año</option><option value="todo">Todo</option></select>
+        <div id="critLista"></div>
+      </div>
+    </section>
+
     <!-- ========== SEGUIMIENTO DE HALLAZGOS ========== -->
     <section id="hallazgos" class="pantalla">
       <div class="tarjeta">
@@ -1608,6 +1629,7 @@
           <button type="button" data-f="cerrados" onclick="filtrarHallazgos(this)">Cerrados</button>
           <button type="button" data-f="todos" onclick="filtrarHallazgos(this)">Todos</button>
         </div>
+        <button type="button" class="btn btn-secundario" style="margin-bottom:8px" onclick="mostrar('criticos')">📍 Ver puntos críticos por ruta y km</button>
         <input type="search" id="halBusca" placeholder="🔍 Buscar por lugar, responsable o texto" oninput="pintarHallazgos()">
         <details class="exportar" id="halForm">
           <summary>+ Nuevo hallazgo</summary>
@@ -1617,6 +1639,12 @@
             <div><label>Lugar o área</label><input type="text" id="halLugar" placeholder="Ej: Bodega de materiales"></div>
             <div><label>Origen</label><select id="halOrigen"></select></div>
           </div>
+          <div class="dos-col">
+            <div><label>Ruta</label><input type="text" id="halRuta" list="listaRutas" maxlength="60" placeholder="Ej: Ruta C-35"></div>
+            <div><label>Km</label><input type="text" id="halKm" inputmode="decimal" maxlength="12" placeholder="Ej: 412,3"></div>
+          </div>
+          <button type="button" class="btn btn-secundario" onclick="usarGps('hal')">📍 Usar ubicación del equipo</button>
+          <small class="ayuda" id="halGpsTxt"></small>
           <div class="dos-col">
             <div><label>Nivel de riesgo</label><select id="halRiesgo"><option>Alto</option><option selected>Medio</option><option>Bajo</option></select></div>
             <div><label>Plazo para corregir</label><input type="date" id="halPlazo"></div>
@@ -2445,8 +2473,9 @@
       document.querySelectorAll(".pantalla").forEach(p => p.classList.remove("activa"));
       document.getElementById(id).classList.add("activa");
       document.getElementById("btnVolver").style.visibility = id === "menu" ? "hidden" : "visible";
-      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros" };
+      const titulos = { menu: "Prevención en Terreno", charla: "Charla diaria + ART", irl: "IRL – Información de Riesgos", historial: "Historial", chequeo: "Check list", informe: "Informe mensual", empresa: "Empresa y formatos", calendario: "Calendario y programa", hallazgos: "Hallazgos y acciones", vencimientos: "Vencimientos", epp: "Entrega de EPP", documentos: "Documentos", accidentes: "Accidente: informe flash", matriz: "Matriz de riesgos", personal: "Trabajadores", emergencia: "Ficha de emergencia", casi: "Casi accidentes y actos inseguros", criticos: "Puntos críticos por ruta y km" };
       if (id === "casi") iniciarCasi();
+      if (id === "criticos") pintarCriticos();
       if (id === "emergencia") iniciarEmergencia();
       if (id === "personal") iniciarTrabajadores();
       if (id === "matriz") iniciarMatriz();
@@ -5670,7 +5699,7 @@
     }
 
     /* ----- Respaldo: todo el informe (datos, firmas, anexos y registros) en un archivo ----- */
-    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc"];
+    const CLAVES_RESPALDO = ["pt_inf_contrato", "pt_inf_meses", "pt_inf_listas", "pt_inf_firmas", "pt_inf_ultimoMes", "pt_listado", "pt_cargos", "pt_cargoIRL", "pt_paquete", "pt_programa", "pt_programa_hecho", "pt_licencia", "pt_ingreso", "pt_irl_pred", "pt_irl_adic", "pt_relator", "pt_responsables", "pt_deptos", "pt_check_ult", "pt_extintores", "pt_hallazgos", "pt_vencimientos", "pt_cargos_multi", "pt_respaldoMes", "pt_epp_obra", "pt_epp_prev", "pt_epp_talla", "pt_epp_enviado", "pt_epp_avisoDescartado", "pt_inf_firmaExperto", "pt_drive_cliente", "pt_consentimientos", "pt_doc_recordar", "pt_cifra_verif", "pt_accidentes", "pt_acc_recordar", "pt_fichas", "pt_emergencia", "pt_casi", "pt_casi_recordar", "pt_plazos_acc", "pt_rutas"];
     function bytesAB64(u) { let s = ""; for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); }
     async function guardarRespaldo(idAviso = "infRespaldo") {
       if (infListo) { guardarInforme(); guardarFirmasInforme(); }
@@ -7107,6 +7136,7 @@
       document.getElementById("empTipo").value = EMPRESA.tipo || "Contratista";
       document.getElementById("empContacto").value = EMPRESA.contactoDatos || "";
       for (const [id, k] of CAMPOS_EMP_ACC) document.getElementById(id).value = EMPRESA[k] || "";
+      document.getElementById("empRutas").value = rutasObra.join("\n");
       if (!EMPRESA.publica) document.getElementById("empPublica").value = "privada";
       if (!EMPRESA.tipoAcc) document.getElementById("empTipoAcc").value = "Contratista";   // del MOP: el MOP es el mandante (principal)
       pintarCifrado(); pintarEstadoMatriz();
@@ -7136,6 +7166,7 @@
       }
       if (!p.nombre) p.nombre = p.empresa.nombre;
       p.actualizado = new Date().toLocaleDateString("sv-SE");
+      guardar("pt_rutas", document.getElementById("empRutas").value.split("\n").map(x => x.trim().slice(0, 60)).filter(Boolean).slice(0, 50));
       await guardarLiviano(p);
       sessionStorage.setItem("pt_abrirEmpresa", "1");
       location.reload();
@@ -7730,6 +7761,7 @@
       const o = document.getElementById("halOrigen");
       if (!o.options.length) o.innerHTML = ORIGENES_HALLAZGO.map(x => `<option>${x}</option>`).join("");
       if (!document.getElementById("halPdfMes").value) document.getElementById("halPdfMes").value = hoyISO().slice(0, 7);
+      iniciarUbic("hal");
       if (!document.getElementById("halPlazo").value) document.getElementById("halPlazo").value = isoD(new Date(Date.now() + 7 * 86400000));
       pintarHallazgos();
     }
@@ -7761,7 +7793,7 @@
         return `<div class="tarjeta hal ${e}" id="hal_${h.id}">
           <div class="hal-cab"><span class="hal-riesgo r-${normalizar(h.riesgo)}">${html(h.riesgo)}</span><span class="hal-estado">${e === "cerrado" ? "✅ Cerrado" : e === "vencido" ? "⛔ Vencido" : "🟡 Abierto"}</span></div>
           <div class="tit">${html(h.desc)}</div>
-          <div class="det">${h.lugar ? "📍 " + html(h.lugar) + " · " : ""}${html(h.origen)} · Detectado el ${fechaCLde(h.fecha)}</div>
+          <div class="det">${ubicTxt(ubicDe(h)) ? "🛣️ " + html(ubicTxt(ubicDe(h))) + " · " : ""}${h.lugar ? "📍 " + html(h.lugar) + " · " : ""}${html(h.origen)} · Detectado el ${fechaCLde(h.fecha)}</div>
           ${h.accion ? `<div class="det"><b>Acción:</b> ${html(h.accion)}</div>` : ""}
           <div class="det">${h.resp ? "<b>Responsable:</b> " + html(h.resp) + " · " : ""}<span class="${e === "vencido" ? "rojo" : ""}">${textoPlazo(h)}</span></div>
           ${h.cerrado && h.cerrado.comentario ? `<div class="det"><b>Cierre:</b> ${html(h.cerrado.comentario)}</div>` : ""}
@@ -7804,12 +7836,13 @@
       const msj = document.getElementById("msjHal"), v = id => document.getElementById(id).value.trim();
       const desc = v("halDesc");
       if (!desc) { msj.textContent = "Escribe qué se encontró."; return; }
-      const h = { id: nuevoIdHal(), fecha: hoyISO(), desc, lugar: v("halLugar"), origen: v("halOrigen"), riesgo: v("halRiesgo"), accion: v("halAccion"), resp: v("halResp"), plazo: v("halPlazo"), foto: false, fotoCierre: false, cerrado: null };
+      const u = leerUbic("hal"); if (u.error) { msj.textContent = u.error; return; }
+      const h = { id: nuevoIdHal(), fecha: hoyISO(), desc, lugar: v("halLugar"), origen: v("halOrigen"), riesgo: v("halRiesgo"), accion: v("halAccion"), resp: v("halResp"), plazo: v("halPlazo"), ubic: u.ubic, foto: false, fotoCierre: false, cerrado: null };
       if (fotoNuevaHal) {
         try { await bdFotos("readwrite", s => s.put(fotoNuevaHal, h.id + "|antes")); h.foto = true; } catch (e) { msj.textContent = "El hallazgo se guardará sin foto (" + e.message + ")."; }
       }
       hallazgos.push(h); guardarHallazgos();
-      ["halDesc", "halAccion"].forEach(id => document.getElementById(id).value = "");
+      ["halDesc", "halAccion"].forEach(id => document.getElementById(id).value = ""); limpiarUbic("hal");
       fotoNuevaHal = null; document.getElementById("halFotoNueva").innerHTML = "";
       document.getElementById("halPlazo").value = isoD(new Date(Date.now() + 7 * 86400000));
       msj.textContent = `✅ Hallazgo guardado${h.plazo ? " con plazo al " + fechaCLde(h.plazo) : ""}.`;
@@ -8010,7 +8043,7 @@
       const COLOR_R = { Alto: ROJO, Medio: AMBAR, Bajo: VERDE };
       tabla([{ titulo: "N°", ancho: 0.04, centro: true }, { titulo: "Fecha", ancho: 0.09, centro: true }, { titulo: "Hallazgo / lugar", ancho: 0.27 }, { titulo: "Riesgo", ancho: 0.07, centro: true },
              { titulo: "Acción correctiva", ancho: 0.22 }, { titulo: "Responsable", ancho: 0.12 }, { titulo: "Plazo", ancho: 0.09, centro: true }, { titulo: "Estado", ancho: 0.1, centro: true }],
-        lista.map((h, i) => [String(i + 1), fechaCLde(h.fecha), `${h.desc}${h.lugar ? "\n(" + h.lugar + ")" : ""}`, { texto: h.riesgo, negrita: true, color: COLOR_R[h.riesgo] },
+        lista.map((h, i) => [String(i + 1), fechaCLde(h.fecha), `${h.desc}${[h.lugar, ubicTxt(ubicDe(h))].filter(Boolean).length ? "\n(" + [h.lugar, ubicTxt(ubicDe(h))].filter(Boolean).join(" · ") + ")" : ""}`, { texto: h.riesgo, negrita: true, color: COLOR_R[h.riesgo] },
           h.accion + (h.cerrado && h.cerrado.comentario ? "\nRealizado: " + h.cerrado.comentario : ""), h.resp, fechaCLde(h.plazo),
           h.cerrado ? { texto: "Cerrado " + fechaCLde(h.cerrado.fecha), color: VERDE, negrita: true } : estadoHal(h) === "vencido" ? { texto: "Vencido", color: ROJO, negrita: true } : { texto: "Abierto", color: AMBAR, negrita: true }]));
 
@@ -8841,6 +8874,93 @@
     pintarBotonEmergencia();
 
     /* =====================================================================
+       RUTA Y KM (T2-4a): cada hallazgo, casi accidente (y después check list y accidente) puede llevar su ubicación.
+       ubic = { ruta, km, lat?, lon? }. El km se escribe a mano (el GPS da coordenadas, no kilómetros de la ruta); las coordenadas son
+       opcionales, se guardan SOLO si el usuario toca el botón, nunca en segundo plano, y no se imprimen en los PDF.
+       pt_rutas = lista de rutas de la obra (configuración, en Empresa y formatos).
+       ===================================================================== */
+    let rutasObra = (() => { const l = leerGuardado("pt_rutas", []); return Array.isArray(l) ? l.map(x => textoCorto(x, 60).trim()).filter(Boolean).slice(0, 50) : []; })();
+    function pintarListaRutas() { const d = document.getElementById("listaRutas"); if (d) d.innerHTML = rutasObra.map(r => `<option value="${html(r)}">`).join(""); }
+    // "412,3", "412.3", "km 412" y "412+300" (km+metros, formato vial chileno) → número en km; si no se entiende, null
+    function parseKm(t) {
+      const s = String(t ?? "").trim().toLowerCase().replace(/^km\.?\s*/, "").replace(/\s+/g, "");
+      let m;
+      if ((m = s.match(/^(\d{1,4})\+(\d{1,3})$/))) return +m[1] + (+m[2]) / 1000;
+      if ((m = s.match(/^(\d{1,4})(?:[.,](\d{1,3}))?$/))) return +(m[1] + (m[2] ? "." + m[2] : ""));
+      return null;
+    }
+    const normalizarKm = t => { const k = parseKm(t); return k === null ? "" : String(Math.round(k * 1000) / 1000).replace(".", ","); };
+    function validarUbic(u) {
+      const o = u && typeof u === "object" ? u : {}, num = (x, lim) => typeof x === "number" && isFinite(x) && Math.abs(x) <= lim ? x : null;
+      const r = { ruta: textoCorto(o.ruta, 60), km: normalizarKm(o.km) }, lat = num(o.lat, 90), lon = num(o.lon, 180);
+      if (lat !== null && lon !== null) { r.lat = lat; r.lon = lon; }
+      return r;
+    }
+    const ubicDe = x => validarUbic(x && x.ubic);
+    const ubicTxt = u => u && (u.ruta || u.km) ? [u.ruta, u.km ? "Km " + u.km : ""].filter(Boolean).join(" · ") : "";
+    const gpsTmp = {};
+    function usarGps(p) {
+      const t = document.getElementById(p + "GpsTxt");
+      if (!navigator.geolocation) { t.textContent = "Este equipo no permite obtener la ubicación."; return; }
+      t.textContent = "Buscando la ubicación…";
+      navigator.geolocation.getCurrentPosition(pos => {
+        gpsTmp[p] = { lat: Math.round(pos.coords.latitude * 1e5) / 1e5, lon: Math.round(pos.coords.longitude * 1e5) / 1e5 };
+        t.textContent = `✅ Ubicación del equipo guardada (${gpsTmp[p].lat}, ${gpsTmp[p].lon}). Va con el registro y no se imprime.`;
+      }, err => { t.textContent = err.code === 1 ? "No diste permiso de ubicación: basta con escribir el km." : "No se pudo obtener la ubicación (sin señal o sin GPS)."; }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+    // Lee ruta, km y coordenadas del formulario con ese prefijo; devuelve { ubic } o { error }
+    function leerUbic(p) {
+      const ruta = document.getElementById(p + "Ruta").value.trim(), kmTxt = document.getElementById(p + "Km").value.trim();
+      if (kmTxt && parseKm(kmTxt) === null) return { error: "No entiendo el km: escríbelo como 412,3 o 412+300." };
+      return { ubic: validarUbic({ ruta, km: kmTxt, ...(gpsTmp[p] || {}) }) };
+    }
+    function limpiarUbic(p) { delete gpsTmp[p]; document.getElementById(p + "Km").value = ""; document.getElementById(p + "GpsTxt").textContent = ""; }
+    function iniciarUbic(p) {
+      const r = document.getElementById(p + "Ruta");
+      if (r && !r.value && rutasObra.length === 1) r.value = rutasObra[0];
+    }
+
+    pintarListaRutas();
+    // ----- Vista "Puntos críticos": registros con ruta y km, por tramo de 1 km -----
+    function registrosConUbic(desde) {
+      const l = [];
+      for (const h of hallazgos) if (!String(h.clave || "").startsWith("casi:")) l.push({ tipo: "Hallazgo", fecha: h.fecha, texto: h.desc, ubic: ubicDe(h) });   // los que nacen de un casi accidente ya cuentan como casi
+      for (const c of casiReportes) l.push({ tipo: "Casi accidente", fecha: c.fecha, texto: `${c.tipo}: ${c.desc}`, ubic: ubicDe(c) });
+      for (const a of accidentes) l.push({ tipo: "Accidente", fecha: a.fecha, texto: a.que || "", ubic: validarUbic({ ruta: a.ruta, km: a.km, ...(a.ubic || {}) }) });
+      return l.filter(x => String(x.fecha || "") >= desde);
+    }
+    function agruparPuntosCriticos(desde) {
+      const lista = registrosConUbic(desde), rutas = {}, sinKm = [], sinUbic = [];
+      for (const x of lista) {
+        const k = parseKm(x.ubic.km);
+        if (k === null) { (x.ubic.ruta ? sinKm : sinUbic).push(x); continue; }
+        const ruta = x.ubic.ruta || "(sin ruta)", tramo = Math.floor(k);
+        ((rutas[ruta] ||= {})[tramo] ||= []).push(x);
+      }
+      return { rutas, sinKm, sinUbic, total: lista.length };
+    }
+    function desdeCriticos() {
+      const p = document.getElementById("critPeriodo").value, hoy = hoyISO();
+      if (p === "mes") return hoy.slice(0, 7) + "-01";
+      if (p === "3m") return sumarMeses(hoy.slice(0, 7), -2) + "-01";
+      if (p === "anio") return hoy.slice(0, 4) + "-01-01";
+      return "0000-01-01";
+    }
+    function pintarCriticos() {
+      pintarListaRutas();
+      const g = agruparPuntosCriticos(desdeCriticos()), cont = document.getElementById("critLista");
+      const resumen = l => ["Hallazgo", "Casi accidente", "Accidente"].map(t => [t, l.filter(x => x.tipo === t).length]).filter(([, n]) => n).map(([t, n]) => `${n} ${t.toLowerCase()}${n === 1 || t === "Accidente" || t === "Casi accidente" ? "" : "s"}`).join(", ");
+      const mapa = l => { const c = l.find(x => typeof x.ubic.lat === "number"); return c ? ` · <a href="https://www.google.com/maps?q=${c.ubic.lat},${c.ubic.lon}" target="_blank" rel="noopener">Ver en el mapa</a>` : ""; };
+      const filas = l => l.map(x => `<div class="det">• ${html(x.tipo)} · ${fechaCLde(x.fecha)} · ${html(String(x.texto).slice(0, 120))}</div>`).join("");
+      const rutas = Object.entries(g.rutas).sort((a, b) => a[0].localeCompare(b[0], "es"));
+      let out = rutas.map(([ruta, tramos]) => `<h3>🛣️ ${html(ruta)}</h3>` + Object.entries(tramos).sort((a, b) => b[1].length - a[1].length || a[0] - b[0]).map(([t, l]) =>
+        `<details class="exportar"><summary><b>Km ${t} a ${+t + 1}</b> · ${l.length} registro(s): ${html(resumen(l))}</summary>${filas(l)}${mapa(l) ? `<div class="det">${mapa(l).slice(3)}</div>` : ""}</details>`).join("")).join("");
+      if (!out) out = `<p class="ayuda">No hay registros con ruta y km en este período. Escribe el km al registrar un hallazgo o un casi accidente.</p>`;
+      const aparte = (t, l) => l.length ? `<details class="exportar"><summary>${t}: ${l.length}</summary>${filas(l)}</details>` : "";
+      cont.innerHTML = `<p class="ayuda" style="margin:6px 0">${g.total} registro(s) en el período.</p>${out}${aparte("Con ruta pero sin km", g.sinKm)}${aparte("Sin ubicación", g.sinUbic)}`;
+    }
+
+    /* =====================================================================
        CASI ACCIDENTES, ACTOS Y CONDICIONES INSEGURAS (folio CAS-)
        pt_casi = [{ id, tipo, fecha, hora, lugar, desc, cargo, accion, seguimiento, folio }]  (sin nombres ni RUT; para la estadística)
        pt_casi_recordar = { lugar }. Las fotos van SOLO dentro del PDF (no se guardan aparte). No lleva firma.
@@ -8849,14 +8969,14 @@
        ===================================================================== */
     const TIPOS_CASI = ["Casi accidente", "Acto inseguro", "Condición insegura"];
     let casiReportes = listaGuardada("pt_casi", r => idSeguroTxt(r.id) && TIPOS_CASI.includes(r.tipo) && /^\d{4}-\d{2}-\d{2}$/.test(String(r.fecha)))
-      .map(r => ({ id: r.id, tipo: r.tipo, fecha: r.fecha, hora: textoCorto(r.hora, 5), lugar: textoCorto(r.lugar, 120), desc: textoCorto(r.desc, 600), cargo: textoCorto(r.cargo, 80), accion: textoCorto(r.accion, 400), seguimiento: !!r.seguimiento, folio: textoCorto(r.folio, 40) }));
+      .map(r => ({ id: r.id, tipo: r.tipo, fecha: r.fecha, hora: textoCorto(r.hora, 5), lugar: textoCorto(r.lugar, 120), desc: textoCorto(r.desc, 600), cargo: textoCorto(r.cargo, 80), accion: textoCorto(r.accion, 400), seguimiento: !!r.seguimiento, folio: textoCorto(r.folio, 40), ubic: validarUbic(r.ubic) }));
     let casiFotosTmp = [];
     function iniciarCasi() {
       const ahora = new Date();
       document.getElementById("casiFecha").value = hoyISO();
       document.getElementById("casiHora").value = ahora.toTimeString().slice(0, 5);
       document.getElementById("casiLugar").value = textoCorto(leerGuardado("pt_casi_recordar", {}).lugar, 120);
-      document.getElementById("casiError").textContent = ""; document.getElementById("casiMsj").textContent = "";
+      document.getElementById("casiError").textContent = ""; document.getElementById("casiMsj").textContent = ""; iniciarUbic("casi");
       casiFotosTmp = []; pintarFotosCasi(); pintarCasiMes();
     }
     async function fotoCasi(input) {
@@ -8882,6 +9002,7 @@
       c.parrafo(`Tipo: ${r.tipo}`, { f: c.fB, tam: 11 });
       c.parrafo(`Fecha y hora: ${fechaCLde(r.fecha)}${r.hora ? ", " + r.hora + " hrs" : ""}`, { tam: 10.5 });
       if (r.lugar) c.parrafo(`Lugar o área: ${r.lugar}`, { tam: 10.5 });
+      if (ubicTxt(validarUbic(r.ubic))) c.parrafo(`Ruta y km: ${ubicTxt(validarUbic(r.ubic))}`, { tam: 10.5 });
       if (r.cargo) c.parrafo(`Cargo o especialidad involucrada: ${r.cargo}`, { tam: 10.5 });
       c.titulo("Qué pasó");
       c.parrafo(r.desc, { tam: 10.5 });
@@ -8908,6 +9029,8 @@
       if (!TIPOS_CASI.includes(r.tipo) || !/^\d{4}-\d{2}-\d{2}$/.test(r.fecha)) { err.textContent = "Revisa el tipo y la fecha."; return; }
       if (!r.lugar) { err.textContent = "Escribe el lugar o área."; return; }
       if (!r.desc) { err.textContent = "Cuenta brevemente qué pasó."; return; }
+      const u = leerUbic("casi"); if (u.error) { err.textContent = u.error; return; }
+      r.ubic = u.ubic;
       err.textContent = ""; msj.textContent = "Guardando…";
       try {
         const pdf = { bytes: await crearPDF_Casi(r, casiFotosTmp), nombreArchivo: `Reporte_preventivo_${r.fecha}_${r.hora.replace(":", "")}.pdf`, asunto: `${r.tipo} – ${r.lugar} – ${fechaCLde(r.fecha)}` };
@@ -8917,11 +9040,11 @@
         guardar("pt_casi_recordar", { lugar: r.lugar });
         if (r.seguimiento && !hallazgos.some(h => h.clave === "casi:" + r.id)) {
           hallazgos.push({ id: nuevoIdHal(), clave: "casi:" + r.id, fecha: r.fecha, desc: `${r.tipo}: ${r.desc}`, lugar: r.lugar, origen: "Casi accidente", riesgo: "Medio",
-                           accion: r.accion, resp: "", plazo: isoD(new Date(Date.now() + 7 * 86400000)), foto: false, fotoCierre: false, cerrado: null });
+                           accion: r.accion, ubic: r.ubic, resp: "", plazo: isoD(new Date(Date.now() + 7 * 86400000)), foto: false, fotoCierre: false, cerrado: null });
           guardarHallazgos();
         }
         bitacora("Reporte preventivo", { doc: `${r.tipo} · ${r.lugar} · ${fechaCLde(r.fecha)}`, folio: r.folio });
-        ["casiDesc", "casiCargo", "casiAccion"].forEach(id => document.getElementById(id).value = "");
+        ["casiDesc", "casiCargo", "casiAccion"].forEach(id => document.getElementById(id).value = ""); limpiarUbic("casi");
         document.getElementById("casiSeg").checked = false;
         casiFotosTmp = []; pintarFotosCasi(); pintarCasiMes();
         msj.textContent = `✅ Guardado con folio ${r.folio || "—"}${r.seguimiento ? " y en seguimiento (Hallazgos)" : ""}. Quedó en el Historial.`;
@@ -9119,7 +9242,7 @@
 
     /* ----- EMPEZAR DE CERO: borra los registros de este equipo y conserva la configuración ----- */
     const CONSERVAR_SIEMPRE = ["pt_paquete", "pt_drive_cliente", "pt_cifra_verif", "pt_inf_contrato", "pt_programa", "pt_irl_pred", "pt_relator",
-      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar"];
+      "pt_responsables", "pt_epp_prev", "pt_epp_obra", "pt_doc_recordar", "pt_acc_recordar", "pt_emergencia", "pt_casi_recordar", "pt_rutas"];
     const CONSERVAR_LISTADO = ["pt_listado", "pt_cargos", "pt_cargos_multi", "pt_deptos", "pt_ingreso", "pt_cargoIRL"];
     const borrarBD = nombre => new Promise(ok => { try { const r = indexedDB.deleteDatabase(nombre); r.onsuccess = r.onerror = r.onblocked = () => ok(); } catch { ok(); } });
     async function empezarDeCero() {
